@@ -4,7 +4,7 @@ import (
 	"flag"
     "os"
     "fmt"
-	"github.com/ciii1/kuuhaku/kuuhaku_tokenizer"
+	"github.com/ciii1/kuuhaku/pkg/kuuhaku_tokenizer"
 )
 
 func main() {
