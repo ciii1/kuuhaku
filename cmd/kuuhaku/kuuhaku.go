@@ -4,7 +4,7 @@ import (
 	"flag"
     "os"
     "fmt"
-	"github.com/ciii1/kuuhaku/pkg/kuuhaku_tokenizer"
+	"github.com/ciii1/kuuhaku/internal/formatter"
 )
 
 func main() {
@@ -18,7 +18,9 @@ func main() {
 		fmt.Println("-recursive=", *isRecursive)
 		fmt.Println("-tab=", *tabNum)
 		fmt.Println("-whitespace=", *whitespaceNum)
-		fmt.Println(flag.Arg(0));
+		filename := flag.Arg(0)
+		fmt.Println("Filename=", filename)
+		formatter.Format(filename, *isRecursive, *tabNum, *whitespaceNum)
 	} else {
 		println("Expected at least 1 argument")
 		PrintHelp()
