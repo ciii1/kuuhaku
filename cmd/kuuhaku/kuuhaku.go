@@ -35,7 +35,7 @@ func PrintHelp() {
 	println("If filename is a directory, kuuhaku will process all of the files inside the directory")
 	println("")
 	println("Flags:")
-	println("-recursive\t\tProcess files recursively")
+	println("-recursive\t\tProcess directories recursively")
 	println("-tab=<int>\t\tDon't format the file but replace indents to tab times the specified integer")
 	println("-whitespace=<int>\tSame as -tab but replace with whitespace times the specified integer")
 	println("")
