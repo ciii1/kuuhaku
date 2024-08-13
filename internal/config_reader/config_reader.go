@@ -34,6 +34,7 @@ func ReadFormat(extension string) error {
 	} else {
 		formatGrammar, err := os.ReadFile(formatFilePath) 
 		helper.Check(err)
+		fmt.Println(string(formatGrammar))
 		kuuhaku_parser.Parse(string(formatGrammar))
 	}
 

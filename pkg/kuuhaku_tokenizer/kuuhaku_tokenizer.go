@@ -9,112 +9,127 @@ var ErrTokenUnrecognized = fmt.Errorf("Token is unrecognized")
 type TokenType int
 
 const (
-	RESERVED = iota
+	IDENTIFIER = iota
 	REGEX_LITERAL
 	STRING_LITERAL
 	CAPTURE_GROUP
 	OPENING_CURLY_BRACKET
 	CLOSING_CURLY_BRACKET
 	EQUAL_SIGN
+	EOF
 )
 
 type Token struct {
-	tokenType TokenType
-	content string
-	position Position
+	Type TokenType
+	Content string
+	Position Position
 }
 
 type Position struct {
-	column int
-	line int
-	raw int
+	Column int
+	Line int
+	Raw int
 }
 
 type Tokenizer struct {
-	position Position
-	input string
+	Position Position
+	Input string
 }
 
 func Init(input string) Tokenizer {
 	return Tokenizer {
-		position: Position {
-			column: 1,
-			line: 1,
-			raw: 0,
+		Position: Position {
+			Column: 1,
+			Line: 1,
+			Raw: 0,
 		},
-		input: input,
+		Input: input,
 	}
 }
 
 
 func (tokenizer *Tokenizer) Next() (*Token, error) {
-	tokenizer._ConsumeNewline()
-	token := tokenizer._ConsumeReserved()
+	tokenizer.consumeNewline()
+	tokenizer.consumeWhitespace()
+	if tokenizer.peekChar() == '\003' {
+		return &Token {
+			Position: Position {
+				Raw: tokenizer.Position.Raw,
+				Column: tokenizer.Position.Column,
+				Line: tokenizer.Position.Line,
+			},
+			Type: EOF,
+			Content: "\003",
+		}, nil
+	}
+	token := tokenizer.consumeIdentifier()
 	if token != nil {
 		return token, nil
 	}
 	return nil, ErrTokenUnrecognized
 }
 
-func (tokenizer *Tokenizer) _NextChar() byte {
-	char := tokenizer._PeekChar()
-	tokenizer.position.raw += 1
-	tokenizer.position.column += 1
-
-	return char
+func (tokenizer *Tokenizer) nextChar() byte {
+	tokenizer.Position.Raw += 1
+	tokenizer.Position.Column += 1
+	return tokenizer.peekChar()
 }
 
-func (tokenizer *Tokenizer) _PeekChar() byte {
-	return tokenizer.input[tokenizer.position.raw];
+func (tokenizer *Tokenizer) peekChar() byte {
+	if tokenizer.Position.Raw >= len(tokenizer.Input) {
+		return '\003' //ETX (end of text) https://id.wikipedia.org/wiki/ASCII
+	}
+
+	return tokenizer.Input[tokenizer.Position.Raw];
 }
 
-func (tokenizer *Tokenizer) _ConsumeNewline() {
-	currChar := tokenizer._PeekChar()
+func (tokenizer *Tokenizer) consumeNewline() {
+	currChar := tokenizer.peekChar()
 	if currChar == '\n' {
-		tokenizer.position.column = 1
-		tokenizer.position.line += 1
-		tokenizer._NextChar()	
+		tokenizer.nextChar()	
+		tokenizer.Position.Column = 1
+		tokenizer.Position.Line += 1
 	}
 }
 
-func (tokenizer *Tokenizer) _ConsumeWhitespace() {
-	currChar := tokenizer._PeekChar()
+func (tokenizer *Tokenizer) consumeWhitespace() {
+	currChar := tokenizer.peekChar()
 	if currChar == ' ' || currChar == '\t' {
-		tokenizer._NextChar()
+		tokenizer.nextChar()
 	}
 }
 
-func (tokenizer *Tokenizer) _ConsumeReserved() *Token {
-	position_raw := tokenizer.position.raw
-	column := tokenizer.position.column
-	line := tokenizer.position.line
+func (tokenizer *Tokenizer) consumeIdentifier() *Token {
+	positionRaw := tokenizer.Position.Raw
+	column := tokenizer.Position.Column
+	line := tokenizer.Position.Line
 
-	currChar := tokenizer._PeekChar();
-	if !isRuneReserved(currChar) {
+	currChar := tokenizer.peekChar();
+	if !isRuneIdentifier(currChar) {
 		return nil
 	}
 
 	tokenContent := ""
 
 	isCurrCharBetween_0_9 := false
-	for isRuneReserved(currChar) || isCurrCharBetween_0_9 {
-		currChar = tokenizer._NextChar()
+	for isRuneIdentifier(currChar) || isCurrCharBetween_0_9 {
 		tokenContent += string(currChar)
+		currChar = tokenizer.nextChar()
 		isCurrCharBetween_0_9 = int(currChar) > int('0') && int(currChar) < int('9')
 	}
 
 	return &Token {
-		position: Position {
-			raw: position_raw,
-			column: column,
-			line: line,
+		Position: Position {
+			Raw: positionRaw,
+			Column: column,
+			Line: line,
 		},
-		tokenType: RESERVED,
-		content: tokenContent,
+		Type: IDENTIFIER,
+		Content: tokenContent,
 	}
 }
 
-func isRuneReserved(char byte) bool {
+func isRuneIdentifier(char byte) bool {
 	isCurrCharBetween_a_z := int(char) > int('a') && int(char) < int('z')
 	isCurrCharBetween_A_Z := int(char) > int('A') && int(char) < int('Z')
 	isCurrCharSpecialCharacters := char == '_' || char == '-'
