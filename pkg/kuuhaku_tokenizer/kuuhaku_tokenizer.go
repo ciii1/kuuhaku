@@ -3,12 +3,11 @@ package kuuhaku_tokenizer
 import (
 	"fmt"
 	"strconv"
-
-	"github.com/ciii1/kuuhaku/internal/helper"
 )
 
-var ErrCharacterUnrecognized = fmt.Errorf("Character is unrecognized")
+var ErrPatternUnrecognized = fmt.Errorf("Pattern is unrecognized")
 var ErrStringLiteralUnterminated = fmt.Errorf("String literal is unterminated")
+var ErrRegexLiteralUnterminated = fmt.Errorf("Regex literal is unterminated")
 
 type TokenType int
 
@@ -73,12 +72,19 @@ func (tokenizer *Tokenizer) Next() (*Token, error) {
 	}
 	token, err := tokenizer.consumeStringLiteral()
 	if err != nil {
-		return nil, ErrStringLiteralUnterminated
+		return nil, err
 	}
 	if token != nil {
 		return token, nil
 	}
-	return nil, ErrCharacterUnrecognized
+	token, err = tokenizer.consumeRegexLiteral()
+	if err != nil {
+		return nil, err
+	}
+	if token != nil {
+		return token, nil
+	}
+	return nil, ErrPatternUnrecognized
 }
 
 func (tokenizer *Tokenizer) nextChar() byte {
@@ -155,7 +161,9 @@ func (tokenizer *Tokenizer) consumeStringLiteral() (*Token, error) {
 	tokenizer.nextChar()
 
 	content, err := strconv.Unquote("\"" + content + "\"")
-	helper.Check(err)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Token {
 		Position: Position {
@@ -164,6 +172,46 @@ func (tokenizer *Tokenizer) consumeStringLiteral() (*Token, error) {
 			Line: line,
 		},
 		Type: STRING_LITERAL,
+		Content: content,
+	}, nil
+}
+
+func (tokenizer *Tokenizer) consumeRegexLiteral() (*Token, error) {
+	positionRaw := tokenizer.Position.Raw
+	column := tokenizer.Position.Column
+	line := tokenizer.Position.Line
+	content := ""
+
+	currChar := tokenizer.peekChar()
+	if currChar != '<' {
+		return nil, nil
+	}
+
+	prevPrevChar := byte(0)
+	prevChar := tokenizer.peekChar()
+	currChar = tokenizer.nextChar()
+	for currChar != '>' || (prevChar == '\\' && prevPrevChar != '\\') {
+		prevPrevChar = prevChar
+		prevChar = tokenizer.peekChar()
+		currChar = tokenizer.nextChar()	
+		if currChar == '>' && prevChar == '\\' && prevPrevChar != '\\' {
+
+		} else {
+			content += string(prevChar)
+		}
+		if currChar == '\n' || currChar == '\003' {
+			return nil, ErrRegexLiteralUnterminated
+		}
+	}
+	tokenizer.nextChar()
+
+	return &Token {
+		Position: Position {
+			Raw: positionRaw,
+			Column: column,
+			Line: line,
+		},
+		Type: REGEX_LITERAL,
 		Content: content,
 	}, nil
 }

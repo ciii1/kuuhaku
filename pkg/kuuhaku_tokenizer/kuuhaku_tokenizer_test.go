@@ -97,7 +97,7 @@ func TestStringLiteralEscapes(t *testing.T) {
 	token, err = tokenizer.Next()
 	helper.Check(err)
 	if token.Content != "test2\\" || token.Type != STRING_LITERAL {
-		println("Expected \"test2\", got \"" + token.Content + "\"")
+		println("Expected \"test2\\\", got \"" + token.Content + "\"")
 		t.Fail()
 	}
 }
@@ -106,7 +106,7 @@ func TestStringLiteralUnterminated(t *testing.T) {
 	tokenizer := Init("\"hello\ntest'test\n'");
 	token, err := tokenizer.Next()
 	if err != ErrStringLiteralUnterminated {
-		println("Exptected ErrStringLiteralUnterminated error")
+		println("Expected ErrStringLiteralUnterminated error")
 		t.Fail()
 	}
 	token, err = tokenizer.Next()
@@ -118,6 +118,70 @@ func TestStringLiteralUnterminated(t *testing.T) {
 	token, err = tokenizer.Next()
 	if err != ErrStringLiteralUnterminated {
 		println("Exptected ErrStringLiteralUnterminated error")
+		t.Fail()
+	}
+}
+
+func TestRegexLiteralBasic(t *testing.T) {
+	tokenizer := Init("<hello> <test>");
+	token, err := tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "hello" || token.Type != REGEX_LITERAL {
+		println("Expected \"hello\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "test" || token.Type != REGEX_LITERAL {
+		println("Expected \"test\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+}
+
+func TestRegexLiteralEscapes(t *testing.T) {
+	tokenizer := Init("<hello\\n> <test\\t> <test2\\>> <test2\\\\>");
+	token, err := tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "hello\\n" || token.Type != REGEX_LITERAL {
+		println("Expected \"hello\\n\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "test\\t" || token.Type != REGEX_LITERAL {
+		println("Expected \"test\\t\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "test2>" || token.Type != REGEX_LITERAL {
+		println("Expected \"test2>\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "test2\\\\" || token.Type != REGEX_LITERAL {
+		println("Expected \"test2\\\\\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+}
+
+func TestRegexLiteralUnterminated(t *testing.T) {
+	tokenizer := Init("<hello\ntest<test\n>");
+	token, err := tokenizer.Next()
+	if err != ErrRegexLiteralUnterminated {
+		println("Exptected ErrRegexLiteralUnterminated error")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "test" || token.Type != IDENTIFIER {
+		println("Expected \"test\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	if err != ErrRegexLiteralUnterminated {
+		println("Exptected ErrRegexLiteralUnterminated error")
 		t.Fail()
 	}
 }
