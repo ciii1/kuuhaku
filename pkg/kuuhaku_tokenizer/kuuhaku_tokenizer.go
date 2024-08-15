@@ -8,6 +8,7 @@ import (
 var ErrPatternUnrecognized = fmt.Errorf("Pattern is unrecognized")
 var ErrStringLiteralUnterminated = fmt.Errorf("String literal is unterminated")
 var ErrRegexLiteralUnterminated = fmt.Errorf("Regex literal is unterminated")
+var ErrIllegalCaptureGroup = fmt.Errorf("Illegal capture group")
 
 type TokenType int
 
@@ -70,6 +71,22 @@ func (tokenizer *Tokenizer) Next() (*Token, error) {
 	if token != nil {
 		return token, nil
 	}
+
+	token = tokenizer.consumeOpeningCurlyBracket()
+	if token != nil {
+		return token, nil
+	}
+
+	token = tokenizer.consumeClosingCurlyBracket()
+	if token != nil {
+		return token, nil
+	}
+
+	token = tokenizer.consumeEqualSign()
+	if token != nil {
+		return token, nil
+	}
+
 	token, err := tokenizer.consumeStringLiteral()
 	if err != nil {
 		return nil, err
@@ -77,6 +94,7 @@ func (tokenizer *Tokenizer) Next() (*Token, error) {
 	if token != nil {
 		return token, nil
 	}
+
 	token, err = tokenizer.consumeRegexLiteral()
 	if err != nil {
 		return nil, err
@@ -84,6 +102,15 @@ func (tokenizer *Tokenizer) Next() (*Token, error) {
 	if token != nil {
 		return token, nil
 	}
+
+	token, err = tokenizer.consumeCaptureGroup()
+	if err != nil {
+		return nil, err
+	}
+	if token != nil {
+		return token, nil
+	}
+
 	return nil, ErrPatternUnrecognized
 }
 
@@ -135,6 +162,75 @@ func (tokenizer *Tokenizer) consumeComment() bool {
 	}
 }
 
+func (tokenizer *Tokenizer) consumeOpeningCurlyBracket() *Token {
+	positionRaw := tokenizer.Position.Raw
+	column := tokenizer.Position.Column
+	line := tokenizer.Position.Line
+
+	currChar := tokenizer.peekChar()
+	if currChar != '{' {
+		return nil
+	}
+
+	tokenizer.nextChar()
+
+	return &Token {
+		Position: Position {
+			Raw: positionRaw,
+			Column: column,
+			Line: line,
+		},
+		Type: OPENING_CURLY_BRACKET,
+		Content: "{",
+	}	
+}
+
+func (tokenizer *Tokenizer) consumeClosingCurlyBracket() *Token {
+	positionRaw := tokenizer.Position.Raw
+	column := tokenizer.Position.Column
+	line := tokenizer.Position.Line
+
+	currChar := tokenizer.peekChar()
+	if currChar != '}' {
+		return nil
+	}
+
+	tokenizer.nextChar()
+
+	return &Token {
+		Position: Position {
+			Raw: positionRaw,
+			Column: column,
+			Line: line,
+		},
+		Type: CLOSING_CURLY_BRACKET,
+		Content: "}",
+	}	
+}
+
+func (tokenizer *Tokenizer) consumeEqualSign() *Token {
+	positionRaw := tokenizer.Position.Raw
+	column := tokenizer.Position.Column
+	line := tokenizer.Position.Line
+
+	currChar := tokenizer.peekChar()
+	if currChar != '=' {
+		return nil
+	}
+
+	tokenizer.nextChar()
+
+	return &Token {
+		Position: Position {
+			Raw: positionRaw,
+			Column: column,
+			Line: line,
+		},
+		Type: EQUAL_SIGN,
+		Content: "=",
+	}	
+}
+
 func (tokenizer *Tokenizer) consumeStringLiteral() (*Token, error) {
 	positionRaw := tokenizer.Position.Raw
 	column := tokenizer.Position.Column
@@ -172,6 +268,38 @@ func (tokenizer *Tokenizer) consumeStringLiteral() (*Token, error) {
 			Line: line,
 		},
 		Type: STRING_LITERAL,
+		Content: content,
+	}, nil
+}
+
+func (tokenizer *Tokenizer) consumeCaptureGroup() (*Token, error) {
+	positionRaw := tokenizer.Position.Raw
+	column := tokenizer.Position.Column
+	line := tokenizer.Position.Line
+	content := ""
+
+	currChar := tokenizer.peekChar()
+	if currChar != '$' {
+		return nil, nil
+	}
+
+	currChar = tokenizer.nextChar()
+	for isRuneNumber(currChar) {
+		content += string(currChar)
+		currChar = tokenizer.nextChar()
+	}
+
+	if len(content) == 0 {
+		return nil, ErrIllegalCaptureGroup
+	}
+
+	return &Token {
+		Position: Position {
+			Raw: positionRaw,
+			Column: column,
+			Line: line,
+		},
+		Type: CAPTURE_GROUP,
 		Content: content,
 	}, nil
 }
@@ -232,7 +360,7 @@ func (tokenizer *Tokenizer) consumeIdentifier() *Token {
 	for isRuneIdentifier(currChar) || isCurrCharBetween_0_9 {
 		tokenContent += string(currChar)
 		currChar = tokenizer.nextChar()
-		isCurrCharBetween_0_9 = int(currChar) >= int('0') && int(currChar) <= int('9')
+		isCurrCharBetween_0_9 = isRuneNumber(currChar)
 	}
 
 	return &Token {
@@ -251,4 +379,8 @@ func isRuneIdentifier(char byte) bool {
 	isCurrCharBetween_A_Z := int(char) >= int('A') && int(char) <= int('Z')
 	isCurrCharSpecialCharacters := char == '_' || char == '-'
 	return isCurrCharBetween_a_z || isCurrCharBetween_A_Z || isCurrCharSpecialCharacters
+}
+
+func isRuneNumber(char byte) bool {
+	return int(char) >= int('0') && int(char) <= int('9')
 }

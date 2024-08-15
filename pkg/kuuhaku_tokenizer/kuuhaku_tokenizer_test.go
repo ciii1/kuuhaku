@@ -186,6 +186,100 @@ func TestRegexLiteralUnterminated(t *testing.T) {
 	}
 }
 
+func TestCaptureGroup(t *testing.T) {
+	tokenizer := Init("$1$2hello$34test");
+	token, err := tokenizer.Next()
+	if token.Content != "1" || token.Type != CAPTURE_GROUP {
+		println("Exptected 1, got " + token.Content)
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "2" || token.Type != CAPTURE_GROUP {
+		println("Exptected 2, got " + token.Content)
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "hello" || token.Type != IDENTIFIER {
+		println("Exptected hello, got " + token.Content)
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "34" || token.Type != CAPTURE_GROUP {
+		println("Exptected 34, got " + token.Content)
+		t.Fail()
+	}
+}
+
+func TestIllegalCaptureGroup(t *testing.T) {
+	tokenizer := Init("$hello$34test");
+	token, err := tokenizer.Next()
+	if err != ErrIllegalCaptureGroup {
+		println("Exptected ErrIllegalCaptureGroup")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "hello" || token.Type != IDENTIFIER {
+		println("Exptected hello, got " + token.Content)
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "34" || token.Type != CAPTURE_GROUP {
+		println("Exptected 34, got " + token.Content)
+		t.Fail()
+	}
+}
+
+func TestSigns(t *testing.T) {
+	tokenizer := Init("{}{{==test");
+	token, err := tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "{" || token.Type != OPENING_CURLY_BRACKET {
+		println("Exptected {, got " + token.Content)
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "}" || token.Type != CLOSING_CURLY_BRACKET {
+		println("Exptected }, got " + token.Content)
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "{" || token.Type != OPENING_CURLY_BRACKET {
+		println("Exptected {, got " + token.Content)
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "{" || token.Type != OPENING_CURLY_BRACKET {
+		println("Exptected {, got " + token.Content)
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "=" || token.Type != EQUAL_SIGN {
+		println("Exptected =, got " + token.Content)
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "=" || token.Type != EQUAL_SIGN {
+		println("Exptected =, got " + token.Content)
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "test" || token.Type != IDENTIFIER {
+		println("Exptected test, got " + token.Content)
+		t.Fail()
+	}
+}
+
 func TestPosition(t *testing.T) {
 	tokenizer := Init("test #test\n#test again\ntest third");
 	token, err := tokenizer.Next()
