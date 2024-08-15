@@ -58,6 +58,58 @@ func TestComment(t *testing.T) {
 	}
 }
 
+func TestStringLiteralBasic(t *testing.T) {
+	tokenizer := Init("\"hello\" 'test'");
+	token, err := tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "hello" || token.Type != STRING_LITERAL {
+		println("Expected \"hello\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "test" || token.Type != STRING_LITERAL {
+		println("Expected \"test\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+}
+
+func TestStringLiteralEscapes(t *testing.T) {
+	tokenizer := Init("\"hello\\n\\ttest\\010\" 'test\\t'");
+	token, err := tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "hello\n\ttest\010" || token.Type != STRING_LITERAL {
+		println("Expected \"hello\n\ttest\010\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "test\t" || token.Type != STRING_LITERAL {
+		println("Expected \"test\t\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+}
+
+func TestStringLiteralUnterminated(t *testing.T) {
+	tokenizer := Init("\"hello\ntest'test\n'");
+	token, err := tokenizer.Next()
+	if err != ErrStringLiteralUnterminated {
+		println("Exptected ErrStringLiteralUnterminated error")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "test" || token.Type != IDENTIFIER {
+		println("Expected \"test\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	if err != ErrStringLiteralUnterminated {
+		println("Exptected ErrStringLiteralUnterminated error")
+		t.Fail()
+	}
+}
+
 func TestPosition(t *testing.T) {
 	tokenizer := Init("test #test\n#test again\ntest third");
 	token, err := tokenizer.Next()

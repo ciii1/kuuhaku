@@ -2,9 +2,13 @@ package kuuhaku_tokenizer
 
 import (
 	"fmt"
+	"strconv"
+
+	"github.com/ciii1/kuuhaku/internal/helper"
 )
 
 var ErrCharacterUnrecognized = fmt.Errorf("Character is unrecognized")
+var ErrStringLiteralUnterminated = fmt.Errorf("String literal is unterminated")
 
 type TokenType int
 
@@ -47,7 +51,6 @@ func Init(input string) Tokenizer {
 	}
 }
 
-
 func (tokenizer *Tokenizer) Next() (*Token, error) {
 	isCurrentTrash := true
 	for isCurrentTrash {
@@ -65,6 +68,13 @@ func (tokenizer *Tokenizer) Next() (*Token, error) {
 		}, nil
 	}
 	token := tokenizer.consumeIdentifier()
+	if token != nil {
+		return token, nil
+	}
+	token, err := tokenizer.consumeStringLiteral()
+	if err != nil {
+		return nil, ErrStringLiteralUnterminated
+	}
 	if token != nil {
 		return token, nil
 	}
@@ -117,6 +127,41 @@ func (tokenizer *Tokenizer) consumeComment() bool {
 	} else {
 		return false
 	}
+}
+
+func (tokenizer *Tokenizer) consumeStringLiteral() (*Token, error) {
+	positionRaw := tokenizer.Position.Raw
+	column := tokenizer.Position.Column
+	line := tokenizer.Position.Line
+	content := ""
+
+	startChar := tokenizer.peekChar()
+	if startChar != '"' && startChar != '\'' {
+		return nil, nil
+	}
+
+	currChar := tokenizer.nextChar()
+	for !(currChar == startChar && currChar != '\\') {
+		content += string(currChar)
+		currChar = tokenizer.nextChar()	
+		if currChar == '\n' || currChar == '\003' {
+			return nil, ErrStringLiteralUnterminated
+		}
+	}
+	tokenizer.nextChar()
+
+	content, err := strconv.Unquote("\"" + content + "\"")
+	helper.Check(err)
+
+	return &Token {
+		Position: Position {
+			Raw: positionRaw,
+			Column: column,
+			Line: line,
+		},
+		Type: STRING_LITERAL,
+		Content: content,
+	}, nil
 }
 
 func (tokenizer *Tokenizer) consumeIdentifier() *Token {
