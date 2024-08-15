@@ -44,6 +44,49 @@ func TestIdentifierWithNumber(t *testing.T) {
 	}
 }
 
+func TestIdentifierWithLen(t *testing.T) {
+	tokenizer := Init("test9230\nlen\nlens");
+	token, err := tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "test9230" || token.Type != IDENTIFIER {
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "len" || token.Type != LEN_KEYWORD {
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "lens" || token.Type != IDENTIFIER {
+		t.Fail()
+	}
+}
+
+func TestIdentifierWithCaptureGroup(t *testing.T) {
+	tokenizer := Init("len$1\n$32len");
+	token, err := tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "len" || token.Type != LEN_KEYWORD {
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "1" || token.Type != CAPTURE_GROUP {
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "32" || token.Type != CAPTURE_GROUP {
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "len" || token.Type != LEN_KEYWORD {
+		t.Fail()
+	}
+}
+
 func TestComment(t *testing.T) {
 	tokenizer := Init("test #test\n#test again\ntest");
 	token, err := tokenizer.Next()

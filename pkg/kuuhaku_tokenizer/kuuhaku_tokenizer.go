@@ -20,6 +20,7 @@ const (
 	OPENING_CURLY_BRACKET
 	CLOSING_CURLY_BRACKET
 	EQUAL_SIGN
+	LEN_KEYWORD
 	EOF
 )
 
@@ -67,7 +68,7 @@ func (tokenizer *Tokenizer) Next() (*Token, error) {
 			Content: "\003",
 		}, nil
 	}
-	token := tokenizer.consumeIdentifier()
+	token := tokenizer.consumeIdentifierOrKeyword()
 	if token != nil {
 		return token, nil
 	}
@@ -344,7 +345,7 @@ func (tokenizer *Tokenizer) consumeRegexLiteral() (*Token, error) {
 	}, nil
 }
 
-func (tokenizer *Tokenizer) consumeIdentifier() *Token {
+func (tokenizer *Tokenizer) consumeIdentifierOrKeyword() *Token {
 	positionRaw := tokenizer.Position.Raw
 	column := tokenizer.Position.Column
 	line := tokenizer.Position.Line
@@ -363,13 +364,20 @@ func (tokenizer *Tokenizer) consumeIdentifier() *Token {
 		isCurrCharBetween_0_9 = isRuneNumber(currChar)
 	}
 
+	var tokenType TokenType	
+	if tokenContent == "len" {
+		tokenType = LEN_KEYWORD
+	} else {
+		tokenType = IDENTIFIER
+	}
+
 	return &Token {
 		Position: Position {
 			Raw: positionRaw,
 			Column: column,
 			Line: line,
 		},
-		Type: IDENTIFIER,
+		Type: tokenType,
 		Content: tokenContent,
 	}
 }

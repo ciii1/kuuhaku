@@ -19,8 +19,14 @@ func main() {
 		fmt.Println("-tab=", *tabNum)
 		fmt.Println("-whitespace=", *whitespaceNum)
 		filename := flag.Arg(0)
+		format := flag.Arg(1)
 		fmt.Println("Filename=", filename)
-		formatter.Format(filename, *isRecursive, *tabNum, *whitespaceNum)
+		if len(format) == 0 {
+			fmt.Println("no format provided")
+		} else {
+			fmt.Println("Format=", format)
+		}
+		formatter.Format(filename, format, *isRecursive, *tabNum, *whitespaceNum)
 	} else {
 		println("Expected at least 1 argument")
 		PrintHelp()
@@ -31,8 +37,9 @@ func PrintHelp() {
 	println("Kuuhaku - A highly costumizable code formatter")
 	println("")
 	println("Usage:")
-	println("kuuhaku <flags> <filename>")
-	println("If filename is a directory, kuuhaku will process all of the files inside the directory")
+	println("kuuhaku <flags> <filename> <config_name>")
+	println("filename is the file to be formatted. If filename is a directory, kuuhaku will process all of the files inside the directory")
+	println("config_name is the name of the format configuration to be used inside the kuuhaku's formats directory, without the .khk extension. If ommitted, the extension of files that are going to be formatted will be used")
 	println("")
 	println("Flags:")
 	println("-recursive\t\tProcess directories recursively")

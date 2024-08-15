@@ -9,11 +9,15 @@ import (
 	"fmt"
 )
 
-func Format(filename string, isRecursive bool, tabNum int, whitespaceNum int) error {
+func Format(filename string, spec_format_config string, isRecursive bool, tabNum int, whitespaceNum int) error {
 	content, err := os.ReadFile(filename)
 	helper.Check(err)
 	fmt.Println("Format(), content:\n", string(content))
-	err = config_reader.ReadFormat(filepath.Ext(filename))
+	format_config := spec_format_config
+	if len(format_config) == 0 {
+		format_config = filepath.Ext(filename)
+	}
+	err = config_reader.ReadFormat(format_config)
 	if err != nil {
 		if errors.Is(err, config_reader.ErrUnrecognizedExtension) {
 			PrintError(filename, "File extension " + filepath.Ext(filename) + " is unrecognized")
