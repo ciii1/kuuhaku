@@ -75,7 +75,7 @@ func TestStringLiteralBasic(t *testing.T) {
 }
 
 func TestStringLiteralEscapes(t *testing.T) {
-	tokenizer := Init("\"hello\\n\\ttest\\010\" 'test\\t'");
+	tokenizer := Init("\"hello\\n\\ttest\\010\" 'test\\t' \"test2\\\"\" \"test2\\\\\"");
 	token, err := tokenizer.Next()
 	helper.Check(err)
 	if token.Content != "hello\n\ttest\010" || token.Type != STRING_LITERAL {
@@ -86,6 +86,18 @@ func TestStringLiteralEscapes(t *testing.T) {
 	helper.Check(err)
 	if token.Content != "test\t" || token.Type != STRING_LITERAL {
 		println("Expected \"test\t\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "test2\"" || token.Type != STRING_LITERAL {
+		println("Expected \"test2\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "test2\\" || token.Type != STRING_LITERAL {
+		println("Expected \"test2\", got \"" + token.Content + "\"")
 		t.Fail()
 	}
 }

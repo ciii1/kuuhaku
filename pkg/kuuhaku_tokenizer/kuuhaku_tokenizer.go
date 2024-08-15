@@ -140,9 +140,13 @@ func (tokenizer *Tokenizer) consumeStringLiteral() (*Token, error) {
 		return nil, nil
 	}
 
+	prevPrevChar := byte(0)
+	prevChar := tokenizer.peekChar()
 	currChar := tokenizer.nextChar()
-	for !(currChar == startChar && currChar != '\\') {
+	for currChar != startChar || (prevChar == '\\' && prevPrevChar != '\\') {
 		content += string(currChar)
+		prevPrevChar = prevChar
+		prevChar = tokenizer.peekChar()
 		currChar = tokenizer.nextChar()	
 		if currChar == '\n' || currChar == '\003' {
 			return nil, ErrStringLiteralUnterminated
