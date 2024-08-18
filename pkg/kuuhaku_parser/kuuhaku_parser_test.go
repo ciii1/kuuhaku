@@ -1,6 +1,7 @@
 package kuuhaku_parser
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_tokenizer"
@@ -8,8 +9,9 @@ import (
 
 func TestConsumeMatchRules(t *testing.T) {
 	tokenizer := kuuhaku_tokenizer.Init("<.*>hello<[0-9]>hi=");
-	matchRulesP, err := consumeMatchRules(&tokenizer)
-	if err != nil {
+	var err []error
+	matchRulesP := consumeMatchRules(&tokenizer, &err)
+	if len(err) != 0 {
 		panic(err)
 	}
 	matchRules := *matchRulesP
@@ -56,8 +58,9 @@ func TestConsumeMatchRules(t *testing.T) {
 
 func TestConsumeReplaceRules(t *testing.T) {
 	tokenizer := kuuhaku_tokenizer.Init("\"\\t\"len$0$2 \"hi\"");
-	replaceRulesP, err := consumeReplaceRules(&tokenizer)
-	if err != nil {
+	var err []error
+	replaceRulesP := consumeReplaceRules(&tokenizer, &err)
+	if len(err) != 0 {
 		panic(err)
 	}
 	replaceRules := *replaceRulesP
@@ -104,6 +107,61 @@ func TestConsumeReplaceRules(t *testing.T) {
 		t.Fail()
 	} else if node3.String != "hi" {
 		println("Expected matchRules[2] to contain \"hi\"")
+		t.Fail()
+	}
+}
+
+func TestErrorConsumeReplaceRules(t *testing.T) {
+	tokenizer := kuuhaku_tokenizer.Init("\"test\nlen test\nlen$1");
+	var err []error
+	consumeReplaceRules(&tokenizer, &err)
+	token, _ := tokenizer.Next() 
+	if token.Type != kuuhaku_tokenizer.EOF {
+		println("Expected the parser to reach EOF, got token with content " + token.Content)
+		token, _ := tokenizer.Next() 
+		println("Next content is " + token.Content)
+		t.Fatal()
+	}
+
+	var tokenizeError *kuuhaku_tokenizer.TokenizeError
+	if errors.As(err[0], &tokenizeError) {
+		if tokenizeError.Type != kuuhaku_tokenizer.STRING_LITERAL_UNTERMINATED {
+			println("Expected ErrStringLiteralUnterminated error")
+			t.Fail()
+		}
+	} else {
+		println("Expected TokenizeError")
+		t.Fail()
+	}
+
+	var parseError *ParseError
+	if errors.As(err[1], &parseError) {
+		if parseError.Type != LEN_ARGUMENT_INVALID {
+			println("Expected ErrLenArgumentInvalid error")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+
+	if errors.As(err[2], &parseError) {
+		if parseError.Type != UNEXPECTED_LEN {
+			println("Expected ErrUnexpectedLen error")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+
+	if errors.As(err[3], &parseError) {
+		if parseError.Type != UNEXPECTED_LEN {
+			println("Expected ErrUnexpectedLen error at the last len")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
 		t.Fail()
 	}
 }

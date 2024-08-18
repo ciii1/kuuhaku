@@ -1,6 +1,7 @@
 package kuuhaku_tokenizer
 
 import (
+	"errors"
 	"strconv"
 	"testing"
 
@@ -8,17 +9,16 @@ import (
 )
 
 func TestFullTrash(t *testing.T) {
-	tokenizer := Init("  \n  #test\n  ");
-	token, err := tokenizer.Next()
-	helper.Check(err)
+	tokenizer := Init("  \n  #test\n  ")
+	token, _ := tokenizer.Peek()
 	if token.Type != EOF {
 		t.Fail()
 	}
 }
 
 func TestCommentAndIdentifier(t *testing.T) {
-	tokenizer := Init("test #test\ntes ");
-	token, err := tokenizer.Next()
+	tokenizer := Init("test #test\ntes ")
+	token, err := tokenizer.Peek()
 	helper.Check(err)
 	if token.Content != "test" || token.Type != IDENTIFIER {
 		t.Fail()
@@ -31,8 +31,8 @@ func TestCommentAndIdentifier(t *testing.T) {
 }
 
 func TestIdentifierWithNumber(t *testing.T) {
-	tokenizer := Init("test9230\ntest30");
-	token, err := tokenizer.Next()
+	tokenizer := Init("test9230\ntest30")
+	token, err := tokenizer.Peek()
 	helper.Check(err)
 	if token.Content != "test9230" || token.Type != IDENTIFIER {
 		t.Fail()
@@ -45,8 +45,8 @@ func TestIdentifierWithNumber(t *testing.T) {
 }
 
 func TestIdentifierWithLen(t *testing.T) {
-	tokenizer := Init("test9230\nlen\nlens");
-	token, err := tokenizer.Next()
+	tokenizer := Init("test9230\nlen\nlens")
+	token, err := tokenizer.Peek()
 	helper.Check(err)
 	if token.Content != "test9230" || token.Type != IDENTIFIER {
 		t.Fail()
@@ -64,8 +64,8 @@ func TestIdentifierWithLen(t *testing.T) {
 }
 
 func TestIdentifierWithCaptureGroup(t *testing.T) {
-	tokenizer := Init("len$1\n$32len");
-	token, err := tokenizer.Next()
+	tokenizer := Init("len$1\n$32len")
+	token, err := tokenizer.Peek()
 	helper.Check(err)
 	if token.Content != "len" || token.Type != LEN_KEYWORD {
 		t.Fail()
@@ -88,8 +88,8 @@ func TestIdentifierWithCaptureGroup(t *testing.T) {
 }
 
 func TestComment(t *testing.T) {
-	tokenizer := Init("test #test\n#test again\ntest");
-	token, err := tokenizer.Next()
+	tokenizer := Init("test #test\n#test again\ntest")
+	token, err := tokenizer.Peek()
 	helper.Check(err)
 	if token.Content != "test" || token.Type != IDENTIFIER {
 		t.Fail()
@@ -102,8 +102,8 @@ func TestComment(t *testing.T) {
 }
 
 func TestStringLiteralBasic(t *testing.T) {
-	tokenizer := Init("\"hello\" 'test'");
-	token, err := tokenizer.Next()
+	tokenizer := Init("\"hello\" 'test'")
+	token, err := tokenizer.Peek()
 	helper.Check(err)
 	if token.Content != "hello" || token.Type != STRING_LITERAL {
 		println("Expected \"hello\", got \"" + token.Content + "\"")
@@ -118,8 +118,8 @@ func TestStringLiteralBasic(t *testing.T) {
 }
 
 func TestStringLiteralEscapes(t *testing.T) {
-	tokenizer := Init("\"hello\\n\\ttest\\010\" 'test\\t' \"test2\\\"\" \"test2\\\\\"");
-	token, err := tokenizer.Next()
+	tokenizer := Init("\"hello\\n\\ttest\\010\" 'test\\t' \"test2\\\"\" \"test2\\\\\"")
+	token, err := tokenizer.Peek()
 	helper.Check(err)
 	if token.Content != "hello\n\ttest\010" || token.Type != STRING_LITERAL {
 		println("Expected \"hello\n\ttest\010\", got \"" + token.Content + "\"")
@@ -147,11 +147,19 @@ func TestStringLiteralEscapes(t *testing.T) {
 
 func TestStringLiteralUnterminated(t *testing.T) {
 	tokenizer := Init("\"hello\ntest'test\n'");
-	token, err := tokenizer.Next()
-	if err != ErrStringLiteralUnterminated {
-		println("Expected ErrStringLiteralUnterminated error")
+
+	token, err := tokenizer.Peek()
+	var tokenizeError *TokenizeError
+	if errors.As(err, &tokenizeError) {
+		if tokenizeError.Type != STRING_LITERAL_UNTERMINATED {
+			println("Expected StringLiteralUnterminatedError")
+			t.Fail()
+		}
+	} else {
+		println("Expected TokenizeError")
 		t.Fail()
 	}
+
 	token, err = tokenizer.Next()
 	helper.Check(err)
 	if token.Content != "test" || token.Type != IDENTIFIER {
@@ -159,15 +167,20 @@ func TestStringLiteralUnterminated(t *testing.T) {
 		t.Fail()
 	}
 	token, err = tokenizer.Next()
-	if err != ErrStringLiteralUnterminated {
-		println("Exptected ErrStringLiteralUnterminated error")
+	if errors.As(err, &tokenizeError) {
+		if tokenizeError.Type != STRING_LITERAL_UNTERMINATED {
+			println("Expected StringLiteralUnterminatedError")
+			t.Fail()
+		}
+	} else {
+		println("Expected TokenizeError")
 		t.Fail()
 	}
 }
 
 func TestRegexLiteralBasic(t *testing.T) {
-	tokenizer := Init("<hello> <test>");
-	token, err := tokenizer.Next()
+	tokenizer := Init("<hello> <test>")
+	token, err := tokenizer.Peek()
 	helper.Check(err)
 	if token.Content != "hello" || token.Type != REGEX_LITERAL {
 		println("Expected \"hello\", got \"" + token.Content + "\"")
@@ -182,8 +195,8 @@ func TestRegexLiteralBasic(t *testing.T) {
 }
 
 func TestRegexLiteralEscapes(t *testing.T) {
-	tokenizer := Init("<hello\\n> <test\\t> <test2\\>> <test2\\\\>");
-	token, err := tokenizer.Next()
+	tokenizer := Init("<hello\\n> <test\\t> <test2\\>> <test2\\\\>")
+	token, err := tokenizer.Peek()
 	helper.Check(err)
 	if token.Content != "hello\\n" || token.Type != REGEX_LITERAL {
 		println("Expected \"hello\\n\", got \"" + token.Content + "\"")
@@ -211,9 +224,15 @@ func TestRegexLiteralEscapes(t *testing.T) {
 
 func TestRegexLiteralUnterminated(t *testing.T) {
 	tokenizer := Init("<hello\ntest<test\n>");
-	token, err := tokenizer.Next()
-	if err != ErrRegexLiteralUnterminated {
-		println("Exptected ErrRegexLiteralUnterminated error")
+	token, err := tokenizer.Peek()
+	var tokenizeError *TokenizeError 
+	if errors.As(err, &tokenizeError) {
+		if tokenizeError.Type != REGEX_LITERAL_UNTERMINATED {
+			println("Expected RegexLiteralUnterminatedError")
+			t.Fail()
+		}
+	} else {
+		println("Expected TokenizeError")
 		t.Fail()
 	}
 	token, err = tokenizer.Next()
@@ -223,15 +242,21 @@ func TestRegexLiteralUnterminated(t *testing.T) {
 		t.Fail()
 	}
 	token, err = tokenizer.Next()
-	if err != ErrRegexLiteralUnterminated {
-		println("Exptected ErrRegexLiteralUnterminated error")
+	if errors.As(err, &tokenizeError) {
+		if tokenizeError.Type != REGEX_LITERAL_UNTERMINATED {
+			println("Expected RegexLiteralUnterminatedError")
+			t.Fail()
+		}
+	} else {
+		println("Expected TokenizeError")
 		t.Fail()
 	}
 }
 
 func TestCaptureGroup(t *testing.T) {
-	tokenizer := Init("$1$2hello$34test");
-	token, err := tokenizer.Next()
+	tokenizer := Init("$1$2hello$34test")
+	token, err := tokenizer.Peek()
+	helper.Check(err)
 	if token.Content != "1" || token.Type != CAPTURE_GROUP {
 		println("Exptected 1, got " + token.Content)
 		t.Fail()
@@ -258,9 +283,15 @@ func TestCaptureGroup(t *testing.T) {
 
 func TestIllegalCaptureGroup(t *testing.T) {
 	tokenizer := Init("$hello$34test");
-	token, err := tokenizer.Next()
-	if err != ErrIllegalCaptureGroup {
-		println("Exptected ErrIllegalCaptureGroup")
+	token, err := tokenizer.Peek()
+	var tokenizeError *TokenizeError
+	if errors.As(err, &tokenizeError) {
+		if tokenizeError.Type != ILLEGAL_CAPTURE_GROUP {
+			println("Exptected IllegalCaptureGroupError")
+			t.Fail()
+		}
+	} else {
+		println("Expected TokenizeError")
 		t.Fail()
 	}
 	token, err = tokenizer.Next()
@@ -278,8 +309,8 @@ func TestIllegalCaptureGroup(t *testing.T) {
 }
 
 func TestSigns(t *testing.T) {
-	tokenizer := Init("{}{{==test");
-	token, err := tokenizer.Next()
+	tokenizer := Init("{}{{==test")
+	token, err := tokenizer.Peek()
 	helper.Check(err)
 	if token.Content != "{" || token.Type != OPENING_CURLY_BRACKET {
 		println("Exptected {, got " + token.Content)
@@ -324,8 +355,8 @@ func TestSigns(t *testing.T) {
 }
 
 func TestPosition(t *testing.T) {
-	tokenizer := Init("test #test\n#test again\ntest third");
-	token, err := tokenizer.Next()
+	tokenizer := Init("test #test\n#test again\ntest third")
+	token, err := tokenizer.Peek()
 	helper.Check(err)
 	if token.Position.Raw != 0 || token.Position.Column != 1 || token.Position.Line != 1 {
 		println("\n" + token.Content)

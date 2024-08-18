@@ -5,10 +5,53 @@ import (
 	"strconv"
 )
 
-var ErrPatternUnrecognized = fmt.Errorf("Pattern is unrecognized")
-var ErrStringLiteralUnterminated = fmt.Errorf("String literal is unterminated")
-var ErrRegexLiteralUnterminated = fmt.Errorf("Regex literal is unterminated")
-var ErrIllegalCaptureGroup = fmt.Errorf("Illegal capture group")
+type TokenizeErrorType int
+
+const (
+ 	PATTERN_UNRECOGNIZED = iota
+ 	STRING_LITERAL_UNTERMINATED
+ 	REGEX_LITERAL_UNTERMINATED
+	ILLEGAL_CAPTURE_GROUP
+)
+
+type TokenizeError struct {
+	Position Position	
+	Message string
+	Type TokenizeErrorType
+}
+
+func (e TokenizeError) Error() string {
+	return fmt.Sprintf("Tokenize error (%d, %d): %s", e.Position.Line, e.Position.Column, e.Message)
+}
+
+func ErrPatternUnrecognized(tokenizer Tokenizer) *TokenizeError {
+	return &TokenizeError {
+		Message: "Pattern is unrecognized",
+		Position: tokenizer.Position,
+		Type: PATTERN_UNRECOGNIZED,
+	}
+}
+func ErrStringLiteralUnterminated(tokenizer Tokenizer) *TokenizeError {
+	return &TokenizeError {
+		Message: "String literal is not terminated",
+		Position: tokenizer.Position,
+		Type: STRING_LITERAL_UNTERMINATED,
+	}
+}
+func ErrRegexLiteralUnterminated(tokenizer Tokenizer) *TokenizeError {
+	return &TokenizeError {
+		Message: "Regex literal is not terminated",
+		Position: tokenizer.Position,
+		Type: REGEX_LITERAL_UNTERMINATED,
+	}
+}
+func ErrIllegalCaptureGroup(tokenizer Tokenizer) *TokenizeError {
+	return &TokenizeError {
+		Message: "Illegal capture group",
+		Position: tokenizer.Position,
+		Type: ILLEGAL_CAPTURE_GROUP,
+	}
+}
 
 type TokenType int
 
@@ -38,18 +81,28 @@ type Position struct {
 
 type Tokenizer struct {
 	Position Position
+	currToken *Token
+	currError error
 	Input string
 }
 
 func Init(input string) Tokenizer {
-	return Tokenizer {
+	tokenizer := Tokenizer {
 		Position: Position {
 			Column: 1,
 			Line: 1,
 			Raw: 0,
 		},
+		currToken: nil,
+		currError: nil,
 		Input: input,
 	}
+	tokenizer.Next() //Peek() would look at currToken so we need to initialize it first
+	return tokenizer;
+}
+
+func (tokenizer *Tokenizer) Peek() (*Token, error) {
+	return tokenizer.currToken, tokenizer.currError
 }
 
 func (tokenizer *Tokenizer) Next() (*Token, error) {
@@ -58,7 +111,7 @@ func (tokenizer *Tokenizer) Next() (*Token, error) {
 		isCurrentTrash = tokenizer.consumeNewline() || tokenizer.consumeWhitespace() || tokenizer.consumeComment()
 	}
 	if tokenizer.peekChar() == '\003' {
-		return &Token {
+		return tokenizer.returnToken(&Token {
 			Position: Position {
 				Raw: tokenizer.Position.Raw,
 				Column: tokenizer.Position.Column,
@@ -66,53 +119,59 @@ func (tokenizer *Tokenizer) Next() (*Token, error) {
 			},
 			Type: EOF,
 			Content: "\003",
-		}, nil
+		}, nil)
 	}
 	token := tokenizer.consumeIdentifierOrKeyword()
 	if token != nil {
-		return token, nil
+		return tokenizer.returnToken(token, nil)
 	}
 
 	token = tokenizer.consumeOpeningCurlyBracket()
 	if token != nil {
-		return token, nil
+		return tokenizer.returnToken(token, nil)
 	}
 
 	token = tokenizer.consumeClosingCurlyBracket()
 	if token != nil {
-		return token, nil
+		return tokenizer.returnToken(token, nil)
 	}
 
 	token = tokenizer.consumeEqualSign()
 	if token != nil {
-		return token, nil
+		return tokenizer.returnToken(token, nil)
 	}
 
 	token, err := tokenizer.consumeStringLiteral()
 	if err != nil {
-		return nil, err
+		return tokenizer.returnToken(nil, err)
 	}
 	if token != nil {
-		return token, nil
+		return tokenizer.returnToken(token, nil)
 	}
 
 	token, err = tokenizer.consumeRegexLiteral()
 	if err != nil {
-		return nil, err
+		return tokenizer.returnToken(nil, err)
 	}
 	if token != nil {
-		return token, nil
+		return tokenizer.returnToken(token, nil)
 	}
 
 	token, err = tokenizer.consumeCaptureGroup()
 	if err != nil {
-		return nil, err
+		return tokenizer.returnToken(nil, err)
 	}
 	if token != nil {
-		return token, nil
+		return tokenizer.returnToken(token, nil)
 	}
 
-	return nil, ErrPatternUnrecognized
+	return tokenizer.returnToken(nil, ErrPatternUnrecognized(*tokenizer))
+}
+
+func (tokenizer *Tokenizer) returnToken(token *Token, err error) (*Token, error) {
+	tokenizer.currToken = token
+	tokenizer.currError = err
+	return token, err
 }
 
 func (tokenizer *Tokenizer) nextChar() byte {
@@ -252,7 +311,7 @@ func (tokenizer *Tokenizer) consumeStringLiteral() (*Token, error) {
 		prevChar = tokenizer.peekChar()
 		currChar = tokenizer.nextChar()	
 		if currChar == '\n' || currChar == '\003' {
-			return nil, ErrStringLiteralUnterminated
+			return nil, ErrStringLiteralUnterminated(*tokenizer)
 		}
 	}
 	tokenizer.nextChar()
@@ -291,7 +350,7 @@ func (tokenizer *Tokenizer) consumeCaptureGroup() (*Token, error) {
 	}
 
 	if len(content) == 0 {
-		return nil, ErrIllegalCaptureGroup
+		return nil, ErrIllegalCaptureGroup(*tokenizer)
 	}
 
 	return &Token {
@@ -329,7 +388,7 @@ func (tokenizer *Tokenizer) consumeRegexLiteral() (*Token, error) {
 			content += string(prevChar)
 		}
 		if currChar == '\n' || currChar == '\003' {
-			return nil, ErrRegexLiteralUnterminated
+			return nil, ErrRegexLiteralUnterminated(*tokenizer)
 		}
 	}
 	tokenizer.nextChar()
