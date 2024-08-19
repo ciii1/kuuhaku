@@ -40,6 +40,11 @@ func ErrUnexpectedLen(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
 	}
 }
 
+type Parser struct {
+	tokenizer kuuhaku_tokenizer.Tokenizer
+	Errors []error
+}
+
 func Parse(input string) error {
 	tokenizer := kuuhaku_tokenizer.Init(input);
 	token, err := tokenizer.Next()
@@ -54,25 +59,32 @@ func Parse(input string) error {
 	return nil
 }
 
-func consumeReplaceRules(tokenizer *kuuhaku_tokenizer.Tokenizer, errors *[]error) *[]ReplaceRule {
+func Init(input string) Parser {
+	return Parser {
+		tokenizer: kuuhaku_tokenizer.Init(input),
+		Errors: []error{},
+	}
+}
+
+func (parser *Parser) consumeReplaceRules() *[]ReplaceRule {
 	var output []ReplaceRule
 
-	ok := consumeToReplaceRuleArray(tokenizer, &output, errors)
+	ok := parser.consumeToReplaceRuleArray(&output)
 	if !ok {
 		return nil
 	}
 
 	for ok {
-		ok = consumeToReplaceRuleArray(tokenizer, &output, errors)	
+		ok = parser.consumeToReplaceRuleArray(&output)	
 	}
 
 	return &output
 }
 
-func consumeToReplaceRuleArray(tokenizer *kuuhaku_tokenizer.Tokenizer, replaceRuleArray *[]ReplaceRule, errors *[]error) bool {
-	stringLiteral := consumeStringLiteral(tokenizer, errors)
+func (parser *Parser) consumeToReplaceRuleArray(replaceRuleArray *[]ReplaceRule) bool {
+	stringLiteral := parser.consumeStringLiteral()
 	if stringLiteral != nil {
-		lenParsed := consumeLen(tokenizer, errors)
+		lenParsed := parser.consumeLen()
 		if lenParsed != nil {
 			lenParsed.FirstArgument = *stringLiteral
 			*replaceRuleArray = append(*replaceRuleArray, *lenParsed)
@@ -82,9 +94,9 @@ func consumeToReplaceRuleArray(tokenizer *kuuhaku_tokenizer.Tokenizer, replaceRu
 			return true		
 		}
 	}	
-	captureGroup := consumeCaptureGroup(tokenizer, errors)
+	captureGroup := parser.consumeCaptureGroup()
 	if captureGroup != nil {
-		lenParsed := consumeLen(tokenizer, errors)
+		lenParsed := parser.consumeLen()
 		if lenParsed != nil {
 			lenParsed.FirstArgument = *captureGroup
 			*replaceRuleArray = append(*replaceRuleArray, *lenParsed)
@@ -95,24 +107,24 @@ func consumeToReplaceRuleArray(tokenizer *kuuhaku_tokenizer.Tokenizer, replaceRu
 		}
 	}
 
-	lenParsed := consumeLen(tokenizer, errors)
+	lenParsed := parser.consumeLen()
 	if lenParsed != nil {
-		*errors = append(*errors, ErrUnexpectedLen(tokenizer))
+		parser.Errors = append(parser.Errors, ErrUnexpectedLen(&parser.tokenizer))
 		return true
 	}
 
 	return false
 }
 
-func consumeStringLiteral(tokenizer *kuuhaku_tokenizer.Tokenizer, errors *[]error) *StringLiteral {
-	token, err := tokenizer.Peek()
+func (parser *Parser) consumeStringLiteral() *StringLiteral {
+	token, err := parser.tokenizer.Peek()
 	if err != nil {
-		tokenizer.Next()
-		*errors = append(*errors, err)
+		parser.tokenizer.Next()
+		parser.Errors = append(parser.Errors, err)
 		return nil
 	}
 	if token.Type == kuuhaku_tokenizer.STRING_LITERAL {
-		tokenizer.Next()
+		parser.tokenizer.Next()
 		return &StringLiteral {
 			String: token.Content,
 			Position: token.Position,
@@ -122,18 +134,18 @@ func consumeStringLiteral(tokenizer *kuuhaku_tokenizer.Tokenizer, errors *[]erro
 	}
 }
 
-func consumeCaptureGroup(tokenizer *kuuhaku_tokenizer.Tokenizer, errors *[]error) *CaptureGroup {
-	token, err := tokenizer.Peek()
+func (parser *Parser) consumeCaptureGroup() *CaptureGroup {
+	token, err := parser.tokenizer.Peek()
 	if err != nil {
-		tokenizer.Next()
-		*errors = append(*errors, err)
+		parser.tokenizer.Next()
+		parser.Errors = append(parser.Errors, err)
 		return nil
 	}
 	if token.Type == kuuhaku_tokenizer.CAPTURE_GROUP {
-		tokenizer.Next()
+		parser.tokenizer.Next()
 		number, err := strconv.Atoi(token.Content)
 		if err != nil {
-			*errors = append(*errors, err)
+			parser.Errors = append(parser.Errors, err)
 			return nil
 		}
 		return &CaptureGroup {
@@ -145,20 +157,20 @@ func consumeCaptureGroup(tokenizer *kuuhaku_tokenizer.Tokenizer, errors *[]error
 	}
 }
 
-func consumeLen(tokenizer *kuuhaku_tokenizer.Tokenizer, errors *[]error) *Len {
-	token, err := tokenizer.Peek()
+func (parser *Parser) consumeLen() *Len {
+	token, err := parser.tokenizer.Peek()
 	if err != nil {
-		tokenizer.Next()
-		*errors = append(*errors, err)
+		parser.tokenizer.Next()
+		parser.Errors = append(parser.Errors, err)
 		return nil
 	}
 	if token.Type == kuuhaku_tokenizer.LEN_KEYWORD {
-		tokenizer.Next()
+		parser.tokenizer.Next()
 		var argument StringStmt
-		ok := consumeStringStmt(tokenizer, &argument, errors)
+		ok := parser.consumeStringStmt(&argument)
 		if !ok {
-			tokenizer.Next()
-			*errors = append(*errors, ErrLenArgumentInvalid(tokenizer))
+			parser.tokenizer.Next()
+			parser.Errors = append(parser.Errors, ErrLenArgumentInvalid(&parser.tokenizer))
 			return &Len {
 				SecondArgument: nil,
 				Position: token.Position,
@@ -173,13 +185,13 @@ func consumeLen(tokenizer *kuuhaku_tokenizer.Tokenizer, errors *[]error) *Len {
 	}
 }
 
-func consumeStringStmt(tokenizer *kuuhaku_tokenizer.Tokenizer, stringStmt *StringStmt, errors *[]error) bool {
-	stringLiteral := consumeStringLiteral(tokenizer, errors)
+func (parser *Parser) consumeStringStmt(stringStmt *StringStmt) bool {
+	stringLiteral := parser.consumeStringLiteral()
 	if stringLiteral != nil {
 		*stringStmt = *stringLiteral
 		return true
 	}
-	captureGroup := consumeCaptureGroup(tokenizer, errors)
+	captureGroup := parser.consumeCaptureGroup()
 	if captureGroup != nil {
 		*stringStmt = *captureGroup
 		return true
@@ -187,28 +199,28 @@ func consumeStringStmt(tokenizer *kuuhaku_tokenizer.Tokenizer, stringStmt *Strin
 	return false
 }
 
-func consumeMatchRules(tokenizer *kuuhaku_tokenizer.Tokenizer, errors *[]error) *[]MatchRule {
+func (parser *Parser) consumeMatchRules() *[]MatchRule {
 	var output []MatchRule;
 	
-	ok := consumeToMatchRuleArray(tokenizer, &output, errors)
+	ok := parser.consumeToMatchRuleArray(&output)
 	if !ok {
 		return nil
 	}
 
 	for ok {
-		ok = consumeToMatchRuleArray(tokenizer, &output, errors)
+		ok = parser.consumeToMatchRuleArray(&output)
 	}
 
 	return &output
 }
 
-func consumeToMatchRuleArray(tokenizer *kuuhaku_tokenizer.Tokenizer, matchRuleArray *[]MatchRule, errors *[]error) bool {
-	identifier := consumeIdentifier(tokenizer, errors)
+func (parser *Parser) consumeToMatchRuleArray(matchRuleArray *[]MatchRule) bool {
+	identifier := parser.consumeIdentifier()
 	if identifier != nil {
 		*matchRuleArray = append(*matchRuleArray, *identifier)
 		return true
 	}
-	regexLit := consumeRegexLiteral(tokenizer, errors)
+	regexLit := parser.consumeRegexLiteral()
 	if regexLit != nil {
 		*matchRuleArray = append(*matchRuleArray, *regexLit)
 		return true
@@ -216,15 +228,15 @@ func consumeToMatchRuleArray(tokenizer *kuuhaku_tokenizer.Tokenizer, matchRuleAr
 	return false
 }
 
-func consumeIdentifier(tokenizer *kuuhaku_tokenizer.Tokenizer, errors *[]error) *Identifer {
-	token, err := tokenizer.Peek()
+func (parser *Parser) consumeIdentifier() *Identifer {
+	token, err := parser.tokenizer.Peek()
 	if err != nil {
-		tokenizer.Next()
-		*errors = append(*errors, err)
+		parser.tokenizer.Next()
+		parser.Errors = append(parser.Errors, err)
 		return nil
 	}
 	if token.Type == kuuhaku_tokenizer.IDENTIFIER {
-		tokenizer.Next()
+		parser.tokenizer.Next()
 		return &Identifer {
 			Name: token.Content,
 			Position: token.Position,
@@ -234,15 +246,15 @@ func consumeIdentifier(tokenizer *kuuhaku_tokenizer.Tokenizer, errors *[]error) 
 	}
 }
 
-func consumeRegexLiteral(tokenizer *kuuhaku_tokenizer.Tokenizer, errors *[]error) *RegexLiteral {
-	token, err := tokenizer.Peek()
+func (parser *Parser) consumeRegexLiteral() *RegexLiteral {
+	token, err := parser.tokenizer.Peek()
 	if err != nil {
-		tokenizer.Next()
-		*errors = append(*errors, err)
+		parser.tokenizer.Next()
+		parser.Errors = append(parser.Errors, err)
 		return nil
 	}
 	if token.Type == kuuhaku_tokenizer.REGEX_LITERAL {
-		tokenizer.Next()
+		parser.tokenizer.Next()
 		return &RegexLiteral {
 			RegexString: token.Content,
 			Position: token.Position,

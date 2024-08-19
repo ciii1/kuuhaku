@@ -8,11 +8,10 @@ import (
 )
 
 func TestConsumeMatchRules(t *testing.T) {
-	tokenizer := kuuhaku_tokenizer.Init("<.*>hello<[0-9]>hi=");
-	var err []error
-	matchRulesP := consumeMatchRules(&tokenizer, &err)
-	if len(err) != 0 {
-		panic(err)
+	parser := Init("<.*>hello<[0-9]>hi=");
+	matchRulesP := parser.consumeMatchRules()
+	if len(parser.Errors) != 0 {
+		panic(parser.Errors)
 	}
 	matchRules := *matchRulesP
 	if len(matchRules) != 4 {
@@ -57,11 +56,10 @@ func TestConsumeMatchRules(t *testing.T) {
 }
 
 func TestConsumeReplaceRules(t *testing.T) {
-	tokenizer := kuuhaku_tokenizer.Init("\"\\t\"len$0$2 \"hi\"");
-	var err []error
-	replaceRulesP := consumeReplaceRules(&tokenizer, &err)
-	if len(err) != 0 {
-		panic(err)
+	parser := Init("\"\\t\"len$0$2 \"hi\"");
+	replaceRulesP := parser.consumeReplaceRules()
+	if len(parser.Errors) != 0 {
+		panic(parser.Errors)
 	}
 	replaceRules := *replaceRulesP
 	if len(replaceRules) != 3 {
@@ -112,19 +110,18 @@ func TestConsumeReplaceRules(t *testing.T) {
 }
 
 func TestErrorConsumeReplaceRules(t *testing.T) {
-	tokenizer := kuuhaku_tokenizer.Init("\"test\nlen test\nlen$1");
-	var err []error
-	consumeReplaceRules(&tokenizer, &err)
-	token, _ := tokenizer.Next() 
+	parser := Init("\"test\nlen test\nlen$1");
+	parser.consumeReplaceRules()
+	token, _ := parser.tokenizer.Next()
 	if token.Type != kuuhaku_tokenizer.EOF {
 		println("Expected the parser to reach EOF, got token with content " + token.Content)
-		token, _ := tokenizer.Next() 
+		token, _ := parser.tokenizer.Next() 
 		println("Next content is " + token.Content)
 		t.Fatal()
 	}
 
 	var tokenizeError *kuuhaku_tokenizer.TokenizeError
-	if errors.As(err[0], &tokenizeError) {
+	if errors.As(parser.Errors[0], &tokenizeError) {
 		if tokenizeError.Type != kuuhaku_tokenizer.STRING_LITERAL_UNTERMINATED {
 			println("Expected ErrStringLiteralUnterminated error")
 			t.Fail()
@@ -135,7 +132,7 @@ func TestErrorConsumeReplaceRules(t *testing.T) {
 	}
 
 	var parseError *ParseError
-	if errors.As(err[1], &parseError) {
+	if errors.As(parser.Errors[1], &parseError) {
 		if parseError.Type != LEN_ARGUMENT_INVALID {
 			println("Expected ErrLenArgumentInvalid error")
 			t.Fail()
@@ -145,7 +142,7 @@ func TestErrorConsumeReplaceRules(t *testing.T) {
 		t.Fail()
 	}
 
-	if errors.As(err[2], &parseError) {
+	if errors.As(parser.Errors[2], &parseError) {
 		if parseError.Type != UNEXPECTED_LEN {
 			println("Expected ErrUnexpectedLen error")
 			t.Fail()
@@ -155,7 +152,7 @@ func TestErrorConsumeReplaceRules(t *testing.T) {
 		t.Fail()
 	}
 
-	if errors.As(err[3], &parseError) {
+	if errors.As(parser.Errors[3], &parseError) {
 		if parseError.Type != UNEXPECTED_LEN {
 			println("Expected ErrUnexpectedLen error at the last len")
 			t.Fail()
