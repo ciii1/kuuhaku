@@ -7,6 +7,7 @@ import (
 	"strings"
 	"github.com/ciii1/kuuhaku/internal/helper"
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_parser"
+	"github.com/kr/pretty"
 )
 
 var ErrUnrecognizedExtension = fmt.Errorf("Extension is unrecognized")
@@ -36,7 +37,7 @@ func ReadFormat(extension string) error {
 		helper.Check(err)
 		fmt.Println(string(formatGrammar))
 		ast, errs := kuuhaku_parser.Parse(string(formatGrammar))
-		fmt. Printf("%#v\n", ast)
+		fmt.Printf("%# v\n", pretty.Formatter(ast))
 		helper.DisplayAllErrors(errs)		
 	}
 
