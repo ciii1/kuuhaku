@@ -3,8 +3,6 @@ package kuuhaku_parser
 import (
 	"fmt"
 	"strconv"
-
-	"github.com/ciii1/kuuhaku/internal/helper"
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_tokenizer"
 )
 
@@ -100,18 +98,10 @@ type Parser struct {
 	Errors []error
 }
 
-func Parse(input string) error {
-	tokenizer := kuuhaku_tokenizer.Init(input);
-	token, err := tokenizer.Next()
-	helper.Check(err)
-	for token.Type != kuuhaku_tokenizer.EOF {
-		fmt.Println("\n\"" + token.Content + "\"")
-		fmt.Println("\t-Column: " + strconv.Itoa(token.Position.Column))
-		fmt.Println("\t-Line: " + strconv.Itoa(token.Position.Line))
-		token, err = tokenizer.Next()
-		helper.Check(err)
-	}
-	return nil
+func Parse(input string) (Ast, []error) {
+	parser := Init(input)
+	ast := parser.consumeInput()
+	return *ast, parser.Errors
 }
 
 func Init(input string) Parser {
@@ -158,7 +148,7 @@ func (parser *Parser) consumeInput() *Ast {
 	return &output
 }
 
-func (parser *Parser) consumeRule() *Rule {
+func (parser *Parser) consumeRule() *Rule {	
 	token, err := parser.tokenizer.Peek()
 	if err != nil {
 		parser.tokenizer.Next()
@@ -205,6 +195,13 @@ func (parser *Parser) consumeRule() *Rule {
 			MatchRules: *matchRules,
 		}
 	}
+	if token.Type == kuuhaku_tokenizer.CLOSING_CURLY_BRACKET {
+		parser.tokenizer.Next()
+		return &Rule {
+			Name: name,	
+			MatchRules: *matchRules,
+		}
+	}
 	if token.Type != kuuhaku_tokenizer.EQUAL_SIGN {
 		parser.Errors = append(parser.Errors, ErrExpectedEqualSign(&parser.tokenizer))
 		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
@@ -243,6 +240,7 @@ func (parser *Parser) consumeRule() *Rule {
 			ReplaceRules: *replaceRules,
 		}
 	}
+	parser.tokenizer.Next()
 
 	return &Rule {
 		Name: name,
