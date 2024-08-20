@@ -11,8 +11,8 @@ type Head struct {
 
 type Rule struct {
 	Name string
-	Match []MatchRule
-	Replace []ReplaceRule
+	MatchRules []MatchRule
+	ReplaceRules []ReplaceRule
 	Position kuuhaku_tokenizer.Position
 }
 

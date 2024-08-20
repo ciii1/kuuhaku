@@ -2,6 +2,7 @@ package kuuhaku_parser
 
 import (
 	"errors"
+	"strconv"
 	"testing"
 
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_tokenizer"
@@ -84,7 +85,6 @@ func TestConsumeReplaceRules(t *testing.T) {
 			println("Expected Len.SecondArgument to be a capture group")
 			t.Fail()
 		}
-
 	} else {
 		println("Expected Len.FirstArgument to be a string literal")
 		t.Fail()
@@ -160,5 +160,99 @@ func TestErrorConsumeReplaceRules(t *testing.T) {
 	} else {
 		println("Expected ParseError")
 		t.Fail()
+	}
+}
+
+func TestConsumeRule(t *testing.T) {
+	parser := Init("test{\nidentifier\n=\n\"\\t\"$0}");
+	rule := parser.consumeRule()
+	if len(parser.Errors) != 0 {
+		println("Expected len(parser.Errors) to be 0")
+		println("All errors:")
+		displayAllErrors(parser.Errors)
+		t.Fatal()
+	}
+	if len(rule.MatchRules) != 1 {
+		println("Expected len(MatchRules) to be 1")
+		t.Fatal()
+	}
+	node1, ok := rule.MatchRules[0].(Identifer)
+	if !ok {
+		println("Expected MatchRules[0] to be an identifier")
+		t.Fail()
+	}
+	if node1.Name != "identifier" {
+		println("Expected MatchRules[0].Name to be \"identifier\"")
+		t.Fail()
+	}
+	if len(rule.ReplaceRules) != 2 {
+		println("Expected len(ReplaceRules) to be 2")
+		t.Fail()
+	}
+	node2, ok := rule.ReplaceRules[0].(StringLiteral)
+	if !ok {
+		println("Expected ReplaceRules[0] to be a string literal")
+		t.Fail()
+	}
+	if node2.String != "\t" {
+		println("Expected ReplaceRules[0].String to be \"\t\"")
+		t.Fail()
+	}
+	node3, ok := rule.ReplaceRules[1].(CaptureGroup)
+	if !ok {
+		println("Expected ReplaceRules[1] to be a capture group")
+		t.Fail()
+	}
+	if node3.Number != 0 {
+		println("Expected ReplaceRules[1].Number to be 0")
+		t.Fail()
+	}
+}
+
+func TestErrorConsumeRule(t *testing.T) {
+	parser := Init("test{\"test2\"=len$1}\nanotherTest{}");
+	parser.consumeRule()
+	parser.consumeRule()
+	token, _ := parser.tokenizer.Next()
+	if token.Type != kuuhaku_tokenizer.EOF {
+		println("Expected the parser to reach EOF, got token with content " + token.Content)
+		token, _ := parser.tokenizer.Next() 
+		println("Next content is " + token.Content)
+		t.Fatal()
+	}
+
+	println("All errors:")
+	displayAllErrors(parser.Errors)
+
+	var parseError *ParseError
+	if errors.As(parser.Errors[0], &parseError) {
+		if parseError.Type != EXPECTED_MATCH_RULE {
+			println("Expected ExpectedMatchRuleError error")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+
+	if errors.As(parser.Errors[1], &parseError) {
+		if parseError.Type != EXPECTED_MATCH_RULE {
+			println("Expected ExpectedMatchRuleError error")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+}
+
+func displayAllErrors(errs []error) {
+	for i, err := range errs {
+		if err != nil {
+			i_str := strconv.Itoa(i)
+			println(i_str + ". " + err.Error())
+		} else {
+			println("Found nil pointer")
+		}
 	}
 }

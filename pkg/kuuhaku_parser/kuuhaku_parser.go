@@ -13,6 +13,11 @@ type ParseErrorType int
 const (
 	LEN_ARGUMENT_INVALID = iota
 	UNEXPECTED_LEN
+	EXPECTED_OPENING_CURLY_BRACKET
+	EXPECTED_CLOSING_CURLY_BRACKET
+	EXPECTED_EQUAL_SIGN
+	EXPECTED_REPLACE_RULE
+	EXPECTED_MATCH_RULE
 )
 
 type ParseError struct {
@@ -32,11 +37,52 @@ func ErrLenArgumentInvalid(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
 		Type: LEN_ARGUMENT_INVALID,
 	}
 }
+
 func ErrUnexpectedLen(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
 	return &ParseError {
 		Message: "Usage of len here is invalid",
 		Position: tokenizer.Position,
 		Type: UNEXPECTED_LEN,
+	}
+}
+
+func ErrExpectedOpeningCurlyBracket(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	return &ParseError {
+		Message: "Expected opening curly bracket",
+		Position: tokenizer.Position,
+		Type: EXPECTED_OPENING_CURLY_BRACKET,
+	}
+}
+
+func ErrExpectedClosingCurlyBracket(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	return &ParseError {
+		Message: "Expected closing curly bracket",
+		Position: tokenizer.Position,
+		Type: EXPECTED_CLOSING_CURLY_BRACKET,
+	}
+}
+
+func ErrExpectedEqualSign(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	return &ParseError {
+		Message: "Expected equal sign",
+		Position: tokenizer.Position,
+		Type: EXPECTED_EQUAL_SIGN,
+	}
+}
+
+func ErrExpectedMatchRules(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	return &ParseError {
+		Message: "Expected match rules",
+		Position: tokenizer.Position,
+		Type: EXPECTED_MATCH_RULE,
+	}
+}
+
+func ErrExpectedReplaceRules(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	return &ParseError {
+		Message: "Expected replace rules",
+		Position: tokenizer.Position,
+		Type: EXPECTED_REPLACE_RULE,
 	}
 }
 
@@ -64,6 +110,92 @@ func Init(input string) Parser {
 		tokenizer: kuuhaku_tokenizer.Init(input),
 		Errors: []error{},
 	}
+}
+
+func (parser *Parser) consumeRule() *Rule {
+	token, err := parser.tokenizer.Peek()
+	if err != nil {
+		parser.tokenizer.Next()
+		parser.Errors = append(parser.Errors, err)
+		return nil
+	}
+	var name string
+	if token.Type == kuuhaku_tokenizer.IDENTIFIER {
+		name = token.Content	
+	} else {
+		return nil
+	}
+		
+	token, err = parser.tokenizer.Next()
+	if err != nil {
+		parser.tokenizer.Next()
+		parser.Errors = append(parser.Errors, err)
+		return nil
+	}
+	if token.Type != kuuhaku_tokenizer.OPENING_CURLY_BRACKET {
+		parser.Errors = append(parser.Errors, ErrExpectedOpeningCurlyBracket(&parser.tokenizer))
+		return nil
+	}
+	parser.tokenizer.Next()
+
+	matchRules := parser.consumeMatchRules()
+	if matchRules == nil {
+		parser.Errors = append(parser.Errors, ErrExpectedMatchRules(&parser.tokenizer))
+		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
+		return nil
+	}
+
+	token, err = parser.tokenizer.Peek()
+	if err != nil {
+		parser.Errors = append(parser.Errors, err)
+		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
+		return nil
+	}
+	if token.Type != kuuhaku_tokenizer.EQUAL_SIGN {
+		parser.Errors = append(parser.Errors, ErrExpectedEqualSign(&parser.tokenizer))
+		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
+		return nil
+	}
+	parser.tokenizer.Next()
+
+	replaceRules := parser.consumeReplaceRules()
+	if replaceRules == nil {
+		parser.Errors = append(parser.Errors, ErrExpectedReplaceRules(&parser.tokenizer))
+		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
+		return nil
+	}
+
+	token, err = parser.tokenizer.Peek()
+	if err != nil {
+		parser.Errors = append(parser.Errors, err)
+		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
+		return nil
+	}
+	if token.Type != kuuhaku_tokenizer.CLOSING_CURLY_BRACKET {
+		parser.Errors = append(parser.Errors, ErrExpectedClosingCurlyBracket(&parser.tokenizer))
+		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
+		return nil
+	}
+
+	return &Rule {
+		Name: name,
+		MatchRules: *matchRules,
+		ReplaceRules: *replaceRules,
+	}
+}
+
+func (parser *Parser) panicTillToken(tokenType kuuhaku_tokenizer.TokenType) {
+	token, err := parser.tokenizer.Peek()
+	if err != nil {
+		parser.Errors = append(parser.Errors, err)
+	}
+	for token.Type != tokenType && token.Type != kuuhaku_tokenizer.EOF {
+		token, err = parser.tokenizer.Next()
+		if err != nil {
+			parser.Errors = append(parser.Errors, err)
+		}
+	}
+	parser.tokenizer.Next()
 }
 
 func (parser *Parser) consumeReplaceRules() *[]ReplaceRule {
