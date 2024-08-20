@@ -149,7 +149,6 @@ func (parser *Parser) consumeInput() *Ast {
 }
 
 func (parser *Parser) consumeRule() *Rule {	
-	position := parser.tokenizer.Position
 	token, err := parser.tokenizer.Peek()
 	if err != nil {
 		parser.tokenizer.Next()
@@ -162,6 +161,7 @@ func (parser *Parser) consumeRule() *Rule {
 	} else {
 		return nil
 	}
+	position := parser.tokenizer.Position
 		
 	token, err = parser.tokenizer.Next()
 	if err != nil {
@@ -169,12 +169,14 @@ func (parser *Parser) consumeRule() *Rule {
 		parser.tokenizer.Next()
 		return &Rule {
 			Name: name,	
+			Position: position,
 		}
 	}
 	if token.Type != kuuhaku_tokenizer.OPENING_CURLY_BRACKET {
 		parser.Errors = append(parser.Errors, ErrExpectedOpeningCurlyBracket(&parser.tokenizer))
 		return &Rule {
 			Name: name,	
+			Position: position,
 		}
 	}
 	parser.tokenizer.Next()
@@ -185,6 +187,7 @@ func (parser *Parser) consumeRule() *Rule {
 		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
 		return &Rule {
 			Name: name,	
+			Position: position,
 		}
 	}
 
@@ -194,6 +197,7 @@ func (parser *Parser) consumeRule() *Rule {
 		return &Rule {
 			Name: name,	
 			MatchRules: *matchRules,
+			Position: position,
 		}
 	}
 	if token.Type == kuuhaku_tokenizer.CLOSING_CURLY_BRACKET {
@@ -201,6 +205,7 @@ func (parser *Parser) consumeRule() *Rule {
 		return &Rule {
 			Name: name,	
 			MatchRules: *matchRules,
+			Position: position,
 		}
 	}
 	if token.Type != kuuhaku_tokenizer.EQUAL_SIGN {
@@ -209,6 +214,7 @@ func (parser *Parser) consumeRule() *Rule {
 		return &Rule {
 			Name: name,	
 			MatchRules: *matchRules,
+			Position: position,
 		}
 	}
 	parser.tokenizer.Next()
@@ -220,6 +226,7 @@ func (parser *Parser) consumeRule() *Rule {
 		return &Rule {
 			Name: name,	
 			MatchRules: *matchRules,
+			Position: position,
 		}
 	}
 
@@ -230,6 +237,7 @@ func (parser *Parser) consumeRule() *Rule {
 			Name: name,	
 			MatchRules: *matchRules,
 			ReplaceRules: *replaceRules,
+			Position: position,
 		}
 	}
 	if token.Type != kuuhaku_tokenizer.CLOSING_CURLY_BRACKET {
@@ -239,6 +247,7 @@ func (parser *Parser) consumeRule() *Rule {
 			Name: name,	
 			MatchRules: *matchRules,
 			ReplaceRules: *replaceRules,
+			Position: position,
 		}
 	}
 	parser.tokenizer.Next()
