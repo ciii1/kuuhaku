@@ -63,6 +63,44 @@ func TestIdentifierWithLen(t *testing.T) {
 	}
 }
 
+func TestPatternUnrecognizedError(t *testing.T) {
+	tokenizer := Init("test@\nlen%")
+	token, err := tokenizer.Peek()
+	helper.Check(err)
+	if token.Content != "test" || token.Type != IDENTIFIER {
+		t.Fail()
+	}
+
+	token, err = tokenizer.Next()
+	var tokenizeError *TokenizeError
+	if errors.As(err, &tokenizeError) {
+		if tokenizeError.Type != PATTERN_UNRECOGNIZED {
+			println("Expected PatternUnrecognizedErr")
+			t.Fail()
+		}
+	} else {
+		println("Expected TokenizeError")
+		t.Fail()
+	}
+
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "len" || token.Type != LEN_KEYWORD {
+		t.Fail()
+	}
+
+	token, err = tokenizer.Next()
+	if errors.As(err, &tokenizeError) {
+		if tokenizeError.Type != PATTERN_UNRECOGNIZED {
+			println("Expected PatternUnrecognizedErr")
+			t.Fail()
+		}
+	} else {
+		println("Expected TokenizeError")
+		t.Fail()
+	}
+}
+
 func TestIdentifierWithCaptureGroup(t *testing.T) {
 	tokenizer := Init("len$1\n$32len")
 	token, err := tokenizer.Peek()

@@ -165,6 +165,7 @@ func (tokenizer *Tokenizer) Next() (*Token, error) {
 		return tokenizer.returnToken(token, nil)
 	}
 
+	tokenizer.nextChar()
 	return tokenizer.returnToken(nil, ErrPatternUnrecognized(*tokenizer))
 }
 
