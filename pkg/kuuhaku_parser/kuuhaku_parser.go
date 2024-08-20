@@ -149,6 +149,7 @@ func (parser *Parser) consumeInput() *Ast {
 }
 
 func (parser *Parser) consumeRule() *Rule {	
+	position := parser.tokenizer.Position
 	token, err := parser.tokenizer.Peek()
 	if err != nil {
 		parser.tokenizer.Next()
@@ -246,6 +247,7 @@ func (parser *Parser) consumeRule() *Rule {
 		Name: name,
 		MatchRules: *matchRules,
 		ReplaceRules: *replaceRules,
+		Position: position,
 	}
 }
 
