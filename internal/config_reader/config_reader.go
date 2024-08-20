@@ -35,7 +35,9 @@ func ReadFormat(extension string) error {
 		formatGrammar, err := os.ReadFile(formatFilePath) 
 		helper.Check(err)
 		fmt.Println(string(formatGrammar))
-		kuuhaku_parser.Parse(string(formatGrammar))
+		ast, errs := kuuhaku_parser.Parse(string(formatGrammar))
+		fmt. Printf("%#v\n", ast)
+		helper.DisplayAllErrors(errs)		
 	}
 
 	return nil
@@ -46,4 +48,3 @@ func FormatsDir() string {
 	helper.Check(err)
 	return filepath.Join(homeDir, ".config", "kuuhaku", "formats")
 }
-

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_tokenizer"
+	"github.com/ciii1/kuuhaku/internal/helper"
 )
 
 func TestConsumeMatchRules(t *testing.T) {
@@ -169,7 +170,7 @@ func TestConsumeRule(t *testing.T) {
 	if len(parser.Errors) != 0 {
 		println("Expected len(parser.Errors) to be 0")
 		println("TestConsumeRule - All errors:")
-		displayAllErrors(parser.Errors)
+		helper.DisplayAllErrors(parser.Errors)
 		t.Fatal()
 	}
 	if len(rule.MatchRules) != 1 {
@@ -222,7 +223,7 @@ func TestErrorConsumeRule(t *testing.T) {
 	}
 
 	println("TestErrorConsumeRule - All errors:")
-	displayAllErrors(parser.Errors)
+	helper.DisplayAllErrors(parser.Errors)
 
 	var parseError *ParseError
 	if errors.As(parser.Errors[0], &parseError) {
@@ -260,7 +261,7 @@ func TestConsumeInput(t *testing.T) {
 	if len(parser.Errors) != 0 {
 		println("Expected len(parser.Errors) to be 0")
 		println("TestConsumeInput - All errors:")
-		displayAllErrors(parser.Errors)
+		helper.DisplayAllErrors(parser.Errors)
 		t.Fatal()
 	}
 	if len(ast.Rules) != 2 {
@@ -289,7 +290,7 @@ func TestErrorConsumeInput(t *testing.T) {
 	}
 
 	println("TestErrorConsumeInput - All errors:")
-	displayAllErrors(parser.Errors)
+	helper.DisplayAllErrors(parser.Errors)
 
 	var parseError *ParseError
 	if errors.As(parser.Errors[0], &parseError) {
@@ -355,7 +356,7 @@ func TestErrorTokenizeError(t *testing.T) {
 	}
 
 	println("TestErrorTokenizeError - All errors:")
-	displayAllErrors(parser.Errors)
+	helper.DisplayAllErrors(parser.Errors)
 
 	var parseError *ParseError
 	if errors.As(parser.Errors[0], &parseError) {
@@ -427,16 +428,5 @@ func TestErrorTokenizeError(t *testing.T) {
 	} else {
 		println("Expected ParseError")
 		t.Fail()
-	}
-}
-
-func displayAllErrors(errs []error) {
-	for i, err := range errs {
-		if err != nil {
-			i_str := strconv.Itoa(i)
-			println(i_str + ". " + err.Error())
-		} else {
-			println("Found nil pointer")
-		}
 	}
 }
