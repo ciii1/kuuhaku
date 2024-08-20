@@ -1,0 +1,1 @@
+package kuuhaku_analyzer

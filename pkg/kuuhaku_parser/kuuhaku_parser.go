@@ -18,6 +18,7 @@ const (
 	EXPECTED_EQUAL_SIGN
 	EXPECTED_REPLACE_RULE
 	EXPECTED_MATCH_RULE
+	EXPECTED_RULE
 )
 
 type ParseError struct {
@@ -48,7 +49,7 @@ func ErrUnexpectedLen(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
 
 func ErrExpectedOpeningCurlyBracket(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
 	return &ParseError {
-		Message: "Expected opening curly bracket",
+		Message: "Expected an opening curly bracket",
 		Position: tokenizer.Position,
 		Type: EXPECTED_OPENING_CURLY_BRACKET,
 	}
@@ -56,7 +57,7 @@ func ErrExpectedOpeningCurlyBracket(tokenizer *kuuhaku_tokenizer.Tokenizer) *Par
 
 func ErrExpectedClosingCurlyBracket(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
 	return &ParseError {
-		Message: "Expected closing curly bracket",
+		Message: "Expected a closing curly bracket",
 		Position: tokenizer.Position,
 		Type: EXPECTED_CLOSING_CURLY_BRACKET,
 	}
@@ -86,6 +87,14 @@ func ErrExpectedReplaceRules(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError
 	}
 }
 
+func ErrExpectedRule(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	return &ParseError {
+		Message: "Expected a rule definition",
+		Position: tokenizer.Position,
+		Type: EXPECTED_RULE,
+	}
+}
+
 type Parser struct {
 	tokenizer kuuhaku_tokenizer.Tokenizer
 	Errors []error
@@ -112,6 +121,43 @@ func Init(input string) Parser {
 	}
 }
 
+func (parser *Parser) consumeInput() *Ast {
+	output := Ast {
+		Rules: make(map[string][]Rule),
+		Position: parser.tokenizer.Position,
+	}
+
+	rule := parser.consumeRule()
+	if rule != nil {
+		output.Rules[rule.Name] = append(output.Rules[rule.Name], *rule)
+	} else {
+		parser.Errors = append(parser.Errors, ErrExpectedRule(&parser.tokenizer))
+		parser.tokenizer.Next()
+	}
+
+	token, err := parser.tokenizer.Peek()
+	if err != nil {
+		parser.Errors = append(parser.Errors, err)
+		parser.tokenizer.Next()
+	}
+	for token == nil || token.Type != kuuhaku_tokenizer.EOF {
+		rule := parser.consumeRule()
+		if rule != nil {
+			output.Rules[rule.Name] = append(output.Rules[rule.Name], *rule)
+		} else {
+			parser.Errors = append(parser.Errors, ErrExpectedRule(&parser.tokenizer))
+			parser.tokenizer.Next()
+		}
+		token, err = parser.tokenizer.Peek()
+		if err != nil {
+			parser.Errors = append(parser.Errors, err)
+			parser.tokenizer.Next()
+		}
+	}
+
+	return &output
+}
+
 func (parser *Parser) consumeRule() *Rule {
 	token, err := parser.tokenizer.Peek()
 	if err != nil {
@@ -128,13 +174,17 @@ func (parser *Parser) consumeRule() *Rule {
 		
 	token, err = parser.tokenizer.Next()
 	if err != nil {
-		parser.tokenizer.Next()
 		parser.Errors = append(parser.Errors, err)
-		return nil
+		parser.tokenizer.Next()
+		return &Rule {
+			Name: name,	
+		}
 	}
 	if token.Type != kuuhaku_tokenizer.OPENING_CURLY_BRACKET {
 		parser.Errors = append(parser.Errors, ErrExpectedOpeningCurlyBracket(&parser.tokenizer))
-		return nil
+		return &Rule {
+			Name: name,	
+		}
 	}
 	parser.tokenizer.Next()
 
@@ -142,19 +192,26 @@ func (parser *Parser) consumeRule() *Rule {
 	if matchRules == nil {
 		parser.Errors = append(parser.Errors, ErrExpectedMatchRules(&parser.tokenizer))
 		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
-		return nil
+		return &Rule {
+			Name: name,	
+		}
 	}
 
 	token, err = parser.tokenizer.Peek()
 	if err != nil {
-		parser.Errors = append(parser.Errors, err)
 		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
-		return nil
+		return &Rule {
+			Name: name,	
+			MatchRules: *matchRules,
+		}
 	}
 	if token.Type != kuuhaku_tokenizer.EQUAL_SIGN {
 		parser.Errors = append(parser.Errors, ErrExpectedEqualSign(&parser.tokenizer))
 		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
-		return nil
+		return &Rule {
+			Name: name,	
+			MatchRules: *matchRules,
+		}
 	}
 	parser.tokenizer.Next()
 
@@ -162,19 +219,29 @@ func (parser *Parser) consumeRule() *Rule {
 	if replaceRules == nil {
 		parser.Errors = append(parser.Errors, ErrExpectedReplaceRules(&parser.tokenizer))
 		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
-		return nil
+		return &Rule {
+			Name: name,	
+			MatchRules: *matchRules,
+		}
 	}
 
 	token, err = parser.tokenizer.Peek()
 	if err != nil {
-		parser.Errors = append(parser.Errors, err)
 		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
-		return nil
+		return &Rule {
+			Name: name,	
+			MatchRules: *matchRules,
+			ReplaceRules: *replaceRules,
+		}
 	}
 	if token.Type != kuuhaku_tokenizer.CLOSING_CURLY_BRACKET {
 		parser.Errors = append(parser.Errors, ErrExpectedClosingCurlyBracket(&parser.tokenizer))
 		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
-		return nil
+		return &Rule {
+			Name: name,	
+			MatchRules: *matchRules,
+			ReplaceRules: *replaceRules,
+		}
 	}
 
 	return &Rule {
@@ -189,7 +256,7 @@ func (parser *Parser) panicTillToken(tokenType kuuhaku_tokenizer.TokenType) {
 	if err != nil {
 		parser.Errors = append(parser.Errors, err)
 	}
-	for token.Type != tokenType && token.Type != kuuhaku_tokenizer.EOF {
+	for token == nil || token.Type != tokenType && token.Type != kuuhaku_tokenizer.EOF {
 		token, err = parser.tokenizer.Next()
 		if err != nil {
 			parser.Errors = append(parser.Errors, err)

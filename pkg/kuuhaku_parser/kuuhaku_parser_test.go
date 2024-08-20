@@ -168,7 +168,7 @@ func TestConsumeRule(t *testing.T) {
 	rule := parser.consumeRule()
 	if len(parser.Errors) != 0 {
 		println("Expected len(parser.Errors) to be 0")
-		println("All errors:")
+		println("TestConsumeRule - All errors:")
 		displayAllErrors(parser.Errors)
 		t.Fatal()
 	}
@@ -221,7 +221,7 @@ func TestErrorConsumeRule(t *testing.T) {
 		t.Fatal()
 	}
 
-	println("All errors:")
+	println("TestErrorConsumeRule - All errors:")
 	displayAllErrors(parser.Errors)
 
 	var parseError *ParseError
@@ -238,6 +238,159 @@ func TestErrorConsumeRule(t *testing.T) {
 	if errors.As(parser.Errors[1], &parseError) {
 		if parseError.Type != EXPECTED_MATCH_RULE {
 			println("Expected ExpectedMatchRuleError error")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+}
+
+func TestErrorConsumeInput(t *testing.T) {
+	parser := Init("test{\"test2\"=len$1}\n\"test\"test\nidentifier<test>");
+	parser.consumeInput()
+	token, _ := parser.tokenizer.Next()
+	if token.Type != kuuhaku_tokenizer.EOF {
+		println("Expected the parser to reach EOF, got token with content " + token.Content)
+		token, _ := parser.tokenizer.Next() 
+		println("Next content is " + token.Content)
+		t.Fatal()
+	}
+
+	println("TestErrorConsumeInput - All errors:")
+	displayAllErrors(parser.Errors)
+
+	var parseError *ParseError
+	if errors.As(parser.Errors[0], &parseError) {
+		if parseError.Type != EXPECTED_MATCH_RULE {
+			println("Expected ExpectedMatchRuleError error")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+
+	if errors.As(parser.Errors[1], &parseError) {
+		if parseError.Type != EXPECTED_RULE {
+			println("Expected ExpectedRuleError error")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+
+	if errors.As(parser.Errors[2], &parseError) {
+		if parseError.Type != EXPECTED_OPENING_CURLY_BRACKET {
+			println("Expected ExpectedOpeningCurlyBracketError error")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+
+	if errors.As(parser.Errors[3], &parseError) {
+		if parseError.Type != EXPECTED_OPENING_CURLY_BRACKET {
+			println("Expected ExpectedOpeningCurlyBracketError error")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+
+	if errors.As(parser.Errors[4], &parseError) {
+		if parseError.Type != EXPECTED_RULE {
+			println("Expected ExpectedRuleError error")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+}
+
+func TestErrorTokenizeError(t *testing.T) {
+	parser := Init("test{\"test2\"\\=len$1}\n\"test\"@test\nidentifier<test>");
+	parser.consumeInput()
+	token, _ := parser.tokenizer.Next()
+	if token.Type != kuuhaku_tokenizer.EOF {
+		println("Expected the parser to reach EOF, got token with content " + token.Content)
+		token, _ := parser.tokenizer.Next() 
+		println("Next content is " + token.Content)
+		t.Fatal()
+	}
+
+	println("TestErrorTokenizeError - All errors:")
+	displayAllErrors(parser.Errors)
+
+	var parseError *ParseError
+	if errors.As(parser.Errors[0], &parseError) {
+		if parseError.Type != EXPECTED_MATCH_RULE {
+			println("Expected ExpectedMatchRuleError error")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+
+	var tokenizeError *kuuhaku_tokenizer.TokenizeError
+	if errors.As(parser.Errors[1], &tokenizeError) {
+		if tokenizeError.Type != kuuhaku_tokenizer.PATTERN_UNRECOGNIZED {
+			println("Expected PatternUnrecognizedError error")
+			t.Fail()
+		}
+	} else {
+		println("Expected TokenizeError")
+		t.Fail()
+	}
+
+	if errors.As(parser.Errors[2], &parseError) {
+		if parseError.Type != EXPECTED_RULE {
+			println("Expected ExpectedRuleError error")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+
+	if errors.As(parser.Errors[3], &tokenizeError) {
+		if tokenizeError.Type != kuuhaku_tokenizer.PATTERN_UNRECOGNIZED {
+			println("Expected PatternUnrecognizedError error")
+			t.Fail()
+		}
+	} else {
+		println("Expected TokenizeError")
+		t.Fail()
+	}
+
+	if errors.As(parser.Errors[4], &parseError) {
+		if parseError.Type != EXPECTED_OPENING_CURLY_BRACKET {
+			println("Expected ExpectedOpeningCurlyBracketError error")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+
+	if errors.As(parser.Errors[5], &parseError) {
+		if parseError.Type != EXPECTED_OPENING_CURLY_BRACKET {
+			println("Expected ExpectedOpeningCurlyBracketError error")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+
+	if errors.As(parser.Errors[6], &parseError) {
+		if parseError.Type != EXPECTED_RULE {
+			println("Expected ExpectedRuleError error")
 			t.Fail()
 		}
 	} else {

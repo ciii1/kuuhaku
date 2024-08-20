@@ -4,8 +4,8 @@ import (
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_tokenizer"
 )
 
-type Head struct {
-	Rules map[string]Rule //name - Rule pair
+type Ast struct {
+	Rules map[string][]Rule //name - []Rule pair
 	Position kuuhaku_tokenizer.Position
 }
 
