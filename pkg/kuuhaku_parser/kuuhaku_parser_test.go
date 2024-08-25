@@ -119,6 +119,8 @@ func TestErrorConsumeReplaceRules(t *testing.T) {
 		println("Next content is " + token.Content)
 		t.Fatal()
 	}
+	println("TestErrorConsumeReplaceRules - All errors:")
+	helper.DisplayAllErrors(parser.Errors)
 
 	var tokenizeError *kuuhaku_tokenizer.TokenizeError
 	if errors.As(parser.Errors[0], &tokenizeError) {
@@ -135,6 +137,10 @@ func TestErrorConsumeReplaceRules(t *testing.T) {
 	if errors.As(parser.Errors[1], &parseError) {
 		if parseError.Type != LEN_ARGUMENT_INVALID {
 			println("Expected ErrLenArgumentInvalid error")
+			t.Fail()
+		}
+		if parseError.Position.Column != 5 || parseError.Position.Line != 2 {
+			println("Expected ErrLenArgumentInvalid error with column 5, line 2")
 			t.Fail()
 		}
 	} else {

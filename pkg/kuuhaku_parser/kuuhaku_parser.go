@@ -378,8 +378,8 @@ func (parser *Parser) consumeLen() *Len {
 		var argument StringStmt
 		ok := parser.consumeStringStmt(&argument)
 		if !ok {
-			parser.tokenizer.Next()
 			parser.Errors = append(parser.Errors, ErrLenArgumentInvalid(&parser.tokenizer))
+			parser.tokenizer.Next()
 			return &Len {
 				SecondArgument: nil,
 				Position: token.Position,
