@@ -393,6 +393,80 @@ func TestConsumeInput(t *testing.T) {
 	}
 }
 
+func TestConsumeSearchMode(t *testing.T) {
+	parser := Init("SEARCH_MODE test{identifier=\"\\t\"len$0}\nidentifier{<[a-zA-Z]>}\nidentifier{<[a-zA-Z][0-9]>}");
+	ast := parser.consumeInput()
+	token, _ := parser.tokenizer.Next()
+	if token.Type != kuuhaku_tokenizer.EOF {
+		println("Expected the parser to reach EOF, got token with content " + token.Content)
+		token, _ := parser.tokenizer.Next() 
+		println("Next content is " + token.Content)
+		t.Fatal()
+	}
+
+	if len(parser.Errors) != 0 {
+		println("Expected len(parser.Errors) to be 0")
+		println("TestConsumeInput - All errors:")
+		helper.DisplayAllErrors(parser.Errors)
+		t.Fatal()
+	}
+
+	if (ast.IsSearchMode != true) {
+		println("Expected ast.IsSearchMode to be true")
+		t.Fatal()
+	}
+
+	if len(ast.Rules) != 2 {
+		println("Expected len(ast.Rules) to be 2")
+		t.Fatal()
+	}
+	if len(ast.Rules["identifier"]) != 2 {
+		println("Expected len(ast.Rules[\"identifier\"]) to be 2")
+		t.Fatal()
+	}
+	if len(ast.Rules["test"]) != 1 {
+		println("Expected len(ast.Rules[\"test\"]) to be 1")
+		t.Fatal()
+	}
+}
+
+func TestConsumeSearchModeError(t *testing.T) {
+	parser := Init("1 SEARCH_MODE test{identifier=\"\\t\"len$0}\nidentifier{<[a-zA-Z]>}\nidentifier{<[a-zA-Z][0-9]>}");
+	ast := parser.consumeInput()
+	token, _ := parser.tokenizer.Next()
+	if token.Type != kuuhaku_tokenizer.EOF {
+		println("Expected the parser to reach EOF, got token with content " + token.Content)
+		token, _ := parser.tokenizer.Next() 
+		println("Next content is " + token.Content)
+		t.Fatal()
+	}
+
+	if len(parser.Errors) != 2 {
+		println("Expected len(parser.Errors) to be 2")
+		println("TestConsumeInput - All errors:")
+		helper.DisplayAllErrors(parser.Errors)
+		t.Fatal()
+	}
+
+	if (ast.IsSearchMode != false) {
+		println("Expected ast.IsSearchMode to be false")
+		t.Fatal()
+	}
+
+	if len(ast.Rules) != 2 {
+		println("Expected len(ast.Rules) to be 2")
+		t.Fatal()
+	}
+	if len(ast.Rules["identifier"]) != 2 {
+		println("Expected len(ast.Rules[\"identifier\"]) to be 2")
+		t.Fatal()
+	}
+	if len(ast.Rules["test"]) != 1 {
+		println("Expected len(ast.Rules[\"test\"]) to be 1")
+		t.Fatal()
+	}
+}
+
 func TestErrorConsumeInput(t *testing.T) {
 	parser := Init("test{\"test2\"=len$1}\n\"test\"test\nidentifier<test>");
 	parser.consumeInput()

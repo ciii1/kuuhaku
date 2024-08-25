@@ -7,6 +7,7 @@ import (
 type Ast struct {
 	Rules map[string][]Rule //name - []Rule pair
 	Position kuuhaku_tokenizer.Position
+	IsSearchMode bool
 }
 
 type Rule struct {

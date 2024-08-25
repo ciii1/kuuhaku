@@ -63,6 +63,30 @@ func TestIdentifierWithLen(t *testing.T) {
 	}
 }
 
+func TestSearchMode(t *testing.T) {
+	tokenizer := Init("SEARCH_MODE a9230\nSEARCH_MODE2\nSEARCH_MODE")
+	token, err := tokenizer.Peek()
+	helper.Check(err)
+	if token.Content != "SEARCH_MODE" || token.Type != SEARCH_MODE_KEYWORD {
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "a9230" || token.Type != IDENTIFIER {
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "SEARCH_MODE2" || token.Type != IDENTIFIER {
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "SEARCH_MODE" || token.Type != SEARCH_MODE_KEYWORD {
+		t.Fail()
+	}
+}
+
 func TestPatternUnrecognizedError(t *testing.T) {
 	tokenizer := Init("test@\nlen%")
 	token, err := tokenizer.Peek()

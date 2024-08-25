@@ -115,7 +115,10 @@ func (parser *Parser) consumeInput() *Ast {
 	output := Ast {
 		Rules: make(map[string][]Rule),
 		Position: parser.tokenizer.Position,
+		IsSearchMode: false,
 	}
+
+	output.IsSearchMode = parser.consumeSearchMode()
 
 	rule := parser.consumeRule()
 	if rule != nil {
@@ -146,6 +149,21 @@ func (parser *Parser) consumeInput() *Ast {
 	}
 
 	return &output
+}
+
+func (parser *Parser) consumeSearchMode() bool {
+	token, err := parser.tokenizer.Peek()
+	if err != nil {
+		parser.tokenizer.Next()
+		parser.Errors = append(parser.Errors, err)
+		return false
+	}
+	if token.Type == kuuhaku_tokenizer.SEARCH_MODE_KEYWORD {
+		parser.tokenizer.Next()
+		return true	
+	} else {
+		return false
+	}
 }
 
 func (parser *Parser) consumeRule() *Rule {	
