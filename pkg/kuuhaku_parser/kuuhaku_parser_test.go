@@ -345,8 +345,8 @@ func TestErrorPosition(t *testing.T) {
 			println("Expected ExpectedMatchRuleError error")
 			t.Fail()
 		}
-		if parseError.Position.Column != 28 || parseError.Position.Line != 4 {
-			println("Expected ExpectedMatchRuleError error with column 28 and line 4")
+		if parseError.Position.Column != 22 || parseError.Position.Line != 4 {
+			println("Expected ExpectedMatchRuleError error with column 22 and line 4")
 			t.Fail()
 		}
 	} else {

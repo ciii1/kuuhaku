@@ -81,6 +81,7 @@ type Position struct {
 
 type Tokenizer struct {
 	Position Position
+	PrevPosition Position
 	currToken *Token
 	currError error
 	Input string
@@ -121,6 +122,7 @@ func (tokenizer *Tokenizer) Next() (*Token, error) {
 			Content: "\003",
 		}, nil)
 	}
+	tokenizer.PrevPosition = tokenizer.Position
 	token := tokenizer.consumeIdentifierOrKeyword()
 	if token != nil {
 		return tokenizer.returnToken(token, nil)
