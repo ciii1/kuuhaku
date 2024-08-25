@@ -30,65 +30,105 @@ func (e ParseError) Error() string {
 }
 
 func ErrLenArgumentInvalid(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	currToken, _ := tokenizer.Peek()
+	position := tokenizer.Position
+	if currToken != nil {
+		position = currToken.Position
+	} 
 	return &ParseError {
 		Message: "Len argument is invalid",
-		Position: tokenizer.Position,
+		Position: position,
 		Type: LEN_ARGUMENT_INVALID,
 	}
 }
 
 func ErrUnexpectedLen(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	currToken, _ := tokenizer.Peek()
+	position := tokenizer.Position
+	if currToken != nil {
+		position = currToken.Position
+	} 
 	return &ParseError {
 		Message: "Usage of len here is invalid",
-		Position: tokenizer.Position,
+		Position: position,
 		Type: UNEXPECTED_LEN,
 	}
 }
 
 func ErrExpectedOpeningCurlyBracket(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	currToken, _ := tokenizer.Peek()
+	position := tokenizer.Position
+	if currToken != nil {
+		position = currToken.Position
+	} 
 	return &ParseError {
 		Message: "Expected an opening curly bracket",
-		Position: tokenizer.Position,
+		Position: position,
 		Type: EXPECTED_OPENING_CURLY_BRACKET,
 	}
 }
 
 func ErrExpectedClosingCurlyBracket(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	currToken, _ := tokenizer.Peek()
+	position := tokenizer.Position
+	if currToken != nil {
+		position = currToken.Position
+	} 
 	return &ParseError {
 		Message: "Expected a closing curly bracket",
-		Position: tokenizer.Position,
+		Position: position,
 		Type: EXPECTED_CLOSING_CURLY_BRACKET,
 	}
 }
 
 func ErrExpectedEqualSign(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	currToken, _ := tokenizer.Peek()
+	position := tokenizer.Position
+	if currToken != nil {
+		position = currToken.Position
+	} 
 	return &ParseError {
 		Message: "Expected equal sign",
-		Position: tokenizer.Position,
+		Position: position,
 		Type: EXPECTED_EQUAL_SIGN,
 	}
 }
 
 func ErrExpectedMatchRules(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	currToken, _ := tokenizer.Peek()
+	position := tokenizer.Position
+	if currToken != nil {
+		position = currToken.Position
+	} 
 	return &ParseError {
 		Message: "Expected match rules",
-		Position: tokenizer.Position,
+		Position: position,
 		Type: EXPECTED_MATCH_RULE,
 	}
 }
 
 func ErrExpectedReplaceRules(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	currToken, _ := tokenizer.Peek()
+	position := tokenizer.Position
+	if currToken != nil {
+		position = currToken.Position
+	} 
 	return &ParseError {
 		Message: "Expected replace rules",
-		Position: tokenizer.Position,
+		Position: position,
 		Type: EXPECTED_REPLACE_RULE,
 	}
 }
 
 func ErrExpectedRule(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	currToken, _ := tokenizer.Peek()
+	position := tokenizer.Position
+	if currToken != nil {
+		position = currToken.Position
+	} 
 	return &ParseError {
 		Message: "Expected a rule definition",
-		Position: tokenizer.Position,
+		Position: position,
 		Type: EXPECTED_RULE,
 	}
 }
@@ -315,9 +355,10 @@ func (parser *Parser) consumeToReplaceRuleArray(replaceRuleArray *[]ReplaceRule)
 		}
 	}
 
+	errUnexpectedLen := ErrUnexpectedLen(&parser.tokenizer)
 	lenParsed := parser.consumeLen()
 	if lenParsed != nil {
-		parser.Errors = append(parser.Errors, ErrUnexpectedLen(&parser.tokenizer))
+		parser.Errors = append(parser.Errors, errUnexpectedLen)
 		return true
 	}
 

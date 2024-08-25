@@ -2,7 +2,6 @@ package kuuhaku_parser
 
 import (
 	"errors"
-	"strconv"
 	"testing"
 
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_tokenizer"
@@ -245,6 +244,116 @@ func TestErrorConsumeRule(t *testing.T) {
 		println("Expected ParseError")
 		t.Fail()
 	}
+}
+
+func TestErrorPosition(t *testing.T) {
+	parser := Init("test\ntest{\"test2\"=len$1}\ntest{test\"hello\"}\ntest{test=len$1}test{\"test}");
+	parser.consumeRule()
+	parser.consumeRule()
+	parser.consumeRule()
+	parser.consumeRule()
+	parser.consumeRule()
+	token, _ := parser.tokenizer.Next()
+	if token != nil && token.Type != kuuhaku_tokenizer.EOF {
+		println("Expected the parser to reach EOF, got token with content " + token.Content)
+		token, _ := parser.tokenizer.Next() 
+		if token != nil {
+			println("Next content is " + token.Content)
+		} else {
+			println("Next content is nil")
+		}
+		t.Fatal()
+	}
+
+	println("TestErrorPosition - All errors:")
+	helper.DisplayAllErrors(parser.Errors)
+
+	var parseError *ParseError
+	if errors.As(parser.Errors[0], &parseError) {
+		if parseError.Type != EXPECTED_OPENING_CURLY_BRACKET {
+			println("Expected ExpectedOpeningCurlyBracketError error")
+			t.Fail()
+		}
+		if parseError.Position.Column != 1 || parseError.Position.Line != 2 {
+			println("Expected ExpectedOpeningCurlyBracketError error with column 1 and line 2")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+
+	if errors.As(parser.Errors[1], &parseError) {
+		if parseError.Type != EXPECTED_MATCH_RULE {
+			println("Expected ExpectedMatchRuleError error")
+			t.Fail()
+		}
+		if parseError.Position.Column != 6 || parseError.Position.Line != 2 {
+			println("Expected ExpectedMatchRuleError error with column 6 and line 2")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+
+	if errors.As(parser.Errors[2], &parseError) {
+		if parseError.Type != EXPECTED_EQUAL_SIGN {
+			println("Expected ExpectedEqualSignError error")
+			t.Fail()
+		}
+		if parseError.Position.Column != 10 || parseError.Position.Line != 3 {
+			println("Expected ExpectedEqualSignError error with column 10 and line 3")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+
+	if errors.As(parser.Errors[3], &parseError) {
+		if parseError.Type != UNEXPECTED_LEN {
+			println("Expected UnexpectedLenError error")
+			t.Fail()
+		}
+		if parseError.Position.Column != 11 || parseError.Position.Line != 4 {
+			println("Expected UnexpectedLenError error with column 11 and line 4")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+
+	var tokenizeError *kuuhaku_tokenizer.TokenizeError
+	if errors.As(parser.Errors[4], &tokenizeError) {
+		if tokenizeError.Type != kuuhaku_tokenizer.STRING_LITERAL_UNTERMINATED {
+			println("Expected StringLiteralUnterminatedError error")
+			t.Fail()
+		}
+		if tokenizeError.Position.Column != 28 || tokenizeError.Position.Line != 4 {
+			println("Expected StringLiteralUnterminatedError error with column 28 and line 4")
+			t.Fail()
+		}
+	} else {
+		println("Expected TokenizeError")
+		t.Fail()
+	}
+
+	if errors.As(parser.Errors[5], &parseError) {
+		if parseError.Type != EXPECTED_MATCH_RULE {
+			println("Expected ExpectedMatchRuleError error")
+			t.Fail()
+		}
+		if parseError.Position.Column != 28 || parseError.Position.Line != 4 {
+			println("Expected ExpectedMatchRuleError error with column 28 and line 4")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+
 }
 
 func TestConsumeInput(t *testing.T) {
