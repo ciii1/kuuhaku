@@ -2,10 +2,11 @@ package kuuhaku_parser
 
 import (
 	"errors"
+	"strconv"
 	"testing"
 
-	"github.com/ciii1/kuuhaku/pkg/kuuhaku_tokenizer"
 	"github.com/ciii1/kuuhaku/internal/helper"
+	"github.com/ciii1/kuuhaku/pkg/kuuhaku_tokenizer"
 )
 
 func TestConsumeMatchRules(t *testing.T) {
@@ -387,8 +388,24 @@ func TestConsumeInput(t *testing.T) {
 		println("Expected len(ast.Rules[\"identifier\"]) to be 2")
 		t.Fatal()
 	}
+	if ast.Rules["identifier"][0].Order != 1 {
+		got := strconv.Itoa(ast.Rules["identifier"][0].Order)
+		println("Expected ast.Rules[\"identifier\"][0].Order to be 1, got " + got)
+		t.Fail()
+	}
+	if ast.Rules["identifier"][1].Order != 2 {
+		got := strconv.Itoa(ast.Rules["identifier"][1].Order)
+		println("Expected ast.Rules[\"identifier\"][1].Order to be 2, got " + got)
+		t.Fail()
+	}
+
 	if len(ast.Rules["test"]) != 1 {
 		println("Expected len(ast.Rules[\"test\"]) to be 1")
+		t.Fatal()
+	}
+	if ast.Rules["test"][0].Order != 0 {
+		got := strconv.Itoa(ast.Rules["test"][0].Order)
+		println("Expected ast.Rules[\"test\"][0].Order to be 0, got " + got)
 		t.Fatal()
 	}
 }

@@ -12,6 +12,7 @@ type Ast struct {
 
 type Rule struct {
 	Name string
+	Order int
 	MatchRules []MatchRule
 	ReplaceRules []ReplaceRule
 	Position kuuhaku_tokenizer.Position

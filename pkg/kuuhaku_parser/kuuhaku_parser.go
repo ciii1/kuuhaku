@@ -119,9 +119,11 @@ func (parser *Parser) consumeInput() *Ast {
 	}
 
 	output.IsSearchMode = parser.consumeSearchMode()
+	orderCounter := 0
 
 	rule := parser.consumeRule()
 	if rule != nil {
+		rule.Order = orderCounter
 		output.Rules[rule.Name] = append(output.Rules[rule.Name], *rule)
 	} else {
 		parser.Errors = append(parser.Errors, ErrExpectedRule(&parser.tokenizer))
@@ -134,8 +136,10 @@ func (parser *Parser) consumeInput() *Ast {
 		parser.tokenizer.Next()
 	}
 	for token == nil || token.Type != kuuhaku_tokenizer.EOF {
+		orderCounter += 1
 		rule := parser.consumeRule()
 		if rule != nil {
+			rule.Order = orderCounter
 			output.Rules[rule.Name] = append(output.Rules[rule.Name], *rule)
 		} else {
 			parser.Errors = append(parser.Errors, ErrExpectedRule(&parser.tokenizer))
