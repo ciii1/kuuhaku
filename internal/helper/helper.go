@@ -20,3 +20,11 @@ func DisplayAllErrors(errs []error) {
 		}
 	}
 }
+
+func EmptyStringByValue(strings *[]string, value string) {
+	for i, s := range *strings {
+		if s == value {
+			(*strings)[i] = ""
+		}
+	}
+}

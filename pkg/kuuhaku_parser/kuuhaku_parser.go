@@ -99,12 +99,12 @@ type Parser struct {
 }
 
 func Parse(input string) (Ast, []error) {
-	parser := Init(input)
+	parser := initParser(input)
 	ast := parser.consumeInput()
 	return *ast, parser.Errors
 }
 
-func Init(input string) Parser {
+func initParser(input string) Parser {
 	return Parser {
 		tokenizer: kuuhaku_tokenizer.Init(input),
 		Errors: []error{},

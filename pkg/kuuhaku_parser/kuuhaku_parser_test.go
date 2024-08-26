@@ -10,7 +10,7 @@ import (
 )
 
 func TestConsumeMatchRules(t *testing.T) {
-	parser := Init("<.*>hello<[0-9]>hi=");
+	parser := initParser("<.*>hello<[0-9]>hi=");
 	matchRulesP := parser.consumeMatchRules()
 	if len(parser.Errors) != 0 {
 		panic(parser.Errors)
@@ -58,7 +58,7 @@ func TestConsumeMatchRules(t *testing.T) {
 }
 
 func TestConsumeReplaceRules(t *testing.T) {
-	parser := Init("\"\\t\"len$0$2 \"hi\"");
+	parser := initParser("\"\\t\"len$0$2 \"hi\"");
 	replaceRulesP := parser.consumeReplaceRules()
 	if len(parser.Errors) != 0 {
 		panic(parser.Errors)
@@ -111,7 +111,7 @@ func TestConsumeReplaceRules(t *testing.T) {
 }
 
 func TestErrorConsumeReplaceRules(t *testing.T) {
-	parser := Init("\"test\nlen test\nlen$1");
+	parser := initParser("\"test\nlen test\nlen$1");
 	parser.consumeReplaceRules()
 	token, _ := parser.tokenizer.Next()
 	if token.Type != kuuhaku_tokenizer.EOF {
@@ -171,7 +171,7 @@ func TestErrorConsumeReplaceRules(t *testing.T) {
 }
 
 func TestConsumeRule(t *testing.T) {
-	parser := Init("test{\nidentifier\n=\n\"\\t\"$0}");
+	parser := initParser("test{\nidentifier\n=\n\"\\t\"$0}");
 	rule := parser.consumeRule()
 	if len(parser.Errors) != 0 {
 		println("Expected len(parser.Errors) to be 0")
@@ -217,7 +217,7 @@ func TestConsumeRule(t *testing.T) {
 }
 
 func TestErrorConsumeRule(t *testing.T) {
-	parser := Init("test{\"test2\"=len$1}\nanotherTest{}");
+	parser := initParser("test{\"test2\"=len$1}\nanotherTest{}");
 	parser.consumeRule()
 	parser.consumeRule()
 	token, _ := parser.tokenizer.Next()
@@ -254,7 +254,7 @@ func TestErrorConsumeRule(t *testing.T) {
 }
 
 func TestErrorPosition(t *testing.T) {
-	parser := Init("test\ntest{\"test2\"=len$1}\ntest{test\"hello\"}\ntest{test=len$1}test{\"test}");
+	parser := initParser("test\ntest{\"test2\"=len$1}\ntest{test\"hello\"}\ntest{test=len$1}test{\"test}");
 	parser.consumeRule()
 	parser.consumeRule()
 	parser.consumeRule()
@@ -364,7 +364,7 @@ func TestErrorPosition(t *testing.T) {
 }
 
 func TestConsumeInput(t *testing.T) {
-	parser := Init("test{identifier=\"\\t\"len$0}\nidentifier{<[a-zA-Z]>}\nidentifier{<[a-zA-Z][0-9]>}");
+	parser := initParser("test{identifier=\"\\t\"len$0}\nidentifier{<[a-zA-Z]>}\nidentifier{<[a-zA-Z][0-9]>}");
 	ast := parser.consumeInput()
 	token, _ := parser.tokenizer.Next()
 	if token.Type != kuuhaku_tokenizer.EOF {
@@ -411,7 +411,7 @@ func TestConsumeInput(t *testing.T) {
 }
 
 func TestConsumeSearchMode(t *testing.T) {
-	parser := Init("SEARCH_MODE test{identifier=\"\\t\"len$0}\nidentifier{<[a-zA-Z]>}\nidentifier{<[a-zA-Z][0-9]>}");
+	parser := initParser("SEARCH_MODE test{identifier=\"\\t\"len$0}\nidentifier{<[a-zA-Z]>}\nidentifier{<[a-zA-Z][0-9]>}");
 	ast := parser.consumeInput()
 	token, _ := parser.tokenizer.Next()
 	if token.Type != kuuhaku_tokenizer.EOF {
@@ -448,7 +448,7 @@ func TestConsumeSearchMode(t *testing.T) {
 }
 
 func TestConsumeSearchModeError(t *testing.T) {
-	parser := Init("1 SEARCH_MODE test{identifier=\"\\t\"len$0}\nidentifier{<[a-zA-Z]>}\nidentifier{<[a-zA-Z][0-9]>}");
+	parser := initParser("1 SEARCH_MODE test{identifier=\"\\t\"len$0}\nidentifier{<[a-zA-Z]>}\nidentifier{<[a-zA-Z][0-9]>}");
 	ast := parser.consumeInput()
 	token, _ := parser.tokenizer.Next()
 	if token.Type != kuuhaku_tokenizer.EOF {
@@ -485,7 +485,7 @@ func TestConsumeSearchModeError(t *testing.T) {
 }
 
 func TestErrorConsumeInput(t *testing.T) {
-	parser := Init("test{\"test2\"=len$1}\n\"test\"test\nidentifier<test>");
+	parser := initParser("test{\"test2\"=len$1}\n\"test\"test\nidentifier<test>");
 	parser.consumeInput()
 	token, _ := parser.tokenizer.Next()
 	if token.Type != kuuhaku_tokenizer.EOF {
@@ -551,7 +551,7 @@ func TestErrorConsumeInput(t *testing.T) {
 }
 
 func TestErrorTokenizeError(t *testing.T) {
-	parser := Init("test{\"test2\"\\=len$1}\n\"test\"@test\nidentifier<test>");
+	parser := initParser("test{\"test2\"\\=len$1}\n\"test\"@test\nidentifier<test>");
 	parser.consumeInput()
 	token, _ := parser.tokenizer.Next()
 	if token.Type != kuuhaku_tokenizer.EOF {
