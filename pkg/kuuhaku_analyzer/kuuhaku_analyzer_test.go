@@ -2,6 +2,7 @@ package kuuhaku_analyzer
 
 import (
 	"errors"
+	"strconv"
 	"testing"
 
 	"github.com/ciii1/kuuhaku/internal/helper"
@@ -9,7 +10,7 @@ import (
 )
 
 func TestErrorUndefinedVariable(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest2{identifier}\ntest3{test4}");
+	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest2{identifier}\ntest34{test4}");
 	if len(errs) != 0 {
 		println("Expected parser errors length to be 0")	
 		t.Fatal()
@@ -31,7 +32,9 @@ func TestErrorUndefinedVariable(t *testing.T) {
 			t.Fail()
 		}
 		if analyzeError.Position.Column != 12 || analyzeError.Position.Line != 1 {
-			println("Expected UndefinedVariableError error with column 12 and line 1")
+			col := strconv.Itoa(analyzeError.Position.Column)
+			line := strconv.Itoa(analyzeError.Position.Line)
+			println("Expected UndefinedVariableError error with column 12 and line 1, got (" + col + ", " + line + ")")
 			t.Fail()
 		}
 	} else {
@@ -44,8 +47,10 @@ func TestErrorUndefinedVariable(t *testing.T) {
 			println("Expected UndefinedVariableError error")
 			t.Fail()
 		}
-		if analyzeError.Position.Column != 7 || analyzeError.Position.Line != 3 {
-			println("Expected UndefinedVariableError error with column 7 and line 3")
+		if analyzeError.Position.Column != 8 || analyzeError.Position.Line != 3 {
+			col := strconv.Itoa(analyzeError.Position.Column)
+			line := strconv.Itoa(analyzeError.Position.Line)
+			println("Expected UndefinedVariableError error with column 8 and line 3, got (" + col + ", " + line + ")")
 			t.Fail()
 		}
 	} else {

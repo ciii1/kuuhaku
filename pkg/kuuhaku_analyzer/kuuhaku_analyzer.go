@@ -35,9 +35,10 @@ func ErrUndefinedVariable(position kuuhaku_tokenizer.Position, variableName stri
 type Analyzer struct {
 	input *kuuhaku_parser.Ast
 	Errors []error
+	stateNumber int
 }
 
-func BuildParseTable() {
+func Analyze() {
 
 }
 
@@ -45,7 +46,45 @@ func initAnalyzer(input *kuuhaku_parser.Ast) Analyzer {
 	return Analyzer {
 		input: input,
 		Errors: []error{},
+		stateNumber: 0,
 	}
+}
+
+func (analyzer *Analyzer) expandSymbol(symbol string, position int, previousSymbols *[]*kuuhaku_parser.Rule, first bool) *[]*kuuhaku_parser.Rule {
+	output := previousSymbols
+	for _, currRule := range analyzer.input.Rules[symbol] {
+		if !first {
+			*output = append(*output, currRule)
+		}
+		currMatchRule := currRule.MatchRules[position]
+		currIdentifier, ok := currMatchRule.(kuuhaku_parser.Identifer);
+		if ok {
+			is_included := false
+			for _, e := range *output {
+				if e.MatchRules[0] == currIdentifier {
+					is_included = true
+					break
+				}
+			}
+			if !is_included {
+				output = analyzer.expandSymbol(symbol, 0, output, true)
+			}
+		}	
+	}
+	return output
+}
+
+func (analyzer *Analyzer) buildParseTable(startSymbol string) {
+	if len(analyzer.Errors) != 0 {
+		return
+	}
+	//var states []StateTransition
+	startRules := analyzer.input.Rules[startSymbol]
+	analyzer.groupRule(&startRules, 0) //TODO: make all of the rules in ast be a rule pointer
+}
+
+func (analyzer *Analyzer) groupRule(rules *[]*kuuhaku_parser.Rule, position int) {
+
 }
 
 //return start symbols
@@ -85,3 +124,4 @@ func (analyzer *Analyzer) analyzeStart () []string {
 
 	return outputSymbols
 }
+

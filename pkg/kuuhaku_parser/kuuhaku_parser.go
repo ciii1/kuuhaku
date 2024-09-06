@@ -113,7 +113,7 @@ func initParser(input string) Parser {
 
 func (parser *Parser) consumeInput() *Ast {
 	output := Ast {
-		Rules: make(map[string][]Rule),
+		Rules: make(map[string][]*Rule),
 		Position: parser.tokenizer.Position,
 		IsSearchMode: false,
 	}
@@ -124,7 +124,7 @@ func (parser *Parser) consumeInput() *Ast {
 	rule := parser.consumeRule()
 	if rule != nil {
 		rule.Order = orderCounter
-		output.Rules[rule.Name] = append(output.Rules[rule.Name], *rule)
+		output.Rules[rule.Name] = append(output.Rules[rule.Name], rule)
 	} else {
 		parser.Errors = append(parser.Errors, ErrExpectedRule(&parser.tokenizer))
 		parser.tokenizer.Next()
@@ -140,7 +140,7 @@ func (parser *Parser) consumeInput() *Ast {
 		rule := parser.consumeRule()
 		if rule != nil {
 			rule.Order = orderCounter
-			output.Rules[rule.Name] = append(output.Rules[rule.Name], *rule)
+			output.Rules[rule.Name] = append(output.Rules[rule.Name], rule)
 		} else {
 			parser.Errors = append(parser.Errors, ErrExpectedRule(&parser.tokenizer))
 			parser.tokenizer.Next()
