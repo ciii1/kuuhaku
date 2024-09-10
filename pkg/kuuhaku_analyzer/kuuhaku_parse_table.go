@@ -5,20 +5,29 @@ import (
 )
 
 type StateTransition struct {
-	Kernel SymbolGroup		
-	Position int
-	ExpandedSymbols []SymbolGroup
+	SymbolGroups *[]*SymbolGroup
 }
 
 type SymbolGroup struct {
-	Title kuuhaku_parser.MatchRule
-	Rules []*kuuhaku_parser.Rule
+	Title SymbolTitle
+	Symbols *[]*Symbol
 }
 
-type ExpandedSymbol struct {
+type Symbol struct {
 	Position int
-	Title kuuhaku_parser.MatchRule
+	Title SymbolTitle
 	Rule *kuuhaku_parser.Rule
+}
+
+type SymbolTitleType int
+const (
+	REGEX_LITERAL_TITLE = iota
+	IDENTIFIER_TITLE
+)
+
+type SymbolTitle struct {
+	String string
+	Type SymbolTitleType
 }
 
 type ParseTable struct {

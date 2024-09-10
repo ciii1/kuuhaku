@@ -50,41 +50,138 @@ func initAnalyzer(input *kuuhaku_parser.Ast) Analyzer {
 	}
 }
 
-func (analyzer *Analyzer) expandSymbol(symbol string, position int, previousSymbols *[]*kuuhaku_parser.Rule, first bool) *[]*kuuhaku_parser.Rule {
-	output := previousSymbols
-	for _, currRule := range analyzer.input.Rules[symbol] {
-		if !first {
-			*output = append(*output, currRule)
+func getSymbolTitleFromMatchRule(matchRule kuuhaku_parser.MatchRule) SymbolTitle {
+	currIdentifier, ok := matchRule.(kuuhaku_parser.Identifer)
+	if ok {
+		return SymbolTitle {
+			String: currIdentifier.Name,
+			Type: IDENTIFIER_TITLE,
 		}
+	} else {
+		currRegexLit, ok := matchRule.(kuuhaku_parser.RegexLiteral);
+		if ok {
+			return SymbolTitle {
+				String: currRegexLit.RegexString,
+				Type: REGEX_LITERAL_TITLE,
+			}
+		}
+	}
+	return SymbolTitle {}
+}
+
+func (analyzer *Analyzer) expandSymbol(rules *[]*kuuhaku_parser.Rule, position int, previousSymbols *[]*Symbol) *[]*Symbol {
+	output := previousSymbols
+	for _, currRule := range *rules {
+		if position >= len(currRule.MatchRules) {
+			continue
+		}
+
 		currMatchRule := currRule.MatchRules[position]
+
+		*output = append(*output, &Symbol{
+			Rule: currRule,
+			Position: position,
+			Title: getSymbolTitleFromMatchRule(currMatchRule),
+		})
+
 		currIdentifier, ok := currMatchRule.(kuuhaku_parser.Identifer);
 		if ok {
 			is_included := false
 			for _, e := range *output {
-				if e.MatchRules[0] == currIdentifier {
+				if e.Rule.Name == currIdentifier.Name {
 					is_included = true
 					break
 				}
 			}
 			if !is_included {
-				output = analyzer.expandSymbol(symbol, 0, output, true)
+				rules := analyzer.input.Rules[currIdentifier.Name]
+				output = analyzer.expandSymbol(&rules, 0, output)
 			}
 		}	
 	}
 	return output
 }
 
-func (analyzer *Analyzer) buildParseTable(startSymbol string) {
+func (analyzer *Analyzer) buildParseTable(startSymbolString string) {
 	if len(analyzer.Errors) != 0 {
 		return
 	}
 	//var states []StateTransition
-	startRules := analyzer.input.Rules[startSymbol]
-	analyzer.groupRule(&startRules, 0) //TODO: make all of the rules in ast be a rule pointer
+	startRules := analyzer.input.Rules[startSymbolString]
+	expandedStartSymbols := analyzer.expandSymbol(&startRules, 0, &[]*Symbol{})
+
+	var stateTransitions []StateTransition
+	stateTransitions = append(stateTransitions, StateTransition {
+		SymbolGroups: analyzer.groupSymbols(expandedStartSymbols),
+	})
+
+	for _, state := range stateTransitions {
+		for _, group := range *state.SymbolGroups {
+			var newFlattened []*Symbol
+			for _, symbol := range *group.Symbols {
+				symbol.Position += 1
+				symbol.Title = SymbolTitle{}
+				newFlattened = append(newFlattened, symbol)
+			}
+
+			var expandedSymbolsAll []*Symbol
+			for _, symbol := range newFlattened {
+				expandedSymbols := analyzer.expandSymbol(&[]*kuuhaku_parser.Rule{symbol.Rule}, symbol.Position, &[]*Symbol{})
+				for _, expandedSymbol := range *expandedSymbols {
+					expandedSymbolsAll = append(expandedSymbolsAll, expandedSymbol)
+				}
+			}
+
+			stateTransitions = append(stateTransitions, StateTransition {
+				SymbolGroups: analyzer.groupSymbols(&expandedSymbolsAll),
+			})
+		}
+	}
 }
 
-func (analyzer *Analyzer) groupRule(rules *[]*kuuhaku_parser.Rule, position int) {
+func (analyzer *Analyzer) groupSymbols(symbols *[]*Symbol) *[]*SymbolGroup {
+	groupsMap := make(map[SymbolTitle]SymbolGroup)
 
+	for _, symbol := range *symbols {
+		symbolTitle := (*symbol).Title
+		if groupsMap[symbolTitle].Symbols == nil {
+			groupsMap[symbol.Title] = SymbolGroup {
+				Title: symbolTitle,
+				Symbols: &[]*Symbol{},
+			}
+		}
+		*groupsMap[symbolTitle].Symbols = append(*groupsMap[symbolTitle].Symbols, symbol)
+	}
+
+	var groups []*SymbolGroup
+	for _, group := range groupsMap {
+		groupVar := group
+		groups = append(groups, &groupVar)	
+	}
+	return &groups
+}
+
+func (analyzer *Analyzer) makeAugmentedGrammar(startSymbol string) *Symbol {
+	startRules := analyzer.input.Rules[startSymbol]
+	order := startRules[0].Order
+	ruleName := "S" + startSymbol 
+	rule := &kuuhaku_parser.Rule {
+		Name: ruleName,
+		Order: order,
+		MatchRules: []kuuhaku_parser.MatchRule{
+			kuuhaku_parser.Identifer{
+				Name: startSymbol,
+				Position: startRules[0].Position,
+			},
+		},
+		Position: startRules[0].Position,
+	}
+	analyzer.input.Rules[ruleName] = append(analyzer.input.Rules[ruleName], rule)
+	return &Symbol {
+		Title: getSymbolTitleFromMatchRule(rule.MatchRules[0]),
+		Position: 0,
+		Rule: rule,
+	}
 }
 
 //return start symbols
