@@ -185,7 +185,7 @@ func TestExpandSymbol2(t *testing.T) {
 		t.Fatal()
 	}
 
-	if len(*expandedSymbols) != 2 {
+	if len(*expandedSymbols) != 3 {
 		println("Expected expandedSymbols length to be 2, got " + strconv.Itoa(len(*expandedSymbols)))
 		fmt.Printf("%# v\n", pretty.Formatter(*expandedSymbols))
 		t.Fatal()
@@ -270,18 +270,19 @@ func TestGroupSymbols(t *testing.T) {
 	}
 	var regexLitGroup *SymbolGroup
 	var identifierGroup *SymbolGroup
-	if (*groupedSymbols)[0].Title != comparedTitle1 {	
+	if (*groupedSymbols)[0].Title == comparedTitle1 {	
 		if (*groupedSymbols)[1].Title != comparedTitle2 {
-			println("Expected groupedSymbols[1] to be \"test\" with the type identifier")
-		}
-		regexLitGroup = (*groupedSymbols)[1]
-		identifierGroup = (*groupedSymbols)[0]
-	} else if (*groupedSymbols)[1].Title != comparedTitle1 {
-		if (*groupedSymbols)[0].Title != comparedTitle2 {
-			println("Expected groupedSymbols[0] to be \"test\" with the type identifier")
+			println("Expected groupedSymbols[1].Title to be \"test\" with the type identifier")
+			fmt.Printf("%# v\n", pretty.Formatter((*groupedSymbols)[1].Title))
 		}
 		regexLitGroup = (*groupedSymbols)[0]
 		identifierGroup = (*groupedSymbols)[1]
+	} else if (*groupedSymbols)[1].Title == comparedTitle1 {
+		if (*groupedSymbols)[0].Title != comparedTitle2 {
+			println("Expected groupedSymbols[0] to be \"test\" with the type identifier")
+		}
+		regexLitGroup = (*groupedSymbols)[1]
+		identifierGroup = (*groupedSymbols)[0]
 	} else {
 		println("Expected groupedSymbols[0] or [1] to contain the string \"\\.\" with the type regex literal")
 		t.Fatal()
@@ -343,5 +344,21 @@ func TestGroupSymbols(t *testing.T) {
 
 	if thirdSymbol.Position != 0 {
 		println("Expected expandedSymbols[2].Position to be 0")
+	}
+}
+
+func TestBuildParseTableStateTransition(t *testing.T) {
+	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<hello>}\nidentifier{<\\.>}\ntest3{<\\.>}");
+	if len(errs) != 0 {
+		println("Expected parser errors length to be 0")
+		t.Fatal()
+	}
+	analyzer := initAnalyzer(&ast)
+	stateTransitions := analyzer.buildParseTable("identifier")
+
+	if len(*stateTransitions) != 5 {
+		println("Expected stateTransitions length to be 5, got " + strconv.Itoa(len(*stateTransitions)))
+		fmt.Printf("%# v\n", pretty.Formatter(*stateTransitions))
+		t.Fatal()
 	}
 }

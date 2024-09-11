@@ -73,6 +73,11 @@ func (analyzer *Analyzer) expandSymbol(rules *[]*kuuhaku_parser.Rule, position i
 	output := previousSymbols
 	for _, currRule := range *rules {
 		if position >= len(currRule.MatchRules) {
+			*output = append(*output, &Symbol{
+				Rule: currRule,
+				Position: position,
+				Title: SymbolTitle {},
+			})
 			continue
 		}
 
@@ -102,55 +107,63 @@ func (analyzer *Analyzer) expandSymbol(rules *[]*kuuhaku_parser.Rule, position i
 	return output
 }
 
-func (analyzer *Analyzer) buildParseTable(startSymbolString string) {
+func (analyzer *Analyzer) buildParseTable(startSymbolString string) *[]*StateTransition {
 	if len(analyzer.Errors) != 0 {
-		return
+		return nil
 	}
+	println("---")
 	//var states []StateTransition
 	startRules := analyzer.input.Rules[startSymbolString]
 	expandedStartSymbols := analyzer.expandSymbol(&startRules, 0, &[]*Symbol{})
 
-	var stateTransitions []StateTransition
-	stateTransitions = append(stateTransitions, StateTransition {
+	var stateTransitions []*StateTransition
+	stateTransitions = append(stateTransitions, &StateTransition {
 		SymbolGroups: analyzer.groupSymbols(expandedStartSymbols),
 	})
 
-	for _, state := range stateTransitions {
+	i := 0
+	for true {
+		if i >= len(stateTransitions) {
+			break
+		}
+		state := stateTransitions[i] 
 		for _, group := range *state.SymbolGroups {
-			var newFlattened []*Symbol
+			var expandedSymbolsAll []*Symbol
 			for _, symbol := range *group.Symbols {
 				symbol.Position += 1
 				symbol.Title = SymbolTitle{}
-				newFlattened = append(newFlattened, symbol)
-			}
-
-			var expandedSymbolsAll []*Symbol
-			for _, symbol := range newFlattened {
 				expandedSymbols := analyzer.expandSymbol(&[]*kuuhaku_parser.Rule{symbol.Rule}, symbol.Position, &[]*Symbol{})
 				for _, expandedSymbol := range *expandedSymbols {
 					expandedSymbolsAll = append(expandedSymbolsAll, expandedSymbol)
 				}
 			}
-
-			stateTransitions = append(stateTransitions, StateTransition {
-				SymbolGroups: analyzer.groupSymbols(&expandedSymbolsAll),
-			})
+			
+			grouped := analyzer.groupSymbols(&expandedSymbolsAll)
+			if len(*grouped) != 0 {
+				stateTransitions = append(stateTransitions, &StateTransition {
+					SymbolGroups: grouped,
+				})
+			}
 		}
+		i++
 	}
+	return &stateTransitions
 }
 
 func (analyzer *Analyzer) groupSymbols(symbols *[]*Symbol) *[]*SymbolGroup {
 	groupsMap := make(map[SymbolTitle]SymbolGroup)
 
 	for _, symbol := range *symbols {
-		symbolTitle := (*symbol).Title
-		if groupsMap[symbolTitle].Symbols == nil {
-			groupsMap[symbol.Title] = SymbolGroup {
-				Title: symbolTitle,
-				Symbols: &[]*Symbol{},
+		if symbol.Position <= len(symbol.Rule.MatchRules) {
+			symbolTitle := (*symbol).Title
+			if groupsMap[symbolTitle].Symbols == nil {
+				groupsMap[symbol.Title] = SymbolGroup {
+					Title: symbolTitle,
+					Symbols: &[]*Symbol{},
+				}
 			}
+			*groupsMap[symbolTitle].Symbols = append(*groupsMap[symbolTitle].Symbols, symbol)
 		}
-		*groupsMap[symbolTitle].Symbols = append(*groupsMap[symbolTitle].Symbols, symbol)
 	}
 
 	var groups []*SymbolGroup
