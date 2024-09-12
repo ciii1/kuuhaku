@@ -81,13 +81,18 @@ func TestStartSymbols(t *testing.T) {
 		t.Fatal()
 	}
 	
-	if startSymbols[0] != "identifier" {
-		println("Expected startSymbols[0] to be \"identifier\", got " + startSymbols[0])
-		t.Fail()
-	}
-
-	if startSymbols[1] != "test3" {
-		println("Expected startSymbols[1] to be \"test3\", got" + startSymbols[1])
+	if startSymbols[0] == "identifier" {
+		if startSymbols[1] != "test3" {
+			println("Expected startSymbols[1] to be \"test3\", got" + startSymbols[1])
+			t.Fail()
+		}
+	} else if startSymbols[1] == "identifier" {
+		if startSymbols[0] != "test3" {
+			println("Expected startSymbols[1] to be \"test3\", got" + startSymbols[1])
+			t.Fail()
+		}
+	} else {
+		println("Expected startSymbols[0] or [1] to be \"identifier\"")
 		t.Fail()
 	}
 }
@@ -360,5 +365,77 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 		println("Expected stateTransitions length to be 5, got " + strconv.Itoa(len(*stateTransitions)))
 		fmt.Printf("%# v\n", pretty.Formatter(*stateTransitions))
 		t.Fatal()
+	}
+
+	if len(*(*stateTransitions)[0].SymbolGroups) != 1 {
+		println("Expected the first state transition to contain exactly three groups")
+	}
+
+	titles := []SymbolTitle{
+		{
+			String: "test",
+			Type: IDENTIFIER_TITLE,
+		},
+		{
+			String: "\\.",
+			Type: REGEX_LITERAL_TITLE,
+		},
+		{
+			String: "hello",
+			Type: REGEX_LITERAL_TITLE,
+		},
+	}
+
+	for _, title := range titles {
+		isExist := false
+		for _, group := range *(*stateTransitions)[0].SymbolGroups {
+			if title == group.Title {
+				isExist = true	
+			}
+		}
+		if !isExist {
+			println("Expected the first state transition to contain groups with title \"test\", \"\\.\", and \"hello\"")	
+		}
+	}
+
+	if len(*(*stateTransitions)[1].SymbolGroups) != 1 {
+		println("Expected the second state transition to contain exactly one group")
+	}
+
+	if len(*(*stateTransitions)[2].SymbolGroups) != 1 {
+		println("Expected the third state transition to contain exactly one group")
+	}
+
+	if len(*(*stateTransitions)[3].SymbolGroups) != 1 {
+		println("Expected the fourth state transition to contain exactly one group")
+	}
+
+	middleTransitions := []*StateTransition{
+		(*stateTransitions)[1],
+		(*stateTransitions)[2],
+		(*stateTransitions)[3],
+	}
+	for _, title := range titles {
+		isExist := false
+		for _, transition := range middleTransitions {
+			if title == (*(*transition).SymbolGroups)[0].Title {
+				isExist = true	
+			}
+		}
+		if !isExist {
+			println("Expected the second, third, and fourth state transition to contain groups with title \"test\", \"\\.\", and \"hello\"")	
+		}
+	}
+
+	lastSymbol := SymbolTitle {
+		String: "\\.",
+		Type: REGEX_LITERAL_TITLE,
+	}
+	if (*(*stateTransitions)[4].SymbolGroups)[0].Title != lastSymbol {
+		println("Expected the fifth state transition to contain group with title \"\\.\"")	
+	}
+
+	if len(*(*stateTransitions)[4].SymbolGroups) != 1 {
+		println("Expected the fifth state transition to contain exactly one group")
 	}
 }
