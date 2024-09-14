@@ -48,6 +48,7 @@ type Analyzer struct {
 	stateNumber int
 	parseTable ParseTable
 	stateTransitionMap map[Symbol]int
+	stateTransitionMapBool map[Symbol]bool
 }
 
 func Analyze() {
@@ -87,6 +88,7 @@ func initAnalyzer(input *kuuhaku_parser.Ast) Analyzer {
 			Lhss: lhss,
 		},
 		stateTransitionMap: make(map[Symbol]int),
+		stateTransitionMapBool: make(map[Symbol]bool),
 	}
 }
 
@@ -227,24 +229,72 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 	gotoTable := make(map[string]GotoCell)
 	var outGroup []*SymbolGroup
 	
-	isThereReduce := false
+	isThereFullReduce := false
 	reducedRuleOrder := 0
-	//resolve reduce actions
+	usedTerminals := make(map[string]bool)	
+	usedTerminalsWithRuleOrder := make(map[string]int)	
+
+	var emptyTitleGroup *SymbolGroup
+	emptyTitleGroup = nil
 	for _, group := range *symbolGroups {
-		for _, symbol := range *group.Symbols {
+		if group.Title.Type == EMPTY_TITLE {
+			emptyTitleGroup = group
+		}
+	}
+
+	//resolve full reduce actions
+	if emptyTitleGroup != nil {
+		outGroup = append(outGroup, emptyTitleGroup)
+		for _, symbol := range *emptyTitleGroup.Symbols {
 			if symbol.Position >= len(symbol.Rule.MatchRules) {
-				if isThereReduce {
-					analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol.Rule.Position, symbol.Rule.Order, reducedRuleOrder))
-				} else {
-					reducedRuleOrder = symbol.Rule.Order
-					isThereReduce = true
-					for _, terminal := range analyzer.parseTable.Terminals {
+				if symbol.Lookeahead.Type == EMPTY_TITLE {
+					if isThereFullReduce {
+						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol.Rule.Position, symbol.Rule.Order, reducedRuleOrder))
+					} else {
+						isThereFullReduce = true
+						reducedRuleOrder = symbol.Rule.Order
+						for _, terminal := range analyzer.parseTable.Terminals {
+							actionTable[terminal] = ActionCell {
+								LookaheadTerminal: terminal,
+								Action: REDUCE,
+								ReduceRule: symbol.Rule,
+								ShiftState: 0,
+							}
+						}
+					}
+				}
+			}
+		}
+		//resolve partly reduce actions
+		for _, symbol := range *emptyTitleGroup.Symbols {
+			if symbol.Position >= len(symbol.Rule.MatchRules) {
+				if symbol.Lookeahead.Type == EMPTY_TITLE {
+					continue
+				}
+				var terminals []string
+				if symbol.Lookeahead.Type == IDENTIFIER_TITLE {
+					rule := analyzer.input.Rules[symbol.Lookeahead.String]
+					symbols := analyzer.expandSymbol(&rule, 0, &[]*Symbol{}, SymbolTitle{})
+					for _, symbol := range *symbols {
+						if (*symbol).Title.Type == REGEX_LITERAL_TITLE {
+							terminals = append(terminals, (*symbol).Title.String)
+						}
+					}
+				} else if symbol.Lookeahead.Type == REGEX_LITERAL_TITLE {
+					terminals = append(terminals, symbol.Lookeahead.String)
+				}
+				for _, terminal := range terminals {
+					if !usedTerminals[terminal] {
+						usedTerminals[terminal] = true
+						usedTerminalsWithRuleOrder[terminal] = symbol.Rule.Order
 						actionTable[terminal] = ActionCell {
 							LookaheadTerminal: terminal,
 							Action: REDUCE,
 							ReduceRule: symbol.Rule,
 							ShiftState: 0,
 						}
+					} else {
+						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol.Rule.Position, symbol.Rule.Order, usedTerminalsWithRuleOrder[terminal]))
 					}
 				}
 			}
@@ -258,7 +308,11 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 				GotoState: analyzer.stateNumber,
 			}
 			analyzer.stateNumber++
+			outGroup = append(outGroup, group)
 		} else if group.Title.Type == REGEX_LITERAL_TITLE {
+			if usedTerminals[group.Title.String] {
+				analyzer.Errors = append(analyzer.Errors, ErrConflict((*group.Symbols)[0].Rule.Position, (*group.Symbols)[0].Rule.Order, usedTerminalsWithRuleOrder[group.Title.String]))
+			}
 			isStateExisted := false
 			existedStateNumber := 0
 			existedSymbolOrder := 0
@@ -267,12 +321,10 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 					if analyzer.stateTransitionMap[*symbol] != existedStateNumber {
 						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol.Rule.Position, symbol.Rule.Order, existedSymbolOrder))
 					}
-				} else {
-					if analyzer.stateTransitionMap[*symbol] != 0 {
-						isStateExisted = true
-						existedStateNumber = analyzer.stateTransitionMap[*symbol]
-						existedSymbolOrder = symbol.Rule.Order
-					}
+				} else if analyzer.stateTransitionMapBool[*symbol] != false {
+					isStateExisted = true
+					existedStateNumber = analyzer.stateTransitionMap[*symbol]
+					existedSymbolOrder = symbol.Rule.Order
 				}
 			}
 			if !isStateExisted {
@@ -283,6 +335,10 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 					ShiftState: analyzer.stateNumber,
 				}
 				outGroup = append(outGroup, group)
+				for _, symbol := range *group.Symbols {
+					analyzer.stateTransitionMapBool[*symbol] = true
+					analyzer.stateTransitionMap[*symbol] = analyzer.stateNumber
+				}
 				analyzer.stateNumber++
 			} else {
 				actionTable[group.Title.String] = ActionCell {
