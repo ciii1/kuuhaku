@@ -117,16 +117,23 @@ func (analyzer *Analyzer) expandSymbol(rules *[]*kuuhaku_parser.Rule, position i
 				Rule: currRule,
 				Position: position,
 				Title: SymbolTitle {Type:EMPTY_TITLE},
+				Lookeahead: SymbolTitle{Type:EMPTY_TITLE},
 			})
 			continue
 		}
 
 		currMatchRule := currRule.MatchRules[position]
+		lookahead := SymbolTitle{Type:EMPTY_TITLE}
+		if position + 1 < len(currRule.MatchRules) {
+			nextMatchRule := currRule.MatchRules[position+1]
+			getSymbolTitleFromMatchRule(nextMatchRule)
+		}
 
 		*output = append(*output, &Symbol{
 			Rule: currRule,
 			Position: position,
 			Title: getSymbolTitleFromMatchRule(currMatchRule),
+			Lookeahead: lookahead,
 		})
 
 		currIdentifier, ok := currMatchRule.(kuuhaku_parser.Identifer);
