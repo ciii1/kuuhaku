@@ -237,6 +237,34 @@ func TestExpandSymbol2(t *testing.T) {
 	}
 }
 
+func TestExpandSymbol3(t *testing.T) {
+	ast, errs := kuuhaku_parser.Parse("identifier{<\\.>test}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}");
+	if len(errs) != 0 {
+		println("Expected parser errors length to be 0")	
+		t.Fatal()
+	}
+	analyzer := initAnalyzer(&ast)
+	rules := ast.Rules["test"]
+	expandedSymbols := analyzer.expandSymbol(&rules, 2, &[]*Symbol{})
+	if len(analyzer.Errors) != 0 {
+		println("Expected analyzer Errors length to be 0")
+		t.Fatal()
+	}
+
+	if len(*expandedSymbols) != 1 {
+		println("Expected expandedSymbols length to be 1, got " + strconv.Itoa(len(*expandedSymbols)))
+		fmt.Printf("%# v\n", pretty.Formatter(*expandedSymbols))
+		t.Fatal()
+	}
+
+	firstSymbol := (*(*expandedSymbols)[0])
+	title1 := firstSymbol.Title
+	if title1.Type != EMPTY_TITLE {
+		println("Expected expandedSymbols[0].Title to be empty")
+		t.Fail()
+	}
+}
+
 func TestGroupSymbols(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}");
 	if len(errs) != 0 {
@@ -367,8 +395,9 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 		t.Fatal()
 	}
 
-	if len(*(*stateTransitions)[0].SymbolGroups) != 1 {
+	if len(*(*stateTransitions)[0].SymbolGroups) != 3 {
 		println("Expected the first state transition to contain exactly three groups")
+		t.Fail()
 	}
 
 	titles := []SymbolTitle{
@@ -395,19 +424,23 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 		}
 		if !isExist {
 			println("Expected the first state transition to contain groups with title \"test\", \"\\.\", and \"hello\"")	
+			t.Fail()
 		}
 	}
 
 	if len(*(*stateTransitions)[1].SymbolGroups) != 1 {
 		println("Expected the second state transition to contain exactly one group")
+		t.Fail()
 	}
 
 	if len(*(*stateTransitions)[2].SymbolGroups) != 1 {
 		println("Expected the third state transition to contain exactly one group")
+		t.Fail()
 	}
 
 	if len(*(*stateTransitions)[3].SymbolGroups) != 1 {
 		println("Expected the fourth state transition to contain exactly one group")
+		t.Fail()
 	}
 
 	middleTransitions := []*StateTransition{
@@ -415,7 +448,21 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 		(*stateTransitions)[2],
 		(*stateTransitions)[3],
 	}
-	for _, title := range titles {
+	titles2 := []SymbolTitle{
+		{
+			String: "\\.",
+			Type: REGEX_LITERAL_TITLE,
+		},
+		{
+			String: "",
+			Type: EMPTY_TITLE,
+		},
+		{
+			String: "",
+			Type: EMPTY_TITLE,
+		},
+	}
+	for _, title := range titles2 {
 		isExist := false
 		for _, transition := range middleTransitions {
 			if title == (*(*transition).SymbolGroups)[0].Title {
@@ -423,19 +470,36 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 			}
 		}
 		if !isExist {
-			println("Expected the second, third, and fourth state transition to contain groups with title \"test\", \"\\.\", and \"hello\"")	
+			println("Expected the second, third, and fourth state transition to contain groups with title \"\\.\", and two empty titles")	
+			t.Fail()
 		}
 	}
+	fmt.Printf("%# v\n", pretty.Formatter(stateTransitions))
 
 	lastSymbol := SymbolTitle {
-		String: "\\.",
-		Type: REGEX_LITERAL_TITLE,
+		String: "",
+		Type: EMPTY_TITLE,
 	}
 	if (*(*stateTransitions)[4].SymbolGroups)[0].Title != lastSymbol {
-		println("Expected the fifth state transition to contain group with title \"\\.\"")	
+		println("Expected the fifth state transition to contain group with an empty title")	
+		t.Fail()
 	}
 
 	if len(*(*stateTransitions)[4].SymbolGroups) != 1 {
 		println("Expected the fifth state transition to contain exactly one group")
+		t.Fail()
 	}
 }
+
+/*func TestBuildParseTableStateTransition2(t *testing.T) {
+	ast, errs := kuuhaku_parser.Parse("A{B<1>}\nA{<1>B}\nB{<1><2>}\nB{<2>}");
+	if len(errs) != 0 {
+		println("Expected parser errors length to be 0")
+		t.Fatal()
+	}
+	analyzer := initAnalyzer(&ast)
+	stateTransitions := analyzer.buildParseTable("A")
+
+	fmt.Printf("%# v\n", pretty.Formatter(*stateTransitions))
+	t.Fatal()
+}*/

@@ -23,6 +23,7 @@ type SymbolTitleType int
 const (
 	REGEX_LITERAL_TITLE = iota
 	IDENTIFIER_TITLE
+	EMPTY_TITLE
 )
 
 type SymbolTitle struct {
@@ -32,13 +33,13 @@ type SymbolTitle struct {
 
 type ParseTable struct {
 	States []ParseTableState
-	TerminalSymbols []string 
+	Terminals []string
+	Lhss []string
 }
 
 type ParseTableState struct {
 	ActionTable map[string]ActionCell //map[kuuhaku_parser.RegexLiteral.Content]ActionCell
 	GotoTable map[string]GotoCell //map[kuuhaku_parser.Rule.Name]GotoCell
-	
 }
 
 type Action int
@@ -51,11 +52,11 @@ const (
 type ActionCell struct {
 	LookaheadTerminal string
 	Action Action
-	ReduceRule *kuuhaku_parser.ReplaceRule
-	ShiftState *ParseTableState
+	ReduceRule *kuuhaku_parser.Rule
+	ShiftState int
 }
 
 type GotoCell struct {
-	LhsRule string
-	GotoState *ParseTableState
+	Lhs string
+	GotoState int
 }

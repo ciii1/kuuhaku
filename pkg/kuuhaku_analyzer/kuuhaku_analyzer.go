@@ -2,6 +2,7 @@ package kuuhaku_analyzer
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/ciii1/kuuhaku/internal/helper"
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_parser"
@@ -12,6 +13,7 @@ type AnalyzeErrorType int
 
 const (
 	UNDEFINED_VARIABLE = iota
+	CONFLICT
 )
 
 type AnalyzeError struct {
@@ -32,10 +34,20 @@ func ErrUndefinedVariable(position kuuhaku_tokenizer.Position, variableName stri
 	}
 }
 
+func ErrConflict(position kuuhaku_tokenizer.Position, ruleOrder int, ruleOrder2 int) *AnalyzeError {
+	return &AnalyzeError {
+		Message: "Detected conflict at rule " + strconv.Itoa(ruleOrder) + " and rule " + strconv.Itoa(ruleOrder2),
+		Position: position,
+		Type: CONFLICT,
+	}
+}
+
 type Analyzer struct {
 	input *kuuhaku_parser.Ast
 	Errors []error
 	stateNumber int
+	parseTable ParseTable
+	stateTransitionMap map[Symbol]*ParseTableState
 }
 
 func Analyze() {
@@ -43,10 +55,37 @@ func Analyze() {
 }
 
 func initAnalyzer(input *kuuhaku_parser.Ast) Analyzer {
+	terminalsMap := make(map[string]bool)
+	for _, rules := range input.Rules {
+		for _, rule := range rules {
+			for _, matchRule := range (*rule).MatchRules {
+				regexCurr, ok := matchRule.(kuuhaku_parser.RegexLiteral)
+				if ok {
+					terminalsMap[regexCurr.RegexString] = true
+				}
+			}
+		}
+	}
+
+	var terminals []string
+	for regexString, _ := range terminalsMap {
+		terminals = append(terminals, regexString)	
+	}
+
+	var lhss []string
+	for lhs, _ := range input.Rules {
+		lhss = append(lhss, lhs)
+	}
+
 	return Analyzer {
 		input: input,
 		Errors: []error{},
-		stateNumber: 0,
+		stateNumber: 1,
+		parseTable: ParseTable {
+			States: []ParseTableState{},
+			Terminals: terminals,
+			Lhss: lhss,
+		},
 	}
 }
 
@@ -66,7 +105,7 @@ func getSymbolTitleFromMatchRule(matchRule kuuhaku_parser.MatchRule) SymbolTitle
 			}
 		}
 	}
-	return SymbolTitle {}
+	return SymbolTitle {Type:EMPTY_TITLE}
 }
 
 func (analyzer *Analyzer) expandSymbol(rules *[]*kuuhaku_parser.Rule, position int, previousSymbols *[]*Symbol) *[]*Symbol {
@@ -76,7 +115,7 @@ func (analyzer *Analyzer) expandSymbol(rules *[]*kuuhaku_parser.Rule, position i
 			*output = append(*output, &Symbol{
 				Rule: currRule,
 				Position: position,
-				Title: SymbolTitle {},
+				Title: SymbolTitle {Type:EMPTY_TITLE},
 			})
 			continue
 		}
@@ -111,8 +150,6 @@ func (analyzer *Analyzer) buildParseTable(startSymbolString string) *[]*StateTra
 	if len(analyzer.Errors) != 0 {
 		return nil
 	}
-	println("---")
-	//var states []StateTransition
 	startRules := analyzer.input.Rules[startSymbolString]
 	expandedStartSymbols := analyzer.expandSymbol(&startRules, 0, &[]*Symbol{})
 
@@ -130,9 +167,7 @@ func (analyzer *Analyzer) buildParseTable(startSymbolString string) *[]*StateTra
 		for _, group := range *state.SymbolGroups {
 			var expandedSymbolsAll []*Symbol
 			for _, symbol := range *group.Symbols {
-				symbol.Position += 1
-				symbol.Title = SymbolTitle{}
-				expandedSymbols := analyzer.expandSymbol(&[]*kuuhaku_parser.Rule{symbol.Rule}, symbol.Position, &[]*Symbol{})
+				expandedSymbols := analyzer.expandSymbol(&[]*kuuhaku_parser.Rule{symbol.Rule}, symbol.Position + 1, &[]*Symbol{})
 				for _, expandedSymbol := range *expandedSymbols {
 					expandedSymbolsAll = append(expandedSymbolsAll, expandedSymbol)
 				}
@@ -172,6 +207,54 @@ func (analyzer *Analyzer) groupSymbols(symbols *[]*Symbol) *[]*SymbolGroup {
 		groups = append(groups, &groupVar)	
 	}
 	return &groups
+}
+
+func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) {
+	actionTable := make(map[string]ActionCell)
+	gotoTable := make(map[string]GotoCell)
+	
+	isThereReduce := false
+	reducedRuleOrder := 0
+	//resolve reduce actions
+	out:
+	for _, group := range *symbolGroups {
+		for _, symbol := range *group.Symbols {
+			if symbol.Position >= len(symbol.Rule.MatchRules) {
+				if isThereReduce {
+					analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol.Rule.Position, symbol.Rule.Order, reducedRuleOrder))
+					break out
+				}
+				reducedRuleOrder = symbol.Rule.Order
+				isThereReduce = true
+				for _, terminal := range analyzer.parseTable.Terminals {
+					actionTable[terminal] = ActionCell {
+						LookaheadTerminal: terminal,
+						Action: REDUCE,
+						ReduceRule: symbol.Rule,
+						ShiftState: 0,
+					}
+				}
+			}
+		}
+	}
+
+	for _, group := range *symbolGroups {
+		if group.Title.Type == IDENTIFIER_TITLE {
+			gotoTable[group.Title.String] = GotoCell {
+				Lhs: group.Title.String,
+				GotoState: analyzer.stateNumber,
+			}
+			analyzer.stateNumber++
+		} else if group.Title.Type == REGEX_LITERAL_TITLE {
+			actionTable[group.Title.String] = ActionCell {
+				LookaheadTerminal: group.Title.String,
+				Action: SHIFT,
+				ReduceRule: nil,
+				ShiftState: analyzer.stateNumber,
+			}
+			analyzer.stateNumber++
+		}
+	}
 }
 
 func (analyzer *Analyzer) makeAugmentedGrammar(startSymbol string) *Symbol {
