@@ -68,12 +68,12 @@ func initAnalyzer(input *kuuhaku_parser.Ast) Analyzer {
 	}
 
 	var terminals []string
-	for regexString, _ := range terminalsMap {
+	for regexString := range terminalsMap {
 		terminals = append(terminals, regexString)	
 	}
 
 	var lhss []string
-	for lhs, _ := range input.Rules {
+	for lhs := range input.Rules {
 		lhss = append(lhss, lhs)
 	}
 
@@ -175,6 +175,7 @@ func (analyzer *Analyzer) buildParseTable(startSymbolString string) *[]*StateTra
 			}
 			
 			grouped := analyzer.groupSymbols(&expandedSymbolsAll)
+			grouped = analyzer.buildParseTableState(grouped)	
 			if len(*grouped) != 0 {
 				stateTransitions = append(stateTransitions, &StateTransition {
 					SymbolGroups: grouped,
@@ -210,9 +211,10 @@ func (analyzer *Analyzer) groupSymbols(symbols *[]*Symbol) *[]*SymbolGroup {
 	return &groups
 }
 
-func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) {
+func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]*SymbolGroup {
 	actionTable := make(map[string]ActionCell)
 	gotoTable := make(map[string]GotoCell)
+	var outGroup []*SymbolGroup
 	
 	isThereReduce := false
 	reducedRuleOrder := 0
@@ -269,6 +271,7 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) {
 					ReduceRule: nil,
 					ShiftState: analyzer.stateNumber,
 				}
+				outGroup = append(outGroup, group)
 				analyzer.stateNumber++
 			} else {
 				actionTable[group.Title.String] = ActionCell {
@@ -280,6 +283,7 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) {
 			}
 		}
 	}
+	return &outGroup
 }
 
 func (analyzer *Analyzer) makeAugmentedGrammar(startSymbol string) *Symbol {
