@@ -474,7 +474,6 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 			t.Fail()
 		}
 	}
-	fmt.Printf("%# v\n", pretty.Formatter(stateTransitions))
 
 	lastSymbol := SymbolTitle {
 		String: "",

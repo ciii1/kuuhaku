@@ -47,7 +47,7 @@ type Analyzer struct {
 	Errors []error
 	stateNumber int
 	parseTable ParseTable
-	stateTransitionMap map[Symbol]*ParseTableState
+	stateTransitionMap map[Symbol]int
 }
 
 func Analyze() {
@@ -86,6 +86,7 @@ func initAnalyzer(input *kuuhaku_parser.Ast) Analyzer {
 			Terminals: terminals,
 			Lhss: lhss,
 		},
+		stateTransitionMap: make(map[Symbol]int),
 	}
 }
 
@@ -216,22 +217,21 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) {
 	isThereReduce := false
 	reducedRuleOrder := 0
 	//resolve reduce actions
-	out:
 	for _, group := range *symbolGroups {
 		for _, symbol := range *group.Symbols {
 			if symbol.Position >= len(symbol.Rule.MatchRules) {
 				if isThereReduce {
 					analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol.Rule.Position, symbol.Rule.Order, reducedRuleOrder))
-					break out
-				}
-				reducedRuleOrder = symbol.Rule.Order
-				isThereReduce = true
-				for _, terminal := range analyzer.parseTable.Terminals {
-					actionTable[terminal] = ActionCell {
-						LookaheadTerminal: terminal,
-						Action: REDUCE,
-						ReduceRule: symbol.Rule,
-						ShiftState: 0,
+				} else {
+					reducedRuleOrder = symbol.Rule.Order
+					isThereReduce = true
+					for _, terminal := range analyzer.parseTable.Terminals {
+						actionTable[terminal] = ActionCell {
+							LookaheadTerminal: terminal,
+							Action: REDUCE,
+							ReduceRule: symbol.Rule,
+							ShiftState: 0,
+						}
 					}
 				}
 			}
@@ -246,13 +246,38 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) {
 			}
 			analyzer.stateNumber++
 		} else if group.Title.Type == REGEX_LITERAL_TITLE {
-			actionTable[group.Title.String] = ActionCell {
-				LookaheadTerminal: group.Title.String,
-				Action: SHIFT,
-				ReduceRule: nil,
-				ShiftState: analyzer.stateNumber,
+			isStateExisted := false
+			existedStateNumber := 0
+			existedSymbolOrder := 0
+			for _, symbol := range *group.Symbols {
+				if isStateExisted {
+					if analyzer.stateTransitionMap[*symbol] != existedStateNumber {
+						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol.Rule.Position, symbol.Rule.Order, existedSymbolOrder))
+					}
+				} else {
+					if analyzer.stateTransitionMap[*symbol] != 0 {
+						isStateExisted = true
+						existedStateNumber = analyzer.stateTransitionMap[*symbol]
+						existedSymbolOrder = symbol.Rule.Order
+					}
+				}
 			}
-			analyzer.stateNumber++
+			if !isStateExisted {
+				actionTable[group.Title.String] = ActionCell {
+					LookaheadTerminal: group.Title.String,
+					Action: SHIFT,
+					ReduceRule: nil,
+					ShiftState: analyzer.stateNumber,
+				}
+				analyzer.stateNumber++
+			} else {
+				actionTable[group.Title.String] = ActionCell {
+					LookaheadTerminal: group.Title.String,
+					Action: SHIFT,
+					ReduceRule: nil,
+					ShiftState: existedStateNumber,
+				}
+			}
 		}
 	}
 }
