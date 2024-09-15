@@ -20,6 +20,7 @@ type Rule struct {
 
 type MatchRule interface {
 	matchRule()	
+	GetPosition() kuuhaku_tokenizer.Position
 }
 
 type ReplaceRule interface {
@@ -36,12 +37,18 @@ type Identifer struct {
 	Position kuuhaku_tokenizer.Position
 }
 func (i Identifer) matchRule() {}
+func (i Identifer) GetPosition() kuuhaku_tokenizer.Position {
+	return i.Position
+}
 
 type RegexLiteral struct {
 	RegexString string	
 	Position kuuhaku_tokenizer.Position
 }
 func (r RegexLiteral) matchRule() {}
+func (r RegexLiteral) GetPosition() kuuhaku_tokenizer.Position {
+	return r.Position
+}
 
 type CaptureGroup struct {
 	Number int
