@@ -500,11 +500,11 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 			Type: REGEX_LITERAL_TITLE,
 		},
 		{
-			String: "",
+			String: "<end>",
 			Type: EMPTY_TITLE,
 		},
 		{
-			String: "",
+			String: "<end>",
 			Type: EMPTY_TITLE,
 		},
 	}
@@ -522,7 +522,7 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 	}
 
 	lastSymbol := SymbolTitle {
-		String: "",
+		String: "<end>",
 		Type: EMPTY_TITLE,
 	}
 	if (*(*stateTransitions)[4].SymbolGroups)[0].Title != lastSymbol {
@@ -564,33 +564,33 @@ func TestBuildParseTable(t *testing.T) {
 
 	firstRow := analyzer.parseTable.States[0]
 	if firstRow.ActionTable["\\."].Action != SHIFT {
-		println("Expected the first state row to have SHIFT on column \"\\.\", got " + strconv.Itoa(len(analyzer.parseTable.States)))
+		println("Expected the first state row to have SHIFT on column \"\\.\"")
 		t.Fail()
 	}
 
 	secondRow := analyzer.parseTable.States[firstRow.ActionTable["\\."].ShiftState] 
 	if secondRow.ActionTable["\\."].Action != REDUCE {
-		println("Expected the second state row to have REDUCE on column \"\\.\", got " + strconv.Itoa(len(analyzer.parseTable.States)))
+		println("Expected the second state row to have REDUCE on column \"\\.\"")
 		t.Fail()
 	}
 	if secondRow.ActionTable["\\."].ReduceRule != ast.Rules["test"][0] {
-		println("Expected the second state row to have the reduce rule 2 on column \"\\.\", got " + strconv.Itoa(len(analyzer.parseTable.States)))
+		println("Expected the second state row to have the reduce rule 2 on column \"\\.\"")
 		t.Fail()
 	}
 	if secondRow.EndReduceRule.ReduceRule != ast.Rules["identifier"][1] {
-		println("Expected the second state row to have the end reduce rule 3 on column \"\\.\", got " + strconv.Itoa(len(analyzer.parseTable.States)))
+		println("Expected the second state row to have the end reduce rule 3 on column \"\\.\"")
 		t.Fail()
 	}
 
 	thirdRow := analyzer.parseTable.States[firstRow.GotoTable["test"].GotoState] 
 	if thirdRow.ActionTable["\\."].Action != SHIFT {
-		println("Expected the second state row to have SHIFT on column \"\\.\", got " + strconv.Itoa(len(analyzer.parseTable.States)))
+		println("Expected the second state row to have SHIFT on column \"\\.\"")
 		t.Fail()
 	}
 
 	fourthRow := analyzer.parseTable.States[thirdRow.ActionTable["\\."].ShiftState] 
 	if fourthRow.EndReduceRule.ReduceRule != ast.Rules["identifier"][0] {
-		println("Expected the second state row to have the end reduce rule 1 on column \"\\.\", got " + strconv.Itoa(len(analyzer.parseTable.States)))
+		println("Expected the second state row to have the end reduce rule 1 on column \"\\.\"")
 		t.Fail()
 	}
 }
@@ -603,7 +603,6 @@ func TestBuildParseTableError(t *testing.T) {
 	}
 	analyzer := initAnalyzer(&ast)
 	analyzer.buildParseTable("E")
-
 	
 	println("TestBuildParseTableError - Errors:")
 	helper.DisplayAllErrors(analyzer.Errors)
@@ -647,5 +646,56 @@ func TestBuildParseTableError(t *testing.T) {
 	} else {
 		println("Expected a conflict error")
 		t.Fail()
+	}
+}
+
+func TestBuildParseTable2(t *testing.T) {
+	ast, errs := kuuhaku_parser.Parse("E{E <*> B} E{E <+> B} E{B} B{<0>} B{<1>}");
+	if len(errs) != 0 {
+		println("Expected parser errors length to be 0")
+		t.Fatal()
+	}
+	analyzer := initAnalyzer(&ast)
+	stateTransitions := analyzer.buildParseTable("E")
+	
+	println("TestBuildParseTableError - Errors:")
+	helper.DisplayAllErrors(analyzer.Errors)
+
+	if len(analyzer.Errors) != 0 {
+		println("Expected analyzer.Error length to be 0, got " + strconv.Itoa(len(analyzer.Errors)))
+		helper.DisplayAllErrors(analyzer.Errors)
+		t.Fatal()
+	}
+
+	if len(analyzer.parseTable.States) != 9 {
+		println("Expected stateTransitions length to be 9, got " + strconv.Itoa(len(*stateTransitions)))
+		fmt.Printf("%# v\n", pretty.Formatter(analyzer.parseTable.States))
+		t.Fatal()
+	}
+
+	if analyzer.parseTable.States[5].ActionTable["0"].Action != SHIFT {
+		println("Expected the fifth state row to have the shift on column \"0\"")
+	}
+	if analyzer.parseTable.States[5].ActionTable["0"].ShiftState != 3 && analyzer.parseTable.States[5].ActionTable["0"].ShiftState != 4 {
+		println("Expected the fifth state row to have the shift 3 or 4 on column \"0\"")
+	}
+	if analyzer.parseTable.States[5].ActionTable["1"].Action != SHIFT {
+		println("Expected the fifth state row to have the shift on column \"1\"")
+	}
+	if analyzer.parseTable.States[5].ActionTable["1"].ShiftState != 3 && analyzer.parseTable.States[5].ActionTable["1"].ShiftState != 4 {
+		println("Expected the fifth state row to have the shift 3 or 4 on column \"1\"")
+	}
+
+	if analyzer.parseTable.States[6].ActionTable["0"].Action != SHIFT {
+		println("Expected the sixth state row to have the shift on column \"0\"")
+	}
+	if analyzer.parseTable.States[6].ActionTable["0"].ShiftState != 3 && analyzer.parseTable.States[5].ActionTable["0"].ShiftState != 4 {
+		println("Expected the sixth state row to have the shift 3 or 4 on column \"0\"")
+	}
+	if analyzer.parseTable.States[6].ActionTable["1"].Action != SHIFT {
+		println("Expected the sixth state row to have the shift on column \"1\"")
+	}
+	if analyzer.parseTable.States[6].ActionTable["1"].ShiftState != 3 && analyzer.parseTable.States[5].ActionTable["1"].ShiftState != 4 {
+		println("Expected the sixth state row to have the shift 3 or 4 on column \"1\"")
 	}
 }
