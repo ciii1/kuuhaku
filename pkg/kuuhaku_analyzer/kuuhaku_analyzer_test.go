@@ -557,4 +557,36 @@ func TestBuildParseTable(t *testing.T) {
 		t.Fatal()
 	}
 	fmt.Printf("%# v\n", pretty.Formatter(analyzer.parseTable.States))
+
+	firstRow := analyzer.parseTable.States[0]
+	if firstRow.ActionTable["\\."].Action != SHIFT {
+		println("Expected the first state row to have SHIFT on column \"\\.\", got " + strconv.Itoa(len(analyzer.parseTable.States)))
+		t.Fail()
+	}
+
+	secondRow := analyzer.parseTable.States[firstRow.ActionTable["\\."].ShiftState] 
+	if secondRow.ActionTable["\\."].Action != REDUCE {
+		println("Expected the second state row to have REDUCE on column \"\\.\", got " + strconv.Itoa(len(analyzer.parseTable.States)))
+		t.Fail()
+	}
+	if secondRow.ActionTable["\\."].ReduceRule != ast.Rules["test"][0] {
+		println("Expected the second state row to have the reduce rule 2 on column \"\\.\", got " + strconv.Itoa(len(analyzer.parseTable.States)))
+		t.Fail()
+	}
+	if secondRow.EndReduceRule.ReduceRule != ast.Rules["identifier"][1] {
+		println("Expected the second state row to have the end reduce rule 3 on column \"\\.\", got " + strconv.Itoa(len(analyzer.parseTable.States)))
+		t.Fail()
+	}
+
+	thirdRow := analyzer.parseTable.States[firstRow.GotoTable["test"].GotoState] 
+	if thirdRow.ActionTable["\\."].Action != SHIFT {
+		println("Expected the second state row to have SHIFT on column \"\\.\", got " + strconv.Itoa(len(analyzer.parseTable.States)))
+		t.Fail()
+	}
+
+	fourthRow := analyzer.parseTable.States[thirdRow.ActionTable["\\."].ShiftState] 
+	if fourthRow.EndReduceRule.ReduceRule != ast.Rules["identifier"][0] {
+		println("Expected the second state row to have the end reduce rule 1 on column \"\\.\", got " + strconv.Itoa(len(analyzer.parseTable.States)))
+		t.Fail()
+	}
 }
