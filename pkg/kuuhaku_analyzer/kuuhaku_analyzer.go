@@ -177,11 +177,7 @@ func (analyzer *Analyzer) buildParseTable(startSymbolString string) *[]*StateTra
 		for _, group := range *state.SymbolGroups {
 			var expandedSymbolsAll []*Symbol
 			for _, symbol := range *group.Symbols {
-				nextLookahead := SymbolTitle{Type:EMPTY_TITLE}
-				if symbol.Position + 2 < len(symbol.Rule.MatchRules) {
-					nextLookahead = getSymbolTitleFromMatchRule(symbol.Rule.MatchRules[symbol.Position + 2])
-				}
-				expandedSymbols := analyzer.expandSymbol(&[]*kuuhaku_parser.Rule{symbol.Rule}, symbol.Position + 1, &[]*Symbol{}, nextLookahead)
+				expandedSymbols := analyzer.expandSymbol(&[]*kuuhaku_parser.Rule{symbol.Rule}, symbol.Position + 1, &[]*Symbol{}, symbol.Lookeahead)
 				for _, expandedSymbol := range *expandedSymbols {
 					expandedSymbolsAll = append(expandedSymbolsAll, expandedSymbol)
 				}

@@ -536,15 +536,18 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 	}
 }
 
-/*func TestBuildParseTableStateTransition2(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("A{B<1>}\nA{<1>B}\nB{<1><2>}\nB{<2>}");
+func TestBuildParseTable(t *testing.T) {
+	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}");
 	if len(errs) != 0 {
 		println("Expected parser errors length to be 0")
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
-	stateTransitions := analyzer.buildParseTable("A")
+	stateTransitions := analyzer.buildParseTable("identifier")
 
-	fmt.Printf("%# v\n", pretty.Formatter(*stateTransitions))
-	t.Fatal()
-}*/
+	if len(*stateTransitions) != 4 {
+		println("Expected stateTransitions length to be 4, got " + strconv.Itoa(len(*stateTransitions)))
+		fmt.Printf("%# v\n", pretty.Formatter(*stateTransitions))
+		t.Fatal()
+	}
+}
