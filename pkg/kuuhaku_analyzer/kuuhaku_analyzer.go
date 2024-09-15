@@ -242,8 +242,8 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 		}
 	}
 
-	//resolve full reduce actions
 	if emptyTitleGroup != nil {
+		//resolve full reduce actions
 		outGroup = append(outGroup, emptyTitleGroup)
 		for _, symbol := range *emptyTitleGroup.Symbols {
 			if symbol.Position >= len(symbol.Rule.MatchRules) {
@@ -350,6 +350,10 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 			}
 		}
 	}
+	analyzer.parseTable.States = append(analyzer.parseTable.States, ParseTableState{
+		ActionTable: actionTable,
+		GotoTable: gotoTable,
+	})
 	return &outGroup
 }
 

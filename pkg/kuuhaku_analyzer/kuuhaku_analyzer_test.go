@@ -105,7 +105,7 @@ func TestExpandSymbol(t *testing.T) {
 	}
 	analyzer := initAnalyzer(&ast)
 	rules := ast.Rules["identifier"]
-	expandedSymbols := analyzer.expandSymbol(&rules, 0, &[]*Symbol{})
+	expandedSymbols := analyzer.expandSymbol(&rules, 0, &[]*Symbol{}, SymbolTitle{Type:EMPTY_TITLE})
 	if len(analyzer.Errors) != 0 {
 		println("Expected analyzer Errors length to be 0")
 		t.Fatal()
@@ -125,6 +125,10 @@ func TestExpandSymbol(t *testing.T) {
 	}
 	if title1.String != "test" {
 		println("Expected expandedSymbols[0].Title.String to be \"test\"")
+		t.Fail()
+	}
+	if firstSymbol.Lookeahead.Type != EMPTY_TITLE {
+		println("Expected expandedSymbols[0].Lookahead.Type to be EMPTY_TITLE")
 		t.Fail()
 	}
 
@@ -155,6 +159,16 @@ func TestExpandSymbol(t *testing.T) {
 		println("Expected expandedSymbols[1].Position to be 0")
 	}
 
+	if secondSymbol.Lookeahead.Type != REGEX_LITERAL_TITLE {
+		println("Expected expandedSymbols[1].Lookahead.Type to be REGEX_LITERAL_TITLE")
+		t.Fail()
+	}
+
+	if secondSymbol.Lookeahead.String != "\\." {
+		println("Expected expandedSymbols[1].Lookahead.String to be \"\\.\"")
+		t.Fail()
+	}
+
 	thirdSymbol := (*(*expandedSymbols)[2])
 	title3 := thirdSymbol.Title
 	if title3.Type != REGEX_LITERAL_TITLE {
@@ -171,6 +185,11 @@ func TestExpandSymbol(t *testing.T) {
 		println("The third symbol's rule is not matching")
 	}
 
+	if thirdSymbol.Lookeahead.Type != EMPTY_TITLE {
+		println("Expected expandedSymbols[2].Lookahead.Type to be EMPTY_TITLE")
+		t.Fail()
+	}
+
 	if thirdSymbol.Position != 0 {
 		println("Expected expandedSymbols[2].Position to be 0")
 	}
@@ -184,14 +203,14 @@ func TestExpandSymbol2(t *testing.T) {
 	}
 	analyzer := initAnalyzer(&ast)
 	rules := ast.Rules["identifier"]
-	expandedSymbols := analyzer.expandSymbol(&rules, 1, &[]*Symbol{})
+	expandedSymbols := analyzer.expandSymbol(&rules, 1, &[]*Symbol{},SymbolTitle{Type:EMPTY_TITLE})
 	if len(analyzer.Errors) != 0 {
 		println("Expected analyzer Errors length to be 0")
 		t.Fatal()
 	}
 
 	if len(*expandedSymbols) != 3 {
-		println("Expected expandedSymbols length to be 2, got " + strconv.Itoa(len(*expandedSymbols)))
+		println("Expected expandedSymbols length to be 3, got " + strconv.Itoa(len(*expandedSymbols)))
 		fmt.Printf("%# v\n", pretty.Formatter(*expandedSymbols))
 		t.Fatal()
 	}
@@ -230,10 +249,37 @@ func TestExpandSymbol2(t *testing.T) {
 
 	if !reflect.DeepEqual(*secondSymbol.Rule, *ast.Rules["test"][0]) {
 		println("The second symbol's rule is not matching")
+		t.Fail()
 	}
 
 	if secondSymbol.Position != 0 {
 		println("Expected expandedSymbols[1].Position to be 0")
+		t.Fail()
+	}
+
+	if secondSymbol.Lookeahead.Type != EMPTY_TITLE {
+		println("Expected expandedSymbols[1].Lookahead.Type to be EMPTY TITLE")
+		t.Fail()
+	}
+
+	thirdSymbol := (*(*expandedSymbols)[2])
+	title3 := thirdSymbol.Title
+	if title3.Type != EMPTY_TITLE {
+		println("Expected expandedSymbols[2].Title to be an EMPTY_TITLE")
+		t.Fail()
+	}
+
+	if !reflect.DeepEqual(*thirdSymbol.Rule, *ast.Rules["identifier"][1]) {
+		println("The third symbol's rule is not matching")
+	}
+
+	if thirdSymbol.Lookeahead.Type != EMPTY_TITLE {
+		println("Expected expandedSymbols[2].Lookahead.Type to be EMPTY_TITLE")
+		t.Fail()
+	}
+
+	if thirdSymbol.Position != 1 {
+		println("Expected expandedSymbols[2].Position to be 0")
 	}
 }
 
@@ -245,7 +291,7 @@ func TestExpandSymbol3(t *testing.T) {
 	}
 	analyzer := initAnalyzer(&ast)
 	rules := ast.Rules["test"]
-	expandedSymbols := analyzer.expandSymbol(&rules, 2, &[]*Symbol{})
+	expandedSymbols := analyzer.expandSymbol(&rules, 2, &[]*Symbol{},SymbolTitle{Type:EMPTY_TITLE})
 	if len(analyzer.Errors) != 0 {
 		println("Expected analyzer Errors length to be 0")
 		t.Fatal()
@@ -273,7 +319,7 @@ func TestGroupSymbols(t *testing.T) {
 	}
 	analyzer := initAnalyzer(&ast)
 	rules := ast.Rules["identifier"]
-	expandedSymbols := analyzer.expandSymbol(&rules, 0, &[]*Symbol{})
+	expandedSymbols := analyzer.expandSymbol(&rules, 0, &[]*Symbol{},SymbolTitle{Type:EMPTY_TITLE})
 	if len(analyzer.Errors) != 0 {
 		println("Expected analyzer Errors length to be 0")
 		t.Fatal()
