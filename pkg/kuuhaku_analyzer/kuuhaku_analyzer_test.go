@@ -551,12 +551,16 @@ func TestBuildParseTable(t *testing.T) {
 		t.Fatal()
 	}
 
+	if len(analyzer.Errors) != 0 {
+		println("Expected analyzer errors to be 0")
+		t.Fatal()
+	}
+
 	if len(analyzer.parseTable.States) != 4 {
 		println("Expected parse table states length to be 4, got " + strconv.Itoa(len(analyzer.parseTable.States)))
 		fmt.Printf("%# v\n", pretty.Formatter(analyzer.parseTable.States))
 		t.Fatal()
 	}
-	fmt.Printf("%# v\n", pretty.Formatter(analyzer.parseTable.States))
 
 	firstRow := analyzer.parseTable.States[0]
 	if firstRow.ActionTable["\\."].Action != SHIFT {
@@ -587,6 +591,61 @@ func TestBuildParseTable(t *testing.T) {
 	fourthRow := analyzer.parseTable.States[thirdRow.ActionTable["\\."].ShiftState] 
 	if fourthRow.EndReduceRule.ReduceRule != ast.Rules["identifier"][0] {
 		println("Expected the second state row to have the end reduce rule 1 on column \"\\.\", got " + strconv.Itoa(len(analyzer.parseTable.States)))
+		t.Fail()
+	}
+}
+
+func TestBuildParseTableError(t *testing.T) {
+	ast, errs := kuuhaku_parser.Parse("E{B <1>} E{<1> B C} B{<1> <2>} B{<2>} C{<2>} C{<1>}");
+	if len(errs) != 0 {
+		println("Expected parser errors length to be 0")
+		t.Fatal()
+	}
+	analyzer := initAnalyzer(&ast)
+	analyzer.buildParseTable("E")
+
+	
+	println("TestBuildParseTableError - Errors:")
+	helper.DisplayAllErrors(analyzer.Errors)
+
+	if len(analyzer.Errors) != 1 {
+		println("Expected analyzer.Error length to be 1, got " + strconv.Itoa(len(analyzer.Errors)))
+		t.Fatal()
+	}
+
+	var conflictError *ConflictError
+	if errors.As(analyzer.Errors[0], &conflictError) {
+ 		if conflictError.Symbol1.Rule.Order == 2 {
+ 			if conflictError.Symbol2.Rule.Order != 3 {
+				println("Expected the rule order to be 2, 3 or 3, 2")
+				t.Fail()
+			}
+		} else if conflictError.Symbol1.Rule.Order == 3 {
+ 			if conflictError.Symbol2.Rule.Order != 2 {
+				println("Expected the rule order to be 2, 3 or 3, 2")
+				t.Fail()
+			}
+		} else {
+			println("Expected the rule order to be 2, 3 or 3, 2")
+			t.Fail()
+		}
+
+ 		if conflictError.Position1.Line == 1 && conflictError.Position1.Column == 27 {
+			if conflictError.Position2.Line != 1 || conflictError.Position2.Column != 34 {
+				println("Expected the rule position to be (1, 34) and (1, 27) or reversed")
+				t.Fail()
+			}
+		} else if conflictError.Position1.Line == 1 && conflictError.Position1.Column == 34 {
+ 			if conflictError.Position2.Line != 1 || conflictError.Position2.Column != 27 {
+				println("Expected the rule position to be (1, 34) and (1, 27) or reversed")
+				t.Fail()
+			}
+		} else {
+			println("Expected the rule position to be (1, 34) and (1, 27) or reversed")
+			t.Fail()
+		}
+	} else {
+		println("Expected a conflict error")
 		t.Fail()
 	}
 }

@@ -22,8 +22,20 @@ type AnalyzeError struct {
 	Type AnalyzeErrorType
 }
 
+type ConflictError struct {
+	Position1 kuuhaku_tokenizer.Position	
+	Position2 kuuhaku_tokenizer.Position	
+	Symbol1 *Symbol
+	Symbol2 *Symbol
+	Message string
+}
+
 func (e AnalyzeError) Error() string {
 	return fmt.Sprintf("Analyze error (%d, %d): %s", e.Position.Line, e.Position.Column, e.Message)
+}
+
+func (e ConflictError) Error() string {
+	return fmt.Sprintf("Analyze error (%d, %d): %s", e.Position1.Line, e.Position1.Column, e.Message)
 }
 
 func ErrUndefinedVariable(position kuuhaku_tokenizer.Position, variableName string) *AnalyzeError {
@@ -34,11 +46,27 @@ func ErrUndefinedVariable(position kuuhaku_tokenizer.Position, variableName stri
 	}
 }
 
-func ErrConflict(position kuuhaku_tokenizer.Position, ruleOrder int, ruleOrder2 int) *AnalyzeError {
-	return &AnalyzeError {
-		Message: "Detected conflict at rule " + strconv.Itoa(ruleOrder) + " and rule " + strconv.Itoa(ruleOrder2),
-		Position: position,
-		Type: CONFLICT,
+func ErrConflict(symbol1 *Symbol, symbol2 *Symbol) *ConflictError {
+	var position1 kuuhaku_tokenizer.Position
+	if symbol1.Position < len(symbol1.Rule.MatchRules) {
+		position1 = symbol1.Rule.MatchRules[symbol1.Position].GetPosition()
+	} else {
+		position1 = symbol1.Rule.MatchRules[len(symbol1.Rule.MatchRules) - 1].GetPosition()
+	}
+
+	var position2 kuuhaku_tokenizer.Position
+	if symbol2.Position < len(symbol2.Rule.MatchRules) {
+		position2 = symbol2.Rule.MatchRules[symbol2.Position].GetPosition()
+	} else {
+		position2 = symbol2.Rule.MatchRules[len(symbol2.Rule.MatchRules) - 1].GetPosition()
+	}
+
+	return &ConflictError {
+		Message: "Detected conflict at rule " + strconv.Itoa(symbol1.Rule.Order) + " and rule " + strconv.Itoa(symbol2.Rule.Order) + " with position (" + strconv.Itoa(position2.Line) + ", " + strconv.Itoa(position2.Column) + ")\n--- Lookaheads are: " + symbol1.Lookeahead.String + " and " + symbol2.Lookeahead.String,
+		Position1: position1,
+		Position2: position2,
+		Symbol1: symbol1,
+		Symbol2: symbol2,
 	}
 }
 
@@ -228,14 +256,15 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 	}
 	actionTable := make(map[string]ActionCell)
 	gotoTable := make(map[string]GotoCell)
-	var outGroup []*SymbolGroup
-	
-	isThereFullReduce := false
-	reducedRuleOrder := 0
-	usedTerminals := make(map[string]bool)	
-	usedTerminalsWithRuleOrder := make(map[string]int)	
 	var endReduceRule *ActionCell
 	endReduceRule = nil
+
+	var outGroup []*SymbolGroup
+	
+	isThereEndReduce := false
+	var endReducedSymbol *Symbol
+
+	usedTerminalsWithSymbol := make(map[string]*Symbol)	
 
 	var emptyTitleGroup *SymbolGroup
 	emptyTitleGroup = nil
@@ -251,11 +280,11 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 		for _, symbol := range *emptyTitleGroup.Symbols {
 			if symbol.Position >= len(symbol.Rule.MatchRules) {
 				if symbol.Lookeahead.Type == EMPTY_TITLE {
-					if isThereFullReduce {
-						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol.Rule.Position, symbol.Rule.Order, reducedRuleOrder))
+					if isThereEndReduce {
+						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, endReducedSymbol))
 					} else {
-						isThereFullReduce = true
-						reducedRuleOrder = symbol.Rule.Order
+						isThereEndReduce = true
+						endReducedSymbol = symbol
 						endReduceRule = &ActionCell {
 							LookaheadTerminal: "",
 							Action: REDUCE,
@@ -285,9 +314,8 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 					terminals = append(terminals, symbol.Lookeahead.String)
 				}
 				for _, terminal := range terminals {
-					if !usedTerminals[terminal] {
-						usedTerminals[terminal] = true
-						usedTerminalsWithRuleOrder[terminal] = symbol.Rule.Order
+					if usedTerminalsWithSymbol[terminal] == nil {
+						usedTerminalsWithSymbol[terminal] = symbol
 						actionTable[terminal] = ActionCell {
 							LookaheadTerminal: terminal,
 							Action: REDUCE,
@@ -295,7 +323,7 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 							ShiftState: 0,
 						}
 					} else {
-						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol.Rule.Position, symbol.Rule.Order, usedTerminalsWithRuleOrder[terminal]))
+						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, usedTerminalsWithSymbol[terminal]))
 					}
 				}
 			}
@@ -311,21 +339,21 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 			analyzer.stateNumber++
 			outGroup = append(outGroup, group)
 		} else if group.Title.Type == REGEX_LITERAL_TITLE {
-			if usedTerminals[group.Title.String] {
-				analyzer.Errors = append(analyzer.Errors, ErrConflict((*group.Symbols)[0].Rule.Position, (*group.Symbols)[0].Rule.Order, usedTerminalsWithRuleOrder[group.Title.String]))
+			if usedTerminalsWithSymbol[group.Title.String] != nil{
+				analyzer.Errors = append(analyzer.Errors, ErrConflict((*group.Symbols)[0], usedTerminalsWithSymbol[group.Title.String]))
 			}
 			isStateExisted := false
 			existedStateNumber := 0
-			existedSymbolOrder := 0
+			var existedSymbol *Symbol
 			for _, symbol := range *group.Symbols {
 				if isStateExisted {
 					if analyzer.stateTransitionMap[*symbol] != existedStateNumber {
-						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol.Rule.Position, symbol.Rule.Order, existedSymbolOrder))
+						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, existedSymbol))
 					}
 				} else if analyzer.stateTransitionMapBool[*symbol] != false {
 					isStateExisted = true
 					existedStateNumber = analyzer.stateTransitionMap[*symbol]
-					existedSymbolOrder = symbol.Rule.Order
+					existedSymbol = symbol
 				}
 			}
 			if !isStateExisted {
