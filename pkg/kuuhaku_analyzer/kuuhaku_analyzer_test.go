@@ -556,4 +556,5 @@ func TestBuildParseTable(t *testing.T) {
 		fmt.Printf("%# v\n", pretty.Formatter(analyzer.parseTable.States))
 		t.Fatal()
 	}
+	fmt.Printf("%# v\n", pretty.Formatter(analyzer.parseTable.States))
 }

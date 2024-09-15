@@ -234,6 +234,8 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 	reducedRuleOrder := 0
 	usedTerminals := make(map[string]bool)	
 	usedTerminalsWithRuleOrder := make(map[string]int)	
+	var endReduceRule *ActionCell
+	endReduceRule = nil
 
 	var emptyTitleGroup *SymbolGroup
 	emptyTitleGroup = nil
@@ -244,7 +246,7 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 	}
 
 	if emptyTitleGroup != nil {
-		//resolve full reduce actions
+		//resolve end reduce actions
 		outGroup = append(outGroup, emptyTitleGroup)
 		for _, symbol := range *emptyTitleGroup.Symbols {
 			if symbol.Position >= len(symbol.Rule.MatchRules) {
@@ -254,19 +256,17 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 					} else {
 						isThereFullReduce = true
 						reducedRuleOrder = symbol.Rule.Order
-						for _, terminal := range analyzer.parseTable.Terminals {
-							actionTable[terminal] = ActionCell {
-								LookaheadTerminal: terminal,
-								Action: REDUCE,
-								ReduceRule: symbol.Rule,
-								ShiftState: 0,
-							}
+						endReduceRule = &ActionCell {
+							LookaheadTerminal: "",
+							Action: REDUCE,
+							ReduceRule: symbol.Rule,
+							ShiftState: 0,
 						}
 					}
 				}
 			}
 		}
-		//resolve partly reduce actions
+		//resolve reduce actions
 		for _, symbol := range *emptyTitleGroup.Symbols {
 			if symbol.Position >= len(symbol.Rule.MatchRules) {
 				if symbol.Lookeahead.Type == EMPTY_TITLE {
@@ -354,6 +354,7 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 	analyzer.parseTable.States = append(analyzer.parseTable.States, ParseTableState{
 		ActionTable: actionTable,
 		GotoTable: gotoTable,
+		EndReduceRule: endReduceRule,
 	})
 	return &outGroup
 }
