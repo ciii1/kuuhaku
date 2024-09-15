@@ -120,6 +120,10 @@ func initAnalyzer(input *kuuhaku_parser.Ast) Analyzer {
 	}
 }
 
+func makeEndSymbolTitle () SymbolTitle {
+	return SymbolTitle{String: "<end>", Type:EMPTY_TITLE}	
+}
+
 func getSymbolTitleFromMatchRule(matchRule kuuhaku_parser.MatchRule) SymbolTitle {
 	currIdentifier, ok := matchRule.(kuuhaku_parser.Identifer)
 	if ok {
@@ -146,14 +150,14 @@ func (analyzer *Analyzer) expandSymbol(rules *[]*kuuhaku_parser.Rule, position i
 			*output = append(*output, &Symbol{
 				Rule: currRule,
 				Position: position,
-				Title: SymbolTitle {String: "<end>", Type:EMPTY_TITLE},
+				Title: makeEndSymbolTitle(),
 				Lookeahead: lookahead,
 			})
 			continue
 		}
 
 		currMatchRule := currRule.MatchRules[position]
-		nextLookahead := SymbolTitle{String: "<end>", Type:EMPTY_TITLE}
+		nextLookahead := makeEndSymbolTitle()
 		if position + 1 < len(currRule.MatchRules) {
 			nextMatchRule := currRule.MatchRules[position+1]
 			nextLookahead = getSymbolTitleFromMatchRule(nextMatchRule)
@@ -189,7 +193,7 @@ func (analyzer *Analyzer) buildParseTable(startSymbolString string) *[]*StateTra
 		return nil
 	}
 	startRules := analyzer.input.Rules[startSymbolString]
-	expandedStartSymbols := analyzer.expandSymbol(&startRules, 0, &[]*Symbol{}, SymbolTitle{String: "<end>", Type:EMPTY_TITLE})
+	expandedStartSymbols := analyzer.expandSymbol(&startRules, 0, &[]*Symbol{}, makeEndSymbolTitle())
 
 	var stateTransitions []*StateTransition
 	grouped := analyzer.groupSymbols(expandedStartSymbols)
