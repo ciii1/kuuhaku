@@ -550,4 +550,10 @@ func TestBuildParseTable(t *testing.T) {
 		fmt.Printf("%# v\n", pretty.Formatter(*stateTransitions))
 		t.Fatal()
 	}
+
+	if len(analyzer.parseTable.States) != 4 {
+		println("Expected parse table states length to be 4, got " + strconv.Itoa(len(analyzer.parseTable.States)))
+		fmt.Printf("%# v\n", pretty.Formatter(analyzer.parseTable.States))
+		t.Fatal()
+	}
 }

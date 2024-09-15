@@ -164,8 +164,10 @@ func (analyzer *Analyzer) buildParseTable(startSymbolString string) *[]*StateTra
 	expandedStartSymbols := analyzer.expandSymbol(&startRules, 0, &[]*Symbol{}, SymbolTitle{Type:EMPTY_TITLE})
 
 	var stateTransitions []*StateTransition
+	grouped := analyzer.groupSymbols(expandedStartSymbols)
+	grouped = analyzer.buildParseTableState(grouped)	
 	stateTransitions = append(stateTransitions, &StateTransition {
-		SymbolGroups: analyzer.groupSymbols(expandedStartSymbols),
+		SymbolGroups: grouped,
 	})
 
 	i := 0
@@ -221,6 +223,9 @@ func (analyzer *Analyzer) groupSymbols(symbols *[]*Symbol) *[]*SymbolGroup {
 }
 
 func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]*SymbolGroup {
+	if len(*symbolGroups) == 0 {
+		return symbolGroups
+	}
 	actionTable := make(map[string]ActionCell)
 	gotoTable := make(map[string]GotoCell)
 	var outGroup []*SymbolGroup
