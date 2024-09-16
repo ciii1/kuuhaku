@@ -46,6 +46,14 @@ func ErrUndefinedVariable(position kuuhaku_tokenizer.Position, variableName stri
 	}
 }
 
+func ErrMultipleStartSymbols(position kuuhaku_tokenizer.Position, startSymbol1 string, startSymbol2 string) *AnalyzeError {
+	return &AnalyzeError {
+		Message: "Found multiple start symbols while not in search mode: " + startSymbol1 +  ", " + startSymbol2,
+		Position: position,
+		Type: UNDEFINED_VARIABLE,
+	}
+}
+
 func ErrConflict(symbol1 *Symbol, symbol2 *Symbol) *ConflictError {
 	var position1 kuuhaku_tokenizer.Position
 	if symbol1.Position < len(symbol1.Rule.MatchRules) {
@@ -82,9 +90,14 @@ type Analyzer struct {
 func Analyze(input *kuuhaku_parser.Ast) (AnalyzerResult, []error){
 	analyzer := initAnalyzer(input)
 	startSymbols := analyzer.analyzeStart()
-	for _, startSymbol := range startSymbols {
-		analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable(startSymbol))
-		analyzer.buildParseTable(startSymbol)
+	if len(startSymbols) > 1 && !input.IsSearchMode {
+		analyzer.Errors = append(analyzer.Errors, ErrMultipleStartSymbols(input.Rules[startSymbols[0]][0].Position, startSymbols[0], startSymbols[1]))
+	}
+	if len(analyzer.Errors) == 0 {
+		for _, startSymbol := range startSymbols {
+			analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable(startSymbol))
+			analyzer.buildParseTable(startSymbol)
+		}
 	}
 
 	return AnalyzerResult{
