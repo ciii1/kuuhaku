@@ -348,16 +348,22 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 			}
 			isStateExisted := false
 			existedStateNumber := 0
-			var existedSymbol *Symbol
 			for _, symbol := range *group.Symbols {
 				if isStateExisted {
-					if analyzer.stateTransitionMap[*symbol] != existedStateNumber {
-						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, existedSymbol))
+					if analyzer.stateTransitionMapBool[*symbol] != false {
+						if analyzer.stateTransitionMap[*symbol] != existedStateNumber {
+							isStateExisted = false
+							existedStateNumber = 0
+						}
+					} else {
+						isStateExisted = false
+						existedStateNumber = 0
 					}
-				} else if analyzer.stateTransitionMapBool[*symbol] != false {
-					isStateExisted = true
-					existedStateNumber = analyzer.stateTransitionMap[*symbol]
-					existedSymbol = symbol
+				} else {
+					if analyzer.stateTransitionMapBool[*symbol] != false {
+						isStateExisted = true
+						existedStateNumber = analyzer.stateTransitionMap[*symbol]
+					}
 				}
 			}
 			if !isStateExisted {
