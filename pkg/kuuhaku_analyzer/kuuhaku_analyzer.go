@@ -13,7 +13,7 @@ type AnalyzeErrorType int
 
 const (
 	UNDEFINED_VARIABLE = iota
-	CONFLICT
+	MULTIPLE_START_SYMBOLS
 )
 
 type AnalyzeError struct {
@@ -50,7 +50,7 @@ func ErrMultipleStartSymbols(position kuuhaku_tokenizer.Position, startSymbol1 s
 	return &AnalyzeError {
 		Message: "Found multiple start symbols while not in search mode: " + startSymbol1 +  ", " + startSymbol2,
 		Position: position,
-		Type: UNDEFINED_VARIABLE,
+		Type: MULTIPLE_START_SYMBOLS,
 	}
 }
 
@@ -91,7 +91,7 @@ func Analyze(input *kuuhaku_parser.Ast) (AnalyzerResult, []error){
 	analyzer := initAnalyzer(input)
 	startSymbols := analyzer.analyzeStart()
 	if len(startSymbols) > 1 && !input.IsSearchMode {
-		analyzer.Errors = append(analyzer.Errors, ErrMultipleStartSymbols(input.Rules[startSymbols[0]][0].Position, startSymbols[0], startSymbols[1]))
+		analyzer.Errors = append(analyzer.Errors, ErrMultipleStartSymbols(input.Rules[startSymbols[1]][0].Position, startSymbols[0], startSymbols[1]))
 	}
 	if len(analyzer.Errors) == 0 {
 		for _, startSymbol := range startSymbols {

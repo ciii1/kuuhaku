@@ -868,3 +868,48 @@ func TestGetAllTerminalsAndLhs(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestAnalyze(t *testing.T) {
+	ast, errs := kuuhaku_parser.Parse("E{C} E{B} B{<0>} B{<1>} C{<1>} D{<3> F} F{<1>}");
+	if len(errs) != 0 {
+		println("Expected parser errors length to be 0")
+		t.Fatal()
+	}
+	_, errs = Analyze(&ast)
+	if len(errs) != 1 {
+		println("Expected analyzer Errors length to be 1, got " + strconv.Itoa(len(errs)))
+		t.Fatal()
+	}
+
+	println("TestAnalyze - Errors:")
+	helper.DisplayAllErrors(errs)
+
+	var analyzeError *AnalyzeError
+	if errors.As(errs[0], &analyzeError) {
+		if analyzeError.Type != MULTIPLE_START_SYMBOLS {
+			println("Expected multiple start symbols error")
+			t.Fail()
+		}
+	} else {
+		println("Expected AnalyzeError")
+		t.Fail()
+	}
+}
+
+func TestAnalyze2(t *testing.T) {
+	ast, errs := kuuhaku_parser.Parse("SEARCH_MODE E{C} E{B} B{<0>} B{<1>} C{<3>} D{<3> F} F{<1>} G{<2>}");
+	if len(errs) != 0 {
+		println("Expected parser errors length to be 0")
+		t.Fatal()
+	}
+	res, errs := Analyze(&ast)
+	if len(errs) != 0 {
+		println("Expected analyzer Errors length to be 0, got " + strconv.Itoa(len(errs)))
+		helper.DisplayAllErrors(errs)
+		t.Fatal()
+	}
+	if len(res.ParseTables) != 3 {
+		println("Expected parse tables length to be 3, got " + strconv.Itoa(len(res.ParseTables)))
+		t.Fatal()
+	}
+}
