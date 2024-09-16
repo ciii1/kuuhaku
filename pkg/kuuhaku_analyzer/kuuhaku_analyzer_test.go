@@ -433,6 +433,7 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
+	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("identifier"))
 	stateTransitions := analyzer.buildParseTable("identifier")
 
 	if len(*stateTransitions) != 5 {
@@ -543,6 +544,7 @@ func TestBuildParseTable(t *testing.T) {
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
+	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("identifier"))
 	stateTransitions := analyzer.buildParseTable("identifier")
 
 	if len(*stateTransitions) != 4 {
@@ -556,19 +558,19 @@ func TestBuildParseTable(t *testing.T) {
 		t.Fatal()
 	}
 
-	if len(analyzer.parseTable.States) != 4 {
-		println("Expected parse table states length to be 4, got " + strconv.Itoa(len(analyzer.parseTable.States)))
-		fmt.Printf("%# v\n", pretty.Formatter(analyzer.parseTable.States))
+	if len(analyzer.parseTables[0].States) != 4 {
+		println("Expected parse table states length to be 4, got " + strconv.Itoa(len(analyzer.parseTables[0].States)))
+		fmt.Printf("%# v\n", pretty.Formatter(analyzer.parseTables[0].States))
 		t.Fatal()
 	}
 
-	firstRow := analyzer.parseTable.States[0]
+	firstRow := analyzer.parseTables[0].States[0]
 	if firstRow.ActionTable["\\."].Action != SHIFT {
 		println("Expected the first state row to have SHIFT on column \"\\.\"")
 		t.Fail()
 	}
 
-	secondRow := analyzer.parseTable.States[firstRow.ActionTable["\\."].ShiftState] 
+	secondRow := analyzer.parseTables[0].States[firstRow.ActionTable["\\."].ShiftState] 
 	if secondRow.ActionTable["\\."].Action != REDUCE {
 		println("Expected the second state row to have REDUCE on column \"\\.\"")
 		t.Fail()
@@ -582,13 +584,13 @@ func TestBuildParseTable(t *testing.T) {
 		t.Fail()
 	}
 
-	thirdRow := analyzer.parseTable.States[firstRow.GotoTable["test"].GotoState] 
+	thirdRow := analyzer.parseTables[0].States[firstRow.GotoTable["test"].GotoState] 
 	if thirdRow.ActionTable["\\."].Action != SHIFT {
 		println("Expected the second state row to have SHIFT on column \"\\.\"")
 		t.Fail()
 	}
 
-	fourthRow := analyzer.parseTable.States[thirdRow.ActionTable["\\."].ShiftState] 
+	fourthRow := analyzer.parseTables[0].States[thirdRow.ActionTable["\\."].ShiftState] 
 	if fourthRow.EndReduceRule.ReduceRule != ast.Rules["identifier"][0] {
 		println("Expected the second state row to have the end reduce rule 1 on column \"\\.\"")
 		t.Fail()
@@ -602,6 +604,7 @@ func TestBuildParseTableErrorMultiplePartialReduce(t *testing.T) {
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
+	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("E"))
 	analyzer.buildParseTable("E")
 	
 	println("TestBuildParseTableErrorMultiplePartialReduce - Errors:")
@@ -671,6 +674,7 @@ func TestBuildParseTable2(t *testing.T) {
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
+	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("E"))
 	stateTransitions := analyzer.buildParseTable("E")
 	
 	if len(analyzer.Errors) != 0 {
@@ -679,35 +683,35 @@ func TestBuildParseTable2(t *testing.T) {
 		t.Fatal()
 	}
 
-	if len(analyzer.parseTable.States) != 9 {
+	if len(analyzer.parseTables[0].States) != 9 {
 		println("Expected stateTransitions length to be 9, got " + strconv.Itoa(len(*stateTransitions)))
-		fmt.Printf("%# v\n", pretty.Formatter(analyzer.parseTable.States))
+		fmt.Printf("%# v\n", pretty.Formatter(analyzer.parseTables[0].States))
 		t.Fatal()
 	}
 
-	if analyzer.parseTable.States[5].ActionTable["0"].Action != SHIFT {
+	if analyzer.parseTables[0].States[5].ActionTable["0"].Action != SHIFT {
 		println("Expected the fifth state row to have the shift on column \"0\"")
 	}
-	if analyzer.parseTable.States[5].ActionTable["0"].ShiftState != 3 && analyzer.parseTable.States[5].ActionTable["0"].ShiftState != 4 {
+	if analyzer.parseTables[0].States[5].ActionTable["0"].ShiftState != 3 && analyzer.parseTables[0].States[5].ActionTable["0"].ShiftState != 4 {
 		println("Expected the fifth state row to have the shift 3 or 4 on column \"0\"")
 	}
-	if analyzer.parseTable.States[5].ActionTable["1"].Action != SHIFT {
+	if analyzer.parseTables[0].States[5].ActionTable["1"].Action != SHIFT {
 		println("Expected the fifth state row to have the shift on column \"1\"")
 	}
-	if analyzer.parseTable.States[5].ActionTable["1"].ShiftState != 3 && analyzer.parseTable.States[5].ActionTable["1"].ShiftState != 4 {
+	if analyzer.parseTables[0].States[5].ActionTable["1"].ShiftState != 3 && analyzer.parseTables[0].States[5].ActionTable["1"].ShiftState != 4 {
 		println("Expected the fifth state row to have the shift 3 or 4 on column \"1\"")
 	}
 
-	if analyzer.parseTable.States[6].ActionTable["0"].Action != SHIFT {
+	if analyzer.parseTables[0].States[6].ActionTable["0"].Action != SHIFT {
 		println("Expected the sixth state row to have the shift on column \"0\"")
 	}
-	if analyzer.parseTable.States[6].ActionTable["0"].ShiftState != 3 && analyzer.parseTable.States[5].ActionTable["0"].ShiftState != 4 {
+	if analyzer.parseTables[0].States[6].ActionTable["0"].ShiftState != 3 && analyzer.parseTables[0].States[5].ActionTable["0"].ShiftState != 4 {
 		println("Expected the sixth state row to have the shift 3 or 4 on column \"0\"")
 	}
-	if analyzer.parseTable.States[6].ActionTable["1"].Action != SHIFT {
+	if analyzer.parseTables[0].States[6].ActionTable["1"].Action != SHIFT {
 		println("Expected the sixth state row to have the shift on column \"1\"")
 	}
-	if analyzer.parseTable.States[6].ActionTable["1"].ShiftState != 3 && analyzer.parseTable.States[5].ActionTable["1"].ShiftState != 4 {
+	if analyzer.parseTables[0].States[6].ActionTable["1"].ShiftState != 3 && analyzer.parseTables[0].States[5].ActionTable["1"].ShiftState != 4 {
 		println("Expected the sixth state row to have the shift 3 or 4 on column \"1\"")
 	}
 }
@@ -719,6 +723,7 @@ func TestBuildParseTableErrorPartialReduceAndShift(t *testing.T) {
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
+	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("E"))
 	analyzer.buildParseTable("E")
 	
 	println("TestBuildParseTableErrorPartialReduceAndShift - Errors:")
@@ -770,6 +775,7 @@ func TestBuildParseTableErrorMultipleEndReduce(t *testing.T) {
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
+	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("E"))
 	analyzer.buildParseTable("E")
 	
 	println("TestBuildParseTableErrorMultipleEndReduce - Errors:")
@@ -818,6 +824,47 @@ func TestBuildParseTableErrorMultipleEndReduce(t *testing.T) {
 		}
 	} else {
 		println("Expected a conflict error")
+		t.Fail()
+	}
+}
+
+func TestGetAllTerminalsAndLhs(t *testing.T) {
+	ast, errs := kuuhaku_parser.Parse("E{C} E{B} B{<0>} B{<1>} C{<1>} D{<3> F} F{<1>}");
+	if len(errs) != 0 {
+		println("Expected parser errors length to be 0")
+		t.Fatal()
+	}
+	analyzer := initAnalyzer(&ast)
+	terminalsMapInput := make(map[string]bool)
+	var terminalsMap *map[string]bool
+	lhsMapInput := make(map[string]bool)
+	var lhsMap *map[string]bool
+	terminalsMap, lhsMap = analyzer.getAllTerminalsAndLhs("E", &terminalsMapInput, &lhsMapInput)
+
+	lhsMapCorrect := map[string]bool{
+		"E": true,	
+		"C": true,	
+		"B": true,	
+	}
+
+	terminalsMapCorrect := map[string]bool{
+		"0": true,	
+		"1": true,	
+	}
+
+	if !reflect.DeepEqual(lhsMapCorrect, *lhsMap) {
+		println("lhsMap != lhsMapCorrect\nlhsMap:")
+		fmt.Printf("%# v\n", pretty.Formatter(*lhsMap))
+		println("lhsMapCorrect:")
+		fmt.Printf("%# v\n", pretty.Formatter(lhsMapCorrect))
+		t.Fail()
+	}
+
+	if !reflect.DeepEqual(terminalsMapCorrect, *terminalsMap) {
+		println("terminalsMap != terminalsMapCorrect\nterminalsMap:")
+		fmt.Printf("%# v\n", pretty.Formatter(*terminalsMap))
+		println("terminalsMapCorrect:")
+		fmt.Printf("%# v\n", pretty.Formatter(terminalsMapCorrect))
 		t.Fail()
 	}
 }

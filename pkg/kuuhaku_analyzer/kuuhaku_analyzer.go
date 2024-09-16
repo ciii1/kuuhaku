@@ -74,50 +74,80 @@ type Analyzer struct {
 	input *kuuhaku_parser.Ast
 	Errors []error
 	stateNumber int
-	parseTable ParseTable
+	parseTables []ParseTable
 	stateTransitionMap map[Symbol]int
 	stateTransitionMapBool map[Symbol]bool
 }
 
-func Analyze() {
+func Analyze(input *kuuhaku_parser.Ast) (AnalyzerResult, []error){
+	analyzer := initAnalyzer(input)
+	startSymbols := analyzer.analyzeStart()
+	for _, startSymbol := range startSymbols {
+		analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable(startSymbol))
+		analyzer.buildParseTable(startSymbol)
+	}
 
+	return AnalyzerResult{
+		ParseTables:analyzer.parseTables,
+		IsSearchMode: input.IsSearchMode,
+	}, analyzer.Errors
 }
 
 func initAnalyzer(input *kuuhaku_parser.Ast) Analyzer {
-	terminalsMap := make(map[string]bool)
-	for _, rules := range input.Rules {
-		for _, rule := range rules {
-			for _, matchRule := range (*rule).MatchRules {
-				regexCurr, ok := matchRule.(kuuhaku_parser.RegexLiteral)
-				if ok {
-					terminalsMap[regexCurr.RegexString] = true
-				}
-			}
-		}
-	}
-
-	var terminals []string
-	for regexString := range terminalsMap {
-		terminals = append(terminals, regexString)	
-	}
-
-	var lhss []string
-	for lhs := range input.Rules {
-		lhss = append(lhss, lhs)
-	}
-
 	return Analyzer {
 		input: input,
 		Errors: []error{},
 		stateNumber: 1,
-		parseTable: ParseTable {
-			States: []ParseTableState{},
-			Terminals: terminals,
-			Lhss: lhss,
-		},
+		parseTables: [] ParseTable {},
 		stateTransitionMap: make(map[Symbol]int),
 		stateTransitionMapBool: make(map[Symbol]bool),
 	}
+}
+
+func (analyzer *Analyzer) makeEmptyParseTable(startSymbol string) ParseTable {
+	terminalsMapInput := make(map[string]bool)
+	var terminalsMap *map[string]bool
+	lhsMapInput := make(map[string]bool)
+	var lhsMap *map[string]bool
+	terminalsMap, lhsMap = analyzer.getAllTerminalsAndLhs(startSymbol, &terminalsMapInput, &lhsMapInput)
+
+	var terminals []string
+	for regexString := range *terminalsMap {
+		terminals = append(terminals, regexString)	
+	}
+
+	var lhsArray []string
+	for lhs := range *lhsMap {
+		lhsArray = append(lhsArray, lhs)
+	}
+
+	return ParseTable {
+		States: []ParseTableState{},
+		Terminals: terminals,
+		Lhss: lhsArray,
+	}
+}
+
+func (analyzer *Analyzer) getAllTerminalsAndLhs(startSymbol string, previousTerminalMap *map[string]bool, previousLhsMap *map[string]bool) (*map[string]bool, *map[string]bool) {
+	terminalsMap := previousTerminalMap
+	lhsMap := previousLhsMap
+	(*lhsMap)[startSymbol] = true
+	for _, rule := range analyzer.input.Rules[startSymbol] {
+		for _, matchRule := range (*rule).MatchRules {
+			regexCurr, ok := matchRule.(kuuhaku_parser.RegexLiteral)
+			if ok {
+				(*terminalsMap)[regexCurr.RegexString] = true
+			} else {
+				identifierCurr, ok := matchRule.(kuuhaku_parser.Identifer)
+				if ok {
+					if !(*lhsMap)[identifierCurr.Name] {
+						terminalsMap, lhsMap = analyzer.getAllTerminalsAndLhs(identifierCurr.Name, terminalsMap, lhsMap)
+					}
+				}
+			}
+		}
+	}
+	return terminalsMap, lhsMap
 }
 
 func makeEndSymbolTitle () SymbolTitle {
@@ -389,7 +419,8 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 			}
 		}
 	}
-	analyzer.parseTable.States = append(analyzer.parseTable.States, ParseTableState{
+	currParseTable := &analyzer.parseTables[len(analyzer.parseTables)-1]
+	currParseTable.States = append(currParseTable.States, ParseTableState{
 		ActionTable: actionTable,
 		GotoTable: gotoTable,
 		EndReduceRule: endReduceRule,

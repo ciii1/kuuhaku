@@ -32,6 +32,11 @@ type SymbolTitle struct {
 	Type SymbolTitleType
 }
 
+type AnalyzerResult struct {
+	ParseTables []ParseTable
+	IsSearchMode bool
+}
+
 type ParseTable struct {
 	States []ParseTableState
 	Terminals []string
