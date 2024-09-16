@@ -62,7 +62,7 @@ func ErrConflict(symbol1 *Symbol, symbol2 *Symbol) *ConflictError {
 	}
 
 	return &ConflictError {
-		Message: "Detected conflict at rule " + strconv.Itoa(symbol1.Rule.Order) + " and rule " + strconv.Itoa(symbol2.Rule.Order) + " with position (" + strconv.Itoa(position2.Line) + ", " + strconv.Itoa(position2.Column) + ")\n--- Lookaheads are: " + symbol1.Lookeahead.String + " and " + symbol2.Lookeahead.String,
+		Message: "Detected conflict at rule " + strconv.Itoa(symbol1.Rule.Order+1) + " and rule " + strconv.Itoa(symbol2.Rule.Order+1) + " with position (" + strconv.Itoa(position2.Line) + ", " + strconv.Itoa(position2.Column) + ")\n--- Lookaheads are: " + symbol1.Lookeahead.String + " and " + symbol2.Lookeahead.String,
 		Position1: position1,
 		Position2: position2,
 		Symbol1: symbol1,

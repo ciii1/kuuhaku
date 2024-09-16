@@ -595,7 +595,7 @@ func TestBuildParseTable(t *testing.T) {
 	}
 }
 
-func TestBuildParseTableError(t *testing.T) {
+func TestBuildParseTableErrorMultiplePartialReduce(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("E{B <1>} E{<1> B C} B{<1> <2>} B{<2>} C{<2>} C{<1>}");
 	if len(errs) != 0 {
 		println("Expected parser errors length to be 0")
@@ -604,7 +604,7 @@ func TestBuildParseTableError(t *testing.T) {
 	analyzer := initAnalyzer(&ast)
 	analyzer.buildParseTable("E")
 	
-	println("TestBuildParseTableError - Errors:")
+	println("TestBuildParseTableErrorMultiplePartialReduce - Errors:")
 	helper.DisplayAllErrors(analyzer.Errors)
 
 	if len(analyzer.Errors) != 1 {
@@ -614,13 +614,13 @@ func TestBuildParseTableError(t *testing.T) {
 
 	var conflictError *ConflictError
 	if errors.As(analyzer.Errors[0], &conflictError) {
- 		if conflictError.Symbol1.Rule.Order == 2 {
- 			if conflictError.Symbol2.Rule.Order != 3 {
+ 		if conflictError.Symbol1.Rule.Order == 3 {
+ 			if conflictError.Symbol2.Rule.Order != 2 {
 				println("Expected the rule order to be 2, 3 or 3, 2")
 				t.Fail()
 			}
-		} else if conflictError.Symbol1.Rule.Order == 3 {
- 			if conflictError.Symbol2.Rule.Order != 2 {
+		} else if conflictError.Symbol1.Rule.Order == 2 {
+ 			if conflictError.Symbol2.Rule.Order != 3 {
 				println("Expected the rule order to be 2, 3 or 3, 2")
 				t.Fail()
 			}
@@ -643,6 +643,21 @@ func TestBuildParseTableError(t *testing.T) {
 			println("Expected the rule position to be (1, 34) and (1, 27) or reversed")
 			t.Fail()
 		}
+
+ 		if conflictError.Symbol1.Lookeahead.String == "C" {
+			if conflictError.Symbol2.Lookeahead.String != "1" {
+				println("Expected the lookaheads to be (1, C) or reversed")
+				t.Fail()
+			}
+		} else if conflictError.Symbol1.Lookeahead.String == "1" {
+			if conflictError.Symbol2.Lookeahead.String != "C" {
+				println("Expected the lookaheads to be (C, 1) or reversed")
+				t.Fail()
+			}
+		} else {
+			println("Expected the lookaheads to be (C, 1) or reversed")
+			t.Fail()
+		}
 	} else {
 		println("Expected a conflict error")
 		t.Fail()
@@ -658,9 +673,6 @@ func TestBuildParseTable2(t *testing.T) {
 	analyzer := initAnalyzer(&ast)
 	stateTransitions := analyzer.buildParseTable("E")
 	
-	println("TestBuildParseTableError - Errors:")
-	helper.DisplayAllErrors(analyzer.Errors)
-
 	if len(analyzer.Errors) != 0 {
 		println("Expected analyzer.Error length to be 0, got " + strconv.Itoa(len(analyzer.Errors)))
 		helper.DisplayAllErrors(analyzer.Errors)
@@ -697,5 +709,115 @@ func TestBuildParseTable2(t *testing.T) {
 	}
 	if analyzer.parseTable.States[6].ActionTable["1"].ShiftState != 3 && analyzer.parseTable.States[5].ActionTable["1"].ShiftState != 4 {
 		println("Expected the sixth state row to have the shift 3 or 4 on column \"1\"")
+	}
+}
+
+func TestBuildParseTableErrorPartialReduceAndShift(t *testing.T) {
+	ast, errs := kuuhaku_parser.Parse("E{B <1>} E{<1> B C} B{<2> <1>} B{<1>} C{<2>} C{<1>}");
+	if len(errs) != 0 {
+		println("Expected parser errors length to be 0")
+		t.Fatal()
+	}
+	analyzer := initAnalyzer(&ast)
+	analyzer.buildParseTable("E")
+	
+	println("TestBuildParseTableErrorPartialReduceAndShift - Errors:")
+	helper.DisplayAllErrors(analyzer.Errors)
+
+	if len(analyzer.Errors) != 1 {
+		println("Expected analyzer.Error length to be 1, got " + strconv.Itoa(len(analyzer.Errors)))
+		t.Fatal()
+	}
+
+	var conflictError *ConflictError
+	if errors.As(analyzer.Errors[0], &conflictError) {
+ 		if conflictError.Symbol1.Rule.Order == 2 {
+ 			if conflictError.Symbol2.Rule.Order != 3 ||  conflictError.Symbol1.Rule.Order != 3 {
+				println("Expected the rule order to be both 3")
+				t.Fail()
+			}
+		}
+
+ 		if conflictError.Position1.Line != 1 || conflictError.Position1.Column != 34 || conflictError.Position2.Line != 1 || conflictError.Position2.Column != 34 {
+			println("Expected the rule position to be (1, 34) and (1, 34)")
+			t.Fail()
+		}
+
+ 		if conflictError.Symbol1.Lookeahead.String == "C" {
+			if conflictError.Symbol2.Lookeahead.String != "1" {
+				println("Expected the lookaheads to be (1, C) or reversed")
+				t.Fail()
+			}
+		} else if conflictError.Symbol1.Lookeahead.String == "1" {
+			if conflictError.Symbol2.Lookeahead.String != "C" {
+				println("Expected the lookaheads to be (C, 1) or reversed")
+				t.Fail()
+			}
+		} else {
+			println("Expected the lookaheads to be (C, 1) or reversed")
+			t.Fail()
+		}
+	} else {
+		println("Expected a conflict error")
+		t.Fail()
+	}
+}
+
+func TestBuildParseTableErrorMultipleEndReduce(t *testing.T) {
+	ast, errs := kuuhaku_parser.Parse("E{C} E{B} B{<0>} B{<1>} C{<1>}");
+	if len(errs) != 0 {
+		println("Expected parser errors length to be 0")
+		t.Fatal()
+	}
+	analyzer := initAnalyzer(&ast)
+	analyzer.buildParseTable("E")
+	
+	println("TestBuildParseTableErrorMultipleEndReduce - Errors:")
+	helper.DisplayAllErrors(analyzer.Errors)
+
+	if len(analyzer.Errors) != 1 {
+		println("Expected analyzer.Error length to be 1, got " + strconv.Itoa(len(analyzer.Errors)))
+		t.Fatal()
+	}
+
+	var conflictError *ConflictError
+	if errors.As(analyzer.Errors[0], &conflictError) {
+ 		if conflictError.Symbol1.Rule.Order == 3 {
+ 			if conflictError.Symbol2.Rule.Order != 4 {
+				println("Expected the rule order to be 4, 3 or 3, 4")
+				t.Fail()
+			}
+		} else if conflictError.Symbol1.Rule.Order == 4 {
+ 			if conflictError.Symbol2.Rule.Order != 3 {
+				println("Expected the rule order to be 4, 3 or 3, 4")
+				t.Fail()
+			}
+		} else {
+			println("Expected the rule order to be 4, 3 or 3, 4")
+			t.Fail()
+		}
+
+ 		if conflictError.Position1.Line == 1 && conflictError.Position1.Column == 27 {
+			if conflictError.Position2.Line != 1 || conflictError.Position2.Column != 20 {
+				println("Expected the rule position to be (1, 20) and (1, 27) or reversed")
+				t.Fail()
+			}
+		} else if conflictError.Position1.Line == 1 && conflictError.Position1.Column == 20 {
+ 			if conflictError.Position2.Line != 1 || conflictError.Position2.Column != 27 {
+				println("Expected the rule position to be (1, 20) and (1, 27) or reversed")
+				t.Fail()
+			}
+		} else {
+			println("Expected the rule position to be (1, 20) and (1, 27) or reversed")
+			t.Fail()
+		}
+
+ 		if conflictError.Symbol1.Lookeahead.Type != EMPTY_TITLE || conflictError.Symbol2.Lookeahead.Type != EMPTY_TITLE {
+			println("Expected the lookaheads to be (<end>, <end>)")
+			t.Fail()
+		}
+	} else {
+		println("Expected a conflict error")
+		t.Fail()
 	}
 }
