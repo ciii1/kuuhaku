@@ -39,8 +39,13 @@ type AnalyzerResult struct {
 
 type ParseTable struct {
 	States []ParseTableState
-	Terminals []string
+	Terminals []TerminalList
 	Lhss []string
+}
+
+type TerminalList struct {
+	Terminal string	
+	Precedence int
 }
 
 type ParseTableState struct {

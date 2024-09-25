@@ -893,8 +893,8 @@ func TestGetAllTerminalsAndLhs(t *testing.T) {
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
-	terminalsMapInput := make(map[string]bool)
-	var terminalsMap *map[string]bool
+	terminalsMapInput := make(map[string]*TerminalList)
+	var terminalsMap *map[string]*TerminalList
 	lhsMapInput := make(map[string]bool)
 	var lhsMap *map[string]bool
 	terminalsMap, lhsMap = analyzer.getAllTerminalsAndLhs("E", &terminalsMapInput, &lhsMapInput)
@@ -905,9 +905,15 @@ func TestGetAllTerminalsAndLhs(t *testing.T) {
 		"B": true,	
 	}
 
-	terminalsMapCorrect := map[string]bool{
-		"0": true,	
-		"1": true,	
+	terminalsMapCorrect := map[string]TerminalList{
+		"0": {
+			Terminal: "0",
+			Precedence: 2,
+		},	
+		"1": {
+			Terminal: "1",
+			Precedence: 3,
+		},	
 	}
 
 	if !reflect.DeepEqual(lhsMapCorrect, *lhsMap) {
@@ -918,7 +924,8 @@ func TestGetAllTerminalsAndLhs(t *testing.T) {
 		t.Fail()
 	}
 
-	if !reflect.DeepEqual(terminalsMapCorrect, *terminalsMap) {
+	if !reflect.DeepEqual(terminalsMapCorrect["0"], *(*terminalsMap)["0"]) ||
+	   !reflect.DeepEqual(terminalsMapCorrect["1"], *(*terminalsMap)["1"]) {
 		println("terminalsMap != terminalsMapCorrect\nterminalsMap:")
 		fmt.Printf("%# v\n", pretty.Formatter(*terminalsMap))
 		println("terminalsMapCorrect:")

@@ -127,15 +127,15 @@ func initAnalyzer(input *kuuhaku_parser.Ast) Analyzer {
 }
 
 func (analyzer *Analyzer) makeEmptyParseTable(startSymbol string) ParseTable {
-	terminalsMapInput := make(map[string]bool)
-	var terminalsMap *map[string]bool
+	terminalsMapInput := make(map[string]*TerminalList)
+	var terminalsMap *map[string]*TerminalList
 	lhsMapInput := make(map[string]bool)
 	var lhsMap *map[string]bool
 	terminalsMap, lhsMap = analyzer.getAllTerminalsAndLhs(startSymbol, &terminalsMapInput, &lhsMapInput)
 
-	var terminals []string
-	for regexString := range *terminalsMap {
-		terminals = append(terminals, regexString)	
+	var terminals []TerminalList
+	for _, terminal := range *terminalsMap {
+		terminals = append(terminals, *terminal)	
 	}
 
 	var lhsArray []string
@@ -150,7 +150,7 @@ func (analyzer *Analyzer) makeEmptyParseTable(startSymbol string) ParseTable {
 	}
 }
 
-func (analyzer *Analyzer) getAllTerminalsAndLhs(startSymbol string, previousTerminalMap *map[string]bool, previousLhsMap *map[string]bool) (*map[string]bool, *map[string]bool) {
+func (analyzer *Analyzer) getAllTerminalsAndLhs(startSymbol string, previousTerminalMap *map[string]*TerminalList, previousLhsMap *map[string]bool) (*map[string]*TerminalList, *map[string]bool) {
 	terminalsMap := previousTerminalMap
 	lhsMap := previousLhsMap
 	(*lhsMap)[startSymbol] = true
@@ -158,7 +158,12 @@ func (analyzer *Analyzer) getAllTerminalsAndLhs(startSymbol string, previousTerm
 		for _, matchRule := range (*rule).MatchRules {
 			regexCurr, ok := matchRule.(kuuhaku_parser.RegexLiteral)
 			if ok {
-				(*terminalsMap)[regexCurr.RegexString] = true
+				if (*terminalsMap)[regexCurr.RegexString] == nil || (*terminalsMap)[regexCurr.RegexString].Precedence > rule.Order {
+					(*terminalsMap)[regexCurr.RegexString] = &TerminalList {
+						Terminal: regexCurr.RegexString,
+						Precedence: rule.Order,
+					}
+				}
 			} else {
 				identifierCurr, ok := matchRule.(kuuhaku_parser.Identifer)
 				if ok {
