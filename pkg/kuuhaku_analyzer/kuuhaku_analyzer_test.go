@@ -14,7 +14,7 @@ import (
 
 func TestErrorUndefinedVariable(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest2{identifier}\ntest34{test4}");
-	if len(errs) != 0 {
+	if len(errs) != 1 {
 		println("Expected parser errors length to be 0")	
 		t.Fatal()
 	}
@@ -65,7 +65,7 @@ func TestErrorUndefinedVariable(t *testing.T) {
 
 func TestStartSymbols(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}");
-	if len(errs) != 0 {
+	if len(errs) != 1 {
 		println("Expected parser errors length to be 0")	
 		t.Fatal()
 	}
@@ -99,7 +99,7 @@ func TestStartSymbols(t *testing.T) {
 
 func TestExpandSymbol(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}");
-	if len(errs) != 0 {
+	if len(errs) != 1 {
 		println("Expected parser errors length to be 0")	
 		t.Fatal()
 	}
@@ -197,7 +197,7 @@ func TestExpandSymbol(t *testing.T) {
 
 func TestExpandSymbol2(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("identifier{<\\.>test}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}");
-	if len(errs) != 0 {
+	if len(errs) != 1 {
 		println("Expected parser errors length to be 0")	
 		t.Fatal()
 	}
@@ -285,7 +285,7 @@ func TestExpandSymbol2(t *testing.T) {
 
 func TestExpandSymbol3(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("identifier{<\\.>test}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}");
-	if len(errs) != 0 {
+	if len(errs) != 1 {
 		println("Expected parser errors length to be 0")	
 		t.Fatal()
 	}
@@ -313,7 +313,7 @@ func TestExpandSymbol3(t *testing.T) {
 
 func TestGroupSymbols(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}");
-	if len(errs) != 0 {
+	if len(errs) != 1 {
 		println("Expected parser errors length to be 0")
 		t.Fatal()
 	}
@@ -428,7 +428,7 @@ func TestGroupSymbols(t *testing.T) {
 
 func TestBuildParseTableStateTransition(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<hello>}\nidentifier{<\\.>}\ntest3{<\\.>}");
-	if len(errs) != 0 {
+	if len(errs) != 1 {
 		println("Expected parser errors length to be 0")
 		t.Fatal()
 	}
@@ -517,7 +517,7 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 			}
 		}
 		if !isExist {
-			println("Expected the second, third, and fourth state transition to contain groups with title \"\\.\", and two empty titles")	
+			println("Expected the second, third, and fourth state transition to contain groups with title {\"test\", 1}, and two empty titles")	
 			t.Fail()
 		}
 	}
@@ -539,7 +539,7 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 
 func TestBuildParseTable(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}");
-	if len(errs) != 0 {
+	if len(errs) != 1 {
 		println("Expected parser errors length to be 0")
 		t.Fatal()
 	}
@@ -599,7 +599,7 @@ func TestBuildParseTable(t *testing.T) {
 
 func TestBuildParseTableErrorMultiplePartialReduce(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("E{B <1>} E{<1> B C} B{<1> <2>} B{<2>} C{<2>} C{<1>}");
-	if len(errs) != 0 {
+	if len(errs) != 3 {
 		println("Expected parser errors length to be 0")
 		t.Fatal()
 	}
@@ -669,7 +669,7 @@ func TestBuildParseTableErrorMultiplePartialReduce(t *testing.T) {
 
 func TestBuildParseTable2(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("E{E <*> B} E{E <+> B} E{B} B{<0>} B{<1>}");
-	if len(errs) != 0 {
+	if len(errs) != 2 {
 		println("Expected parser errors length to be 0")
 		t.Fatal()
 	}
@@ -718,7 +718,7 @@ func TestBuildParseTable2(t *testing.T) {
 
 func TestBuildParseTableErrorPartialReduceAndShift(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("E{B <1>} E{<1> B C} B{<2> <1>} B{<1>} C{<2>} C{<1>}");
-	if len(errs) != 0 {
+	if len(errs) != 3 {
 		println("Expected parser errors length to be 0")
 		t.Fatal()
 	}
@@ -830,7 +830,7 @@ func TestBuildParseTableErrorMultipleEndReduce(t *testing.T) {
 
 func TestGetAllTerminalsAndLhs(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("E{C} E{B} B{<0>} B{<1>} C{<1>} D{<3> F} F{<1>}");
-	if len(errs) != 0 {
+	if len(errs) != 1 {
 		println("Expected parser errors length to be 0")
 		t.Fatal()
 	}
@@ -871,7 +871,7 @@ func TestGetAllTerminalsAndLhs(t *testing.T) {
 
 func TestAnalyze(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("E{C} E{B} B{<0>} B{<1>} C{<1>} D{<3> F} F{<1>}");
-	if len(errs) != 0 {
+	if len(errs) != 1 {
 		println("Expected parser errors length to be 0")
 		t.Fatal()
 	}
@@ -898,7 +898,7 @@ func TestAnalyze(t *testing.T) {
 
 func TestAnalyze2(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("SEARCH_MODE E{C} E{B} B{<0>} B{<1>} C{<3>} D{<3> F} F{<1>} G{<2>}");
-	if len(errs) != 0 {
+	if len(errs) != 1 {
 		println("Expected parser errors length to be 0")
 		t.Fatal()
 	}

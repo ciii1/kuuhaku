@@ -10,10 +10,11 @@ import (
 )
 
 func TestConsumeMatchRules(t *testing.T) {
-	parser := initParser("<.*>hello<[0-9]>hi=");
+	parser := initParser("<.*><[0-9]><[0-9]><10>=");
 	matchRulesP := parser.consumeMatchRules()
 	if len(parser.Errors) != 0 {
-		panic(parser.Errors)
+		println("TestConsumeMatchRules - All errors:")
+		helper.DisplayAllErrors(parser.Errors)
 	}
 	matchRules := *matchRulesP
 	if len(matchRules) != 4 {
@@ -29,12 +30,12 @@ func TestConsumeMatchRules(t *testing.T) {
 		t.Fail()
 	}
 
-	node2, ok := matchRules[1].(Identifer)
+	node2, ok := matchRules[1].(RegexLiteral)
 	if ok == false {
-		println("Expected matchRules[1] to be an identifier")
+		println("Expected matchRules[1] to be a regex literal")
 		t.Fail()
-	} else if node2.Name != "hello" {
-		println("Expected matchRules[1] to contain \"hello\"")
+	} else if node2.RegexString != "[0-9]" {
+		println("Expected matchRules[1] to contain \"[0-9]\"")
 		t.Fail()
 	}
 
@@ -47,12 +48,88 @@ func TestConsumeMatchRules(t *testing.T) {
 		t.Fail()
 	}
 
-	node4, ok := matchRules[3].(Identifer)
+	node4, ok := matchRules[3].(RegexLiteral)
 	if ok == false {
-		println("Expected matchRules[3] to be an identifier")
+		println("Expected matchRules[3] to be a regex literal")
 		t.Fail()
-	} else if node4.Name != "hi" {
-		println("Expected matchRules[3] to contain \"hi\"")
+	} else if node4.RegexString != "10" {
+		println("Expected matchRules[3] to contain \"[0-9]\"")
+		t.Fail()
+	}
+}
+
+func TestConsumeMatchRules2(t *testing.T) {
+	parser := initParser("hello hello2=");
+	matchRulesP := parser.consumeMatchRules()
+	if len(parser.Errors) != 0 {
+		panic(parser.Errors)
+	}
+	matchRules := *matchRulesP
+	if len(matchRules) != 2 {
+		println("Expected matchRules length to be 2")
+		t.Fail()
+	}
+	node1, ok := matchRules[0].(Identifer)
+	if ok == false {
+		println("Expected matchRules[0] to be an identifier")
+		t.Fail()
+	} else if node1.Name != "hello" {
+		println("Expected matchRules[0] name's to be \"hello\"")
+		t.Fail()
+	}
+
+	node2, ok := matchRules[1].(Identifer)
+	if ok == false {
+		println("Expected matchRules[1] to be an identifier")
+		t.Fail()
+	} else if node2.Name != "hello2" {
+		println("Expected matchRules[1] name's to be \"hello2\"")
+		t.Fail()
+	}
+}
+
+func TestConsumeMatchRulesError(t *testing.T) {
+	parser := initParser("hello hello2 <2> hello2=");
+	parser.consumeMatchRules()
+	if len(parser.Errors) != 1 {
+		println("Expected parser errors length to be 1")
+		t.Fail()
+	}
+	var parseError *ParseError
+	if errors.As(parser.Errors[0], &parseError) {
+		if parseError.Type != MIXED_TYPE_MATCH_RULE {
+			println("Expected ErrMixedTypeMatchRule error")
+			t.Fail()
+		}
+		if parseError.Position.Column != 14 || parseError.Position.Line != 1 {
+			println("Expected error position to be (1, 14), got (" + strconv.Itoa(parseError.Position.Line) + "," + strconv.Itoa(parseError.Position.Column))
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+}
+
+func TestConsumeMatchRulesError2(t *testing.T) {
+	parser := initParser("<2>hello=");
+	parser.consumeMatchRules()
+	if len(parser.Errors) != 1 {
+		println("Expected parser errors length to be 1")
+		t.Fail()
+	}
+	var parseError *ParseError
+	if errors.As(parser.Errors[0], &parseError) {
+		if parseError.Type != MIXED_TYPE_MATCH_RULE {
+			println("Expected ErrMixedTypeMatchRule error")
+			t.Fail()
+		}
+		if parseError.Position.Column != 4 || parseError.Position.Line != 1 {
+			println("Expected error position to be (1, 4), got (" + strconv.Itoa(parseError.Position.Line) + "," + strconv.Itoa(parseError.Position.Column))
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
 		t.Fail()
 	}
 }

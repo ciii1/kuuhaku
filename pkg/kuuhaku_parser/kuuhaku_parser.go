@@ -17,6 +17,7 @@ const (
 	EXPECTED_REPLACE_RULE
 	EXPECTED_MATCH_RULE
 	EXPECTED_RULE
+	MIXED_TYPE_MATCH_RULE
 )
 
 type ParseError struct {
@@ -34,6 +35,14 @@ func ErrLenArgumentInvalid(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
 		Message: "Len argument is invalid",
 		Position: tokenizer.PrevPosition,
 		Type: LEN_ARGUMENT_INVALID,
+	}
+}
+
+func ErrMixedTypeMatchRule(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	return &ParseError {
+		Message: "Mixing regex literals and variables inside one rule is not allowed",
+		Position: tokenizer.PrevPosition,
+		Type: MIXED_TYPE_MATCH_RULE,
 	}
 }
 
@@ -324,6 +333,7 @@ func (parser *Parser) consumeToReplaceRuleArray(replaceRuleArray *[]ReplaceRule)
 			return true		
 		}
 	}	
+
 	captureGroup := parser.consumeCaptureGroup()
 	if captureGroup != nil {
 		lenParsed := parser.consumeLen()
@@ -432,31 +442,43 @@ func (parser *Parser) consumeStringStmt(stringStmt *StringStmt) bool {
 
 func (parser *Parser) consumeMatchRules() *[]MatchRule {
 	var output []MatchRule;
+	doesRegexLiteralExist := false
 	
-	ok := parser.consumeToMatchRuleArray(&output)
+	ok, isRegexLiteral := parser.consumeToMatchRuleArray(&output)
 	if !ok {
 		return nil
 	}
+	if isRegexLiteral {
+		doesRegexLiteralExist = true
+	}
 
 	for ok {
-		ok = parser.consumeToMatchRuleArray(&output)
+		//TODO: Debug why this happens
+		tokenizer := parser.tokenizer
+		ok, isRegexLiteral = parser.consumeToMatchRuleArray(&output)
+		if ok {
+			if (!isRegexLiteral && doesRegexLiteralExist) || (isRegexLiteral && !doesRegexLiteralExist) {
+				parser.Errors = append(parser.Errors, ErrMixedTypeMatchRule(&tokenizer))
+			}
+		}
 	}
 
 	return &output
 }
 
-func (parser *Parser) consumeToMatchRuleArray(matchRuleArray *[]MatchRule) bool {
+/* returns (ok bool, isRegexLiteral bool) */
+func (parser *Parser) consumeToMatchRuleArray(matchRuleArray *[]MatchRule) (bool, bool) {
 	identifier := parser.consumeIdentifier()
 	if identifier != nil {
 		*matchRuleArray = append(*matchRuleArray, *identifier)
-		return true
+		return true, false
 	}
 	regexLit := parser.consumeRegexLiteral()
 	if regexLit != nil {
 		*matchRuleArray = append(*matchRuleArray, *regexLit)
-		return true
+		return true, true
 	}
-	return false
+	return false, false
 }
 
 func (parser *Parser) consumeIdentifier() *Identifer {

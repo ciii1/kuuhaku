@@ -1,18 +1,19 @@
 package config_reader
 
 import (
-	"os"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
+
 	"github.com/ciii1/kuuhaku/internal/helper"
+	"github.com/ciii1/kuuhaku/pkg/kuuhaku_analyzer"
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_parser"
-	"github.com/kr/pretty"
 )
 
 var ErrUnrecognizedExtension = fmt.Errorf("Extension is unrecognized")
 
-func ReadFormat(extension string) error {
+func ReadFormat(extension string) (*kuuhaku_analyzer.AnalyzerResult, []error) {
 	entries, err := os.ReadDir(FormatsDir())
 	helper.Check(err)
 	fmt.Println("ReadFormat(), extension:", extension)
@@ -31,17 +32,21 @@ func ReadFormat(extension string) error {
 	}
 
 	if formatFilePath == "" {
-		return ErrUnrecognizedExtension
-	} else {
-		formatGrammar, err := os.ReadFile(formatFilePath) 
-		helper.Check(err)
-		fmt.Println(string(formatGrammar))
-		ast, errs := kuuhaku_parser.Parse(string(formatGrammar))
-		fmt.Printf("%# v\n", pretty.Formatter(ast))
-		helper.DisplayAllErrors(errs)		
+		return nil, []error{ErrUnrecognizedExtension}
 	}
 
-	return nil
+	formatGrammar, err := os.ReadFile(formatFilePath) 
+	helper.Check(err)
+	fmt.Println(string(formatGrammar))
+	ast, errs := kuuhaku_parser.Parse(string(formatGrammar))
+	if len(errs) != 0 {
+		return nil, errs
+	}
+	res, errs := kuuhaku_analyzer.Analyze(&ast)
+	if len(errs) != 0 {
+		return nil, errs
+	}
+	return &res, []error{}
 }
 
 func FormatsDir() string {
