@@ -14,6 +14,7 @@ type AnalyzeErrorType int
 const (
 	UNDEFINED_VARIABLE = iota
 	MULTIPLE_START_SYMBOLS
+	OUT_OF_BOUND_CAPTURE_GROUP
 )
 
 type AnalyzeError struct {
@@ -43,6 +44,14 @@ func ErrUndefinedVariable(position kuuhaku_tokenizer.Position, variableName stri
 		Message: "Variable " + variableName +  " is undefined",
 		Position: position,
 		Type: UNDEFINED_VARIABLE,
+	}
+}
+
+func ErrOutOfBoundCaptureGroup(position kuuhaku_tokenizer.Position, max int) *AnalyzeError {
+	return &AnalyzeError {
+		Message: "The capture group exceeds the index of the last element in the match rule which is " + strconv.Itoa(max),
+		Position: position,
+		Type: OUT_OF_BOUND_CAPTURE_GROUP,
 	}
 }
 
@@ -486,6 +495,15 @@ func (analyzer *Analyzer) analyzeStart () []string {
 
 				if identifier.Name != ruleName {
 					helper.EmptyStringByValue(&startSymbols, identifier.Name)	
+				}
+			}
+			for _, replaceRule := range rule.ReplaceRules {
+				captureGroup, ok := replaceRule.(kuuhaku_parser.CaptureGroup)
+				if !ok {
+					continue	
+				}
+				if captureGroup.Number >= len(rule.MatchRules) {
+					analyzer.Errors = append(analyzer.Errors, ErrOutOfBoundCaptureGroup(captureGroup.Position, len(rule.MatchRules)-1))
 				}
 			}
 		}

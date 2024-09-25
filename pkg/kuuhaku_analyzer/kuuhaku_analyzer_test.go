@@ -15,7 +15,7 @@ import (
 func TestErrorUndefinedVariable(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest2{identifier}\ntest34{test4}");
 	if len(errs) != 1 {
-		println("Expected parser errors length to be 0")	
+		println("Expected parser errors length to be 1")	
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
@@ -63,10 +63,68 @@ func TestErrorUndefinedVariable(t *testing.T) {
 
 }
 
+func TestErrorOutOfBoundCaptureGroup(t *testing.T) {
+	ast, errs := kuuhaku_parser.Parse("identifier{<\\.>=$1}\ntest2{test34 identifier = $5}\ntest34{<test>}");
+	if len(errs) != 0 {
+		println("Expected parser errors length to be 0")	
+		t.Fatal()
+	}
+	analyzer := initAnalyzer(&ast)
+	_ = analyzer.analyzeStart()	
+	if len(analyzer.Errors) != 2 {
+		println("Expected analyzer Errors length to be 2")
+		t.Fatal()
+	}
+
+	println("TestErrorOutOfBoundCaptureGroup - Errors:")
+	helper.DisplayAllErrors(analyzer.Errors)
+
+	var analyzeError *AnalyzeError
+	if errors.As(analyzer.Errors[0], &analyzeError) {
+		if analyzeError.Type != OUT_OF_BOUND_CAPTURE_GROUP {
+			println("Expected OutOfBoundCaptureGroupError error")
+			t.Fail()
+		}
+		if (analyzeError.Position.Column != 17 || analyzeError.Position.Line != 1) && (analyzeError.Position.Column != 27 || analyzeError.Position.Line != 2) {
+			col := strconv.Itoa(analyzeError.Position.Column)
+			line := strconv.Itoa(analyzeError.Position.Line)
+			println("Expected OutOfBoundCaptureGroupError error with column 12 and line 1, got (" + col + ", " + line + ")")
+			t.Fail()
+		}
+		if analyzeError.Message != "The capture group exceeds the index of the last element in the match rule which is 1" && analyzeError.Message != "The capture group exceeds the index of the last element in the match rule which is 0" {
+			println("Wrong error message, got :\n\t" +  analyzeError.Message)
+			t.Fail()
+		}
+	} else {
+		println("Expected AnalyzeError")
+		t.Fail()
+	}
+
+	if errors.As(analyzer.Errors[1], &analyzeError) {
+		if analyzeError.Type != OUT_OF_BOUND_CAPTURE_GROUP {
+			println("Expected OutOfBoundCaptureGroupError error")
+			t.Fail()
+		}
+		if (analyzeError.Position.Column != 17 || analyzeError.Position.Line != 1) && (analyzeError.Position.Column != 27 || analyzeError.Position.Line != 2) {
+			col := strconv.Itoa(analyzeError.Position.Column)
+			line := strconv.Itoa(analyzeError.Position.Line)
+			println("Expected OutOfBoundCaptureGroupError error with column 12 and line 1, got (" + col + ", " + line + ")")
+			t.Fail()
+		}
+		if analyzeError.Message != "The capture group exceeds the index of the last element in the match rule which is 1" && analyzeError.Message != "The capture group exceeds the index of the last element in the match rule which is 0" {
+			println("Wrong error message, got :\n\t" +  analyzeError.Message)
+			t.Fail()
+		}
+	} else {
+		println("Expected AnalyzeError")
+		t.Fail()
+	}
+}
+
 func TestStartSymbols(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}");
 	if len(errs) != 1 {
-		println("Expected parser errors length to be 0")	
+		println("Expected parser errors length to be 1")	
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
@@ -100,7 +158,7 @@ func TestStartSymbols(t *testing.T) {
 func TestExpandSymbol(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}");
 	if len(errs) != 1 {
-		println("Expected parser errors length to be 0")	
+		println("Expected parser errors length to be 1")	
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
@@ -198,7 +256,7 @@ func TestExpandSymbol(t *testing.T) {
 func TestExpandSymbol2(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("identifier{<\\.>test}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}");
 	if len(errs) != 1 {
-		println("Expected parser errors length to be 0")	
+		println("Expected parser errors length to be 1")	
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
@@ -286,7 +344,7 @@ func TestExpandSymbol2(t *testing.T) {
 func TestExpandSymbol3(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("identifier{<\\.>test}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}");
 	if len(errs) != 1 {
-		println("Expected parser errors length to be 0")	
+		println("Expected parser errors length to be 1")	
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
@@ -314,7 +372,7 @@ func TestExpandSymbol3(t *testing.T) {
 func TestGroupSymbols(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}");
 	if len(errs) != 1 {
-		println("Expected parser errors length to be 0")
+		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
@@ -429,7 +487,7 @@ func TestGroupSymbols(t *testing.T) {
 func TestBuildParseTableStateTransition(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<hello>}\nidentifier{<\\.>}\ntest3{<\\.>}");
 	if len(errs) != 1 {
-		println("Expected parser errors length to be 0")
+		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
@@ -540,7 +598,7 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 func TestBuildParseTable(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}");
 	if len(errs) != 1 {
-		println("Expected parser errors length to be 0")
+		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
@@ -600,7 +658,7 @@ func TestBuildParseTable(t *testing.T) {
 func TestBuildParseTableErrorMultiplePartialReduce(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("E{B <1>} E{<1> B C} B{<1> <2>} B{<2>} C{<2>} C{<1>}");
 	if len(errs) != 3 {
-		println("Expected parser errors length to be 0")
+		println("Expected parser errors length to be 3")
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
@@ -670,7 +728,7 @@ func TestBuildParseTableErrorMultiplePartialReduce(t *testing.T) {
 func TestBuildParseTable2(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("E{E <*> B} E{E <+> B} E{B} B{<0>} B{<1>}");
 	if len(errs) != 2 {
-		println("Expected parser errors length to be 0")
+		println("Expected parser errors length to be 2")
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
@@ -719,7 +777,7 @@ func TestBuildParseTable2(t *testing.T) {
 func TestBuildParseTableErrorPartialReduceAndShift(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("E{B <1>} E{<1> B C} B{<2> <1>} B{<1>} C{<2>} C{<1>}");
 	if len(errs) != 3 {
-		println("Expected parser errors length to be 0")
+		println("Expected parser errors length to be 3")
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
@@ -831,7 +889,7 @@ func TestBuildParseTableErrorMultipleEndReduce(t *testing.T) {
 func TestGetAllTerminalsAndLhs(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("E{C} E{B} B{<0>} B{<1>} C{<1>} D{<3> F} F{<1>}");
 	if len(errs) != 1 {
-		println("Expected parser errors length to be 0")
+		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
@@ -872,7 +930,7 @@ func TestGetAllTerminalsAndLhs(t *testing.T) {
 func TestAnalyze(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("E{C} E{B} B{<0>} B{<1>} C{<1>} D{<3> F} F{<1>}");
 	if len(errs) != 1 {
-		println("Expected parser errors length to be 0")
+		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
 	_, errs = Analyze(&ast)
@@ -899,7 +957,7 @@ func TestAnalyze(t *testing.T) {
 func TestAnalyze2(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("SEARCH_MODE E{C} E{B} B{<0>} B{<1>} C{<3>} D{<3> F} F{<1>} G{<2>}");
 	if len(errs) != 1 {
-		println("Expected parser errors length to be 0")
+		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
 	res, errs := Analyze(&ast)
