@@ -2,6 +2,7 @@ package kuuhaku_analyzer
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 
 	"github.com/ciii1/kuuhaku/internal/helper"
@@ -133,10 +134,7 @@ func (analyzer *Analyzer) makeEmptyParseTable(startSymbol string) ParseTable {
 	var lhsMap *map[string]bool
 	terminalsMap, lhsMap = analyzer.getAllTerminalsAndLhs(startSymbol, &terminalsMapInput, &lhsMapInput)
 
-	var terminals []TerminalList
-	for _, terminal := range *terminalsMap {
-		terminals = append(terminals, *terminal)	
-	}
+	terminals := sortTerminalsMaptoArray(terminalsMap)
 
 	var lhsArray []string
 	for lhs := range *lhsMap {
@@ -145,9 +143,20 @@ func (analyzer *Analyzer) makeEmptyParseTable(startSymbol string) ParseTable {
 
 	return ParseTable {
 		States: []ParseTableState{},
-		Terminals: terminals,
+		Terminals: *terminals,
 		Lhss: lhsArray,
 	}
+}
+
+func sortTerminalsMaptoArray(terminalsMap *map[string]*TerminalList) *[]TerminalList {
+	var terminals []TerminalList
+	for _, terminal := range *terminalsMap {
+		terminals = append(terminals, *terminal)	
+	}
+	sort.Slice(terminals, func(i, j int) bool {
+		return terminals[i].Precedence < terminals[j].Precedence
+	})
+	return &terminals
 }
 
 func (analyzer *Analyzer) getAllTerminalsAndLhs(startSymbol string, previousTerminalMap *map[string]*TerminalList, previousLhsMap *map[string]bool) (*map[string]*TerminalList, *map[string]bool) {
@@ -315,8 +324,8 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 	if len(*symbolGroups) == 0 {
 		return symbolGroups
 	}
-	actionTable := make(map[string]ActionCell)
-	gotoTable := make(map[string]GotoCell)
+	actionTable := make(map[string]*ActionCell)
+	gotoTable := make(map[string]*GotoCell)
 	var endReduceRule *ActionCell
 	endReduceRule = nil
 
@@ -377,7 +386,7 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 				for _, terminal := range terminals {
 					if usedTerminalsWithSymbol[terminal] == nil {
 						usedTerminalsWithSymbol[terminal] = symbol
-						actionTable[terminal] = ActionCell {
+						actionTable[terminal] = &ActionCell {
 							LookaheadTerminal: terminal,
 							Action: REDUCE,
 							ReduceRule: symbol.Rule,
@@ -393,7 +402,7 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 
 	for _, group := range *symbolGroups {
 		if group.Title.Type == IDENTIFIER_TITLE {
-			gotoTable[group.Title.String] = GotoCell {
+			gotoTable[group.Title.String] = &GotoCell {
 				Lhs: group.Title.String,
 				GotoState: analyzer.stateNumber,
 			}
@@ -424,7 +433,7 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 				}
 			}
 			if !isStateExisted {
-				actionTable[group.Title.String] = ActionCell {
+				actionTable[group.Title.String] = &ActionCell {
 					LookaheadTerminal: group.Title.String,
 					Action: SHIFT,
 					ReduceRule: nil,
@@ -437,7 +446,7 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 				}
 				analyzer.stateNumber++
 			} else {
-				actionTable[group.Title.String] = ActionCell {
+				actionTable[group.Title.String] = &ActionCell {
 					LookaheadTerminal: group.Title.String,
 					Action: SHIFT,
 					ReduceRule: nil,

@@ -887,7 +887,7 @@ func TestBuildParseTableErrorMultipleEndReduce(t *testing.T) {
 }
 
 func TestGetAllTerminalsAndLhs(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("E{C} E{B} B{<0>} B{<1>} C{<1>} D{<3> F} F{<1>}");
+	ast, errs := kuuhaku_parser.Parse("E{C} E{B} B{<0>} B{<1>} C{<1>} D{<3> F} F{<1>} B{<5>} B{<10>} B{<9>}");
 	if len(errs) != 1 {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
@@ -914,6 +914,18 @@ func TestGetAllTerminalsAndLhs(t *testing.T) {
 			Terminal: "1",
 			Precedence: 3,
 		},	
+		"5":{
+			Terminal: "5",
+			Precedence: 7,
+		},	
+		"10":{
+			Terminal: "10",
+			Precedence: 8,
+		},	
+		"9":{
+			Terminal: "9",
+			Precedence: 9,
+		},	
 	}
 
 	if !reflect.DeepEqual(lhsMapCorrect, *lhsMap) {
@@ -925,11 +937,47 @@ func TestGetAllTerminalsAndLhs(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(terminalsMapCorrect["0"], *(*terminalsMap)["0"]) ||
-	   !reflect.DeepEqual(terminalsMapCorrect["1"], *(*terminalsMap)["1"]) {
+	   !reflect.DeepEqual(terminalsMapCorrect["1"], *(*terminalsMap)["1"]) ||
+	   !reflect.DeepEqual(terminalsMapCorrect["5"], *(*terminalsMap)["5"]) ||
+	   !reflect.DeepEqual(terminalsMapCorrect["10"], *(*terminalsMap)["10"]) ||
+	   !reflect.DeepEqual(terminalsMapCorrect["9"], *(*terminalsMap)["9"]) {
 		println("terminalsMap != terminalsMapCorrect\nterminalsMap:")
 		fmt.Printf("%# v\n", pretty.Formatter(*terminalsMap))
 		println("terminalsMapCorrect:")
 		fmt.Printf("%# v\n", pretty.Formatter(terminalsMapCorrect))
+		t.Fail()
+	}
+
+	terminalsCorrect := []TerminalList{
+		{
+			Terminal: "0",
+			Precedence: 2,
+		},	
+		{
+			Terminal: "1",
+			Precedence: 3,
+		},	
+		{
+			Terminal: "5",
+			Precedence: 7,
+		},	
+		{
+			Terminal: "10",
+			Precedence: 8,
+		},	
+		{
+			Terminal: "9",
+			Precedence: 9,
+		},	
+	}
+
+	terminals := sortTerminalsMaptoArray(terminalsMap)
+
+	if !reflect.DeepEqual(*terminals, terminalsCorrect){
+		println("terminals != terminalsCorrect\nterminals:")
+		fmt.Printf("%# v\n", pretty.Formatter(*terminals))
+		println("terminalsCorrect:")
+		fmt.Printf("%# v\n", pretty.Formatter(terminalsCorrect))
 		t.Fail()
 	}
 }

@@ -49,8 +49,8 @@ type TerminalList struct {
 }
 
 type ParseTableState struct {
-	ActionTable map[string]ActionCell //map[kuuhaku_parser.RegexLiteral.Content]ActionCell
-	GotoTable map[string]GotoCell //map[kuuhaku_parser.Rule.Name]GotoCell
+	ActionTable map[string]*ActionCell //map[kuuhaku_parser.RegexLiteral.Content]ActionCell
+	GotoTable map[string]*GotoCell //map[kuuhaku_parser.Rule.Name]GotoCell
 
 	//How the parser would read the following field: test all terminals inside action table, if no match
 	//then use EndReduceRule. If it's a nil, then return error
