@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 	"testing"
 
@@ -905,26 +906,36 @@ func TestGetAllTerminalsAndLhs(t *testing.T) {
 		"B": true,	
 	}
 
+	regexCompiled1, _ := regexp.Compile("^0")
+	regexCompiled2, _ := regexp.Compile("^1")
+	regexCompiled3, _ := regexp.Compile("^5")
+	regexCompiled4, _ := regexp.Compile("^10")
+	regexCompiled5, _ := regexp.Compile("^9")
 	terminalsMapCorrect := map[string]TerminalList{
 		"0": {
 			Terminal: "0",
 			Precedence: 2,
+			Regexp: regexCompiled1, 
 		},	
 		"1": {
 			Terminal: "1",
 			Precedence: 3,
+			Regexp: regexCompiled2, 
 		},	
 		"5":{
 			Terminal: "5",
 			Precedence: 7,
+			Regexp: regexCompiled3, 
 		},	
 		"10":{
 			Terminal: "10",
 			Precedence: 8,
+			Regexp: regexCompiled4, 
 		},	
 		"9":{
 			Terminal: "9",
 			Precedence: 9,
+			Regexp: regexCompiled5, 
 		},	
 	}
 
@@ -936,50 +947,112 @@ func TestGetAllTerminalsAndLhs(t *testing.T) {
 		t.Fail()
 	}
 
-	if !reflect.DeepEqual(terminalsMapCorrect["0"], *(*terminalsMap)["0"]) ||
-	   !reflect.DeepEqual(terminalsMapCorrect["1"], *(*terminalsMap)["1"]) ||
-	   !reflect.DeepEqual(terminalsMapCorrect["5"], *(*terminalsMap)["5"]) ||
-	   !reflect.DeepEqual(terminalsMapCorrect["10"], *(*terminalsMap)["10"]) ||
-	   !reflect.DeepEqual(terminalsMapCorrect["9"], *(*terminalsMap)["9"]) {
-		println("terminalsMap != terminalsMapCorrect\nterminalsMap:")
-		fmt.Printf("%# v\n", pretty.Formatter(*terminalsMap))
-		println("terminalsMapCorrect:")
-		fmt.Printf("%# v\n", pretty.Formatter(terminalsMapCorrect))
-		t.Fail()
+	for terminal, terminalList := range *terminalsMap {
+		if terminalsMapCorrect[terminal].Terminal != terminalList.Terminal {
+			println("terminalsMap[" + terminal + "].Terminal (" + terminalList.Terminal + ") != terminalsMapCorrect[" + 
+				terminal + "].Terminal (" + terminalsMapCorrect[terminal].Terminal + ")")
+			t.Fail()
+		}
+		if terminalsMapCorrect[terminal].Precedence != terminalList.Precedence {
+			println("terminalsMap[" + terminal + "].Precedence (" + strconv.Itoa(terminalList.Precedence) + 
+				") != terminalsMapCorrect[" + terminal + "].Precedence (" + 
+				strconv.Itoa(terminalsMapCorrect[terminal].Precedence) + ")")
+			t.Fail()
+		}
+		if terminalsMapCorrect[terminal].Regexp.String() != terminalList.Regexp.String() {
+			println("terminalsMap[" + terminal + "].Regexp.String != terminalsMapCorrect[" + terminal + "].Regexp")
+			println(terminalsMapCorrect[terminal].Regexp.String() + " != " + terminalList.Regexp.String())
+			t.Fail()
+		}
 	}
 
 	terminalsCorrect := []TerminalList{
 		{
 			Terminal: "0",
 			Precedence: 2,
+			Regexp: regexCompiled1, 
 		},	
 		{
 			Terminal: "1",
 			Precedence: 3,
+			Regexp: regexCompiled2, 
 		},	
 		{
 			Terminal: "5",
 			Precedence: 7,
+			Regexp: regexCompiled3, 
 		},	
 		{
 			Terminal: "10",
 			Precedence: 8,
+			Regexp: regexCompiled4, 
 		},	
 		{
 			Terminal: "9",
 			Precedence: 9,
+			Regexp: regexCompiled5, 
 		},	
 	}
 
 	terminals := sortTerminalsMaptoArray(terminalsMap)
 
-	if !reflect.DeepEqual(*terminals, terminalsCorrect){
-		println("terminals != terminalsCorrect\nterminals:")
-		fmt.Printf("%# v\n", pretty.Formatter(*terminals))
-		println("terminalsCorrect:")
-		fmt.Printf("%# v\n", pretty.Formatter(terminalsCorrect))
+	for i, terminalList := range *terminals {
+		if terminalsCorrect[i].Terminal != terminalList.Terminal {
+			println("terminals[" + strconv.Itoa(i) + "].Terminal (" + 
+				terminalList.Terminal + ") != terminalsMapCorrect[" + strconv.Itoa(i) + "].Terminal (" +
+				terminalsCorrect[i].Terminal + ")")
+			t.Fail()
+		}
+		if terminalsCorrect[i].Precedence != terminalList.Precedence {
+			println("terminalsMap[" + strconv.Itoa(i) + "].Precedence (" + strconv.Itoa(terminalList.Precedence) + 
+				") != terminalsMapCorrect[" + strconv.Itoa(i) + "].Precedence (" + 
+				strconv.Itoa(terminalsCorrect[i].Precedence) + ")")
+			t.Fail()
+		}
+		if terminalsCorrect[i].Regexp.String() != terminalList.Regexp.String() {
+			println("terminalsMap[" + strconv.Itoa(i) + "].Regexp != terminalsMapCorrect[" + strconv.Itoa(i) + "].Regexp")
+			println(terminalsCorrect[i].Regexp.String() + " != " + terminalList.Regexp.String())
+			t.Fail()
+		}
+	}
+}
+
+func TestGetAllTerminalsAndLhsRegexError(t *testing.T) {
+	ast, errs := kuuhaku_parser.Parse("E{C} E{B} B{<0>} B{<1>} C{<1>} D{<3> F} F{<1>} B{<5>} B{<10>} B{<[>}");
+	if len(errs) != 1 {
+		println("Expected parser errors length to be 1")
+		t.Fatal()
+	}
+	analyzer := initAnalyzer(&ast)
+	terminalsMapInput := make(map[string]*TerminalList)
+	lhsMapInput := make(map[string]bool)
+	_, _ = analyzer.getAllTerminalsAndLhs("E", &terminalsMapInput, &lhsMapInput)
+	
+	if len(analyzer.Errors) != 1 {
+		println("Expected analyzer Errors length to be 1, got " + strconv.Itoa(len(analyzer.Errors)))
+		t.Fatal()
+	}
+
+	println("TestGetAllTerminalsAndLhsRegexError - Errors:")
+	helper.DisplayAllErrors(analyzer.Errors)
+
+	var analyzeError *AnalyzeError
+	if errors.As(analyzer.Errors[0], &analyzeError) {
+		if analyzeError.Type != INVALID_REGEX {
+			println("Expected invalid regex error")
+			t.Fail()
+		}
+		if analyzeError.Position.Column != 65 || analyzeError.Position.Line != 1 {
+			println("Expected position to be (1, 65), got (" + 
+				strconv.Itoa(analyzeError.Position.Line) + ", " + 
+				strconv.Itoa(analyzeError.Position.Column) + ")")
+			t.Fail()
+		}
+	} else {
+		println("Expected AnalyzeError")
 		t.Fail()
 	}
+	
 }
 
 func TestAnalyze(t *testing.T) {

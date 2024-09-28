@@ -2,6 +2,7 @@ package kuuhaku_analyzer
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strconv"
 
@@ -16,6 +17,7 @@ const (
 	UNDEFINED_VARIABLE = iota
 	MULTIPLE_START_SYMBOLS
 	OUT_OF_BOUND_CAPTURE_GROUP
+	INVALID_REGEX
 )
 
 type AnalyzeError struct {
@@ -61,6 +63,14 @@ func ErrMultipleStartSymbols(position kuuhaku_tokenizer.Position, startSymbol1 s
 		Message: "Found multiple start symbols while not in search mode: " + startSymbol1 +  ", " + startSymbol2,
 		Position: position,
 		Type: MULTIPLE_START_SYMBOLS,
+	}
+}
+
+func ErrInvalidRegex(position kuuhaku_tokenizer.Position, regex string, regexError error) *AnalyzeError {
+	return &AnalyzeError {
+		Message: "Invalid regex: <" + regex + "> (" + regexError.Error() + ")",
+		Position: position,
+		Type: INVALID_REGEX,
 	}
 }
 
@@ -168,9 +178,14 @@ func (analyzer *Analyzer) getAllTerminalsAndLhs(startSymbol string, previousTerm
 			regexCurr, ok := matchRule.(kuuhaku_parser.RegexLiteral)
 			if ok {
 				if (*terminalsMap)[regexCurr.RegexString] == nil || (*terminalsMap)[regexCurr.RegexString].Precedence > rule.Order {
+					regexCompiled, err := regexp.Compile("^" + regexCurr.RegexString)
+					if err != nil {
+						analyzer.Errors = append(analyzer.Errors, ErrInvalidRegex(regexCurr.Position, regexCurr.RegexString, err))
+					}
 					(*terminalsMap)[regexCurr.RegexString] = &TerminalList {
 						Terminal: regexCurr.RegexString,
 						Precedence: rule.Order,
+						Regexp: regexCompiled,
 					}
 				}
 			} else {
