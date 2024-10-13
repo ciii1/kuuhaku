@@ -2,7 +2,6 @@ package kuuhaku_runtime
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_analyzer"
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_parser"
@@ -111,10 +110,11 @@ func Format(input string, format *kuuhaku_analyzer.AnalyzerResult) (string, erro
 			}
 		}
 		if !isThereSuccess {
+			out += string(input[currPos.Raw])
 			currPos.Raw++
 		}
 		if !format.IsSearchMode && currPos.Raw < len(input)-1 {
-			//return error here: expected eof
+			return out, ErrExpectedEOFError(currPos)
 		}
 	}
 	return out, nil
@@ -148,23 +148,38 @@ func addToPositionFromSlicedString(prevPos kuuhaku_tokenizer.Position, sliced st
 func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuuhaku_analyzer.ParseTable) (string, kuuhaku_tokenizer.Position, error) {
 	var parseStack []ParseStackElement
 	currState := 0
-	for pos.Raw < len(input){
+	lookahead := ""
+	lookaheadFound := false
+
+	for true {
 		currRow := parseTable.States[currState]
-		slicedInput := input[pos.Raw:]
-		lookahead := ""
-		lookaheadFound := false
 		var expected []string
-		for _, terminal := range parseTable.Terminals {
-			if currRow.ActionTable[terminal.Terminal] != nil && terminal.Regexp != nil {
-				expected = append(expected, terminal.Terminal)
-				loc := terminal.Regexp.FindStringIndex(slicedInput)
-				if loc == nil {
-					continue
-				} else {
-					lookahead = slicedInput[0:loc[1]]
-					pos = addToPositionFromSlicedString(pos, lookahead)
-					lookaheadFound = true
-					break
+
+		if pos.Raw >= len(input) {
+			for _, terminal := range parseTable.Terminals {
+				if currRow.ActionTable[terminal.Terminal] != nil && terminal.Regexp != nil {
+					expected = append(expected, terminal.Terminal)
+				}
+			}
+			//TODO: might return all of the strings inside the parse stack combined on error in the future
+			return "", pos, ErrSyntaxError(pos, &expected)
+		}
+
+		slicedInput := input[pos.Raw:]
+
+		if !lookaheadFound {
+			for _, terminal := range parseTable.Terminals {
+				if currRow.ActionTable[terminal.Terminal] != nil && terminal.Regexp != nil {
+					expected = append(expected, terminal.Terminal)
+					loc := terminal.Regexp.FindStringIndex(slicedInput)
+					if loc == nil {
+						continue
+					} else {
+						lookahead = slicedInput[0:loc[1]]
+						pos = addToPositionFromSlicedString(pos, lookahead)
+						lookaheadFound = true
+						break
+					}
 				}
 			}
 		}
@@ -177,9 +192,10 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 					State: currState,
 				})
 				currState = currActionCell.ShiftState
+				lookaheadFound = false
 			} else if currActionCell.Action == kuuhaku_analyzer.REDUCE {
 				var err error
-				currState, err = applyRule(parseTable, currActionCell.ReduceRule, &parseStack)	
+				currState, err = applyRule(parseTable, currActionCell.ReduceRule, &parseStack, pos, false)	
 				if err != nil {
 					return "", pos, err
 				}
@@ -187,12 +203,17 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 		 } else {
 			if currRow.EndReduceRule != nil {
 				var err error
-				currState, err = applyRule(parseTable , currRow.EndReduceRule.ReduceRule, &parseStack)	
+				if currRow.EndReduceRule.Action == kuuhaku_analyzer.ACCEPT {
+					currState, err = applyRule(parseTable , currRow.EndReduceRule.ReduceRule, &parseStack, pos, true)	
+					break
+				} else if currRow.EndReduceRule.Action == kuuhaku_analyzer.REDUCE {
+					currState, err = applyRule(parseTable , currRow.EndReduceRule.ReduceRule, &parseStack, pos, false)	
+				}
 				if err != nil {
 					return "", pos, err
 				}
-				break
 			} else {
+				printParseStack(&parseStack)
 				return "", pos, ErrSyntaxError(pos, &expected)
 			}
 		 }
@@ -214,17 +235,16 @@ func printParseStack(parseStack *[]ParseStackElement) {
 	println("]")
 }
 
-func applyRule(parseTable *kuuhaku_analyzer.ParseTable, rule *kuuhaku_parser.Rule, parseStack *[]ParseStackElement) (int, error) {
+func applyRule(parseTable *kuuhaku_analyzer.ParseTable, rule *kuuhaku_parser.Rule, parseStack *[]ParseStackElement, pos kuuhaku_tokenizer.Position, isAccept bool) (int, error) {
 	nextState := 0
 	lhs := rule.Name
 	ruleLength := len(rule.MatchRules)
 
-	targetStack := (*parseStack)[len(*parseStack)-ruleLength:]
-	if len(*parseStack) == 1 {
-		*parseStack = []ParseStackElement{}
-	} else {
-		*parseStack = (*parseStack)[:len(*parseStack)-(ruleLength+1)]
+	if len(*parseStack)-ruleLength < 0 {
+		return 0, ErrReduceRuleIsNotMatching(pos)
 	}
+	targetStack := (*parseStack)[len(*parseStack)-ruleLength:]
+	*parseStack = (*parseStack)[:len(*parseStack)-ruleLength]
 
 	reducedString := ""	
 	
@@ -265,10 +285,14 @@ func applyRule(parseTable *kuuhaku_analyzer.ParseTable, rule *kuuhaku_parser.Rul
 		}
 	}
 
-	if len(*parseStack)-1 < 0 {
-		nextState = 0
+	if !isAccept {
+		backState := 0
+		if len(*parseStack)-1 >= 0 {
+			backState = (*parseStack)[len(*parseStack)-1].State
+		}
+		nextState = parseTable.States[backState].GotoTable[lhs].GotoState
 	} else {
-		nextState = parseTable.States[(*parseStack)[len(*parseStack)-1].State].GotoTable[lhs].GotoState
+		nextState = 0
 	}
 
 	*parseStack = append(*parseStack, ParseStackElement {
@@ -276,5 +300,6 @@ func applyRule(parseTable *kuuhaku_analyzer.ParseTable, rule *kuuhaku_parser.Rul
 		String: reducedString,
 		State: nextState,
 	})
+
 	return nextState, nil
 }

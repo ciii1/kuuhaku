@@ -65,6 +65,7 @@ type Action int
 const (
 	REDUCE = iota
 	SHIFT
+	ACCEPT
 )
 
 type ActionCell struct {

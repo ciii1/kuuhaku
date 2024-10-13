@@ -642,6 +642,10 @@ func TestBuildParseTable(t *testing.T) {
 		println("Expected the second state row to have the end reduce rule 3 on column \"\\.\"")
 		t.Fail()
 	}
+	if secondRow.EndReduceRule.Action != ACCEPT {
+		println("Expected the second state row to have the ACCEPT action")
+		t.Fail()
+	}
 
 	thirdRow := analyzer.parseTables[0].States[firstRow.GotoTable["test"].GotoState] 
 	if thirdRow.ActionTable["\\."].Action != SHIFT {
@@ -652,6 +656,10 @@ func TestBuildParseTable(t *testing.T) {
 	fourthRow := analyzer.parseTables[0].States[thirdRow.ActionTable["\\."].ShiftState] 
 	if fourthRow.EndReduceRule.ReduceRule != ast.Rules["identifier"][0] {
 		println("Expected the second state row to have the end reduce rule 1 on column \"\\.\"")
+		t.Fail()
+	}
+	if fourthRow.EndReduceRule.Action != ACCEPT {
+		println("Expected the second state row to have the ACCEPT action")
 		t.Fail()
 	}
 }
@@ -774,6 +782,7 @@ func TestBuildParseTable2(t *testing.T) {
 		println("Expected the sixth state row to have the shift 3 or 4 on column \"1\"")
 	}
 }
+
 
 func TestBuildParseTableErrorPartialReduceAndShift(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("E{B <1>} E{<1> B C} B{<2> <1>} B{<1>} C{<2>} C{<1>}");

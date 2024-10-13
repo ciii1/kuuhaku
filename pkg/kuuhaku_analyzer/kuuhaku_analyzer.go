@@ -278,7 +278,7 @@ func (analyzer *Analyzer) buildParseTable(startSymbolString string) *[]*StateTra
 
 	var stateTransitions []*StateTransition
 	grouped := analyzer.groupSymbols(expandedStartSymbols)
-	grouped = analyzer.buildParseTableState(grouped)	
+	grouped = analyzer.buildParseTableState(grouped, startSymbolString)	
 	stateTransitions = append(stateTransitions, &StateTransition {
 		SymbolGroups: grouped,
 	})
@@ -299,7 +299,7 @@ func (analyzer *Analyzer) buildParseTable(startSymbolString string) *[]*StateTra
 			}
 			
 			grouped := analyzer.groupSymbols(&expandedSymbolsAll)
-			grouped = analyzer.buildParseTableState(grouped)	
+			grouped = analyzer.buildParseTableState(grouped, startSymbolString)	
 			if len(*grouped) != 0 {
 				stateTransitions = append(stateTransitions, &StateTransition {
 					SymbolGroups: grouped,
@@ -335,7 +335,7 @@ func (analyzer *Analyzer) groupSymbols(symbols *[]*Symbol) *[]*SymbolGroup {
 	return &groups
 }
 
-func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]*SymbolGroup {
+func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, startSymbol string) *[]*SymbolGroup {
 	if len(*symbolGroups) == 0 {
 		return symbolGroups
 	}
@@ -370,9 +370,13 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup) *[]
 					} else {
 						isThereEndReduce = true
 						endReducedSymbol = symbol
+						var action Action = REDUCE
+						if symbol.Rule.Name == startSymbol {
+							action = ACCEPT	
+						}
 						endReduceRule = &ActionCell {
 							LookaheadTerminal: "",
-							Action: REDUCE,
+							Action: action,
 							ReduceRule: symbol.Rule,
 							ShiftState: 0,
 						}
