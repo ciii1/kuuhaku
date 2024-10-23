@@ -86,6 +86,7 @@ func ErrReduceRuleIsNotMatching(position kuuhaku_tokenizer.Position) *RuntimeErr
 
 func Format(input string, format *kuuhaku_analyzer.AnalyzerResult) (string, error) {
 	var currPos kuuhaku_tokenizer.Position
+	currPos.Line = 1
 	out := ""
 	for currPos.Raw < len(input) {
 		if input[currPos.Raw] == '\n' {
@@ -96,7 +97,9 @@ func Format(input string, format *kuuhaku_analyzer.AnalyzerResult) (string, erro
 		}
 
 		isThereSuccess := false
-		for _, parseTable := range format.ParseTables {
+		//TODO: Investigate. I'm pretty sure we can have only one parse table even if we have multiple start symbols
+		//For example, by adding one start symbol as the "unifier"
+		for _, parseTable := range format.ParseTables { 
 			res, resPos, err := runParseTable(input, currPos, &parseTable)
 			if err == nil {
 				isThereSuccess = true
@@ -124,12 +127,17 @@ func addToPositionFromSlicedString(prevPos kuuhaku_tokenizer.Position, sliced st
 	raw := prevPos.Raw + len(sliced)	
 	
 	col := prevPos.Column
+	colIfContainsNewLine := 1
+
 	i := len(sliced) - 1
 	for i >= 0 && sliced[i] != '\n' {
 		col++
+		colIfContainsNewLine++
 		i--
 	}
-	col++
+	if sliced[i+1] == '\n' {
+		col = colIfContainsNewLine
+	}
 
 	line := prevPos.Line
 	for _, char := range sliced {
@@ -149,6 +157,7 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 	var parseStack []ParseStackElement
 	currState := 0
 	lookahead := ""
+	lookaheadRegex := ""
 	lookaheadFound := false
 
 	for true {
@@ -176,6 +185,7 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 						continue
 					} else {
 						lookahead = slicedInput[0:loc[1]]
+						lookaheadRegex = terminal.Terminal
 						pos = addToPositionFromSlicedString(pos, lookahead)
 						lookaheadFound = true
 						break
@@ -184,7 +194,9 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 			}
 		}
 		if lookaheadFound {
-			currActionCell := currRow.ActionTable[lookahead]
+			currActionCell := currRow.ActionTable[lookaheadRegex]
+			//println("lookahead:" + lookahead)
+			//fmt.Printf("%# v\n", pretty.Formatter(currRow))
 			if currActionCell.Action == kuuhaku_analyzer.SHIFT {
 				parseStack = append(parseStack, ParseStackElement{
 					Type: PARSE_STACK_ELEMENT_TYPE_TERMINAL,
@@ -195,6 +207,7 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 				lookaheadFound = false
 			} else if currActionCell.Action == kuuhaku_analyzer.REDUCE {
 				var err error
+				println(lookahead)
 				currState, err = applyRule(parseTable, currActionCell.ReduceRule, &parseStack, pos, false)	
 				if err != nil {
 					return "", pos, err
@@ -225,7 +238,7 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 }
 
 func printParseStack(parseStack *[]ParseStackElement) {
-	print("[")
+	print("Parse stack: [")
 	for i, parseStackElement := range *parseStack {
 		if i != 0 {
 			print(",")
