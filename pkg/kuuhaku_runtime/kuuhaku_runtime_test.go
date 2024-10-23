@@ -38,7 +38,7 @@ func TestRuntime1(t *testing.T) {
 
 func TestRuntime2(t *testing.T) {
 	println("TestRuntime2:")
-	ast, errs := kuuhaku_parser.Parse("E{C D C = $0 $1 \"\\n\" $2} C{<[A-Za-z0-9]+>} D{<\\.>}");
+	ast, errs := kuuhaku_parser.Parse("SEARCH_MODE E{C D C = $0 $1 \"\\n\" $2} C{<[A-Za-z0-9]+>} D{<\\.>}");
 	if len(errs) != 0 {
 		println("Expected parser errors length to be 0")
 		helper.DisplayAllErrors(errs)
@@ -50,7 +50,7 @@ func TestRuntime2(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	strRes, err := Format("test.Hello", &res)
+	strRes, err := Format("test.Hello test2.Hello3", &res)
 
 	if err != nil {
 		println("Expected runtime errors length to be 0, got " + strconv.Itoa(len(errs)))
@@ -58,10 +58,8 @@ func TestRuntime2(t *testing.T) {
 		t.Fatal()
 	}
 
-	/*if strRes != "test2.\nHello3" {
-		println("Expected the string to be \"test.\nHello test2.\nHello3\", got " + strRes)
+	if strRes != "test.\nHello test2.\nHello3" {
+		println("Expected the string to be \"test.\nHello test2.\nHello3\", got \"" + strRes + "\"")
 		t.Fatal()
-	}*/
-	println("----\n" + strRes)
-	t.Fatal()
+	}
 }
