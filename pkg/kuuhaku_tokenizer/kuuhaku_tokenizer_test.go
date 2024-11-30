@@ -208,7 +208,7 @@ func TestStringLiteralEscapes(t *testing.T) {
 }
 
 func TestStringLiteralUnterminated(t *testing.T) {
-	tokenizer := Init("\"hello\ntest'test\n'");
+	tokenizer := Init("\"hello\ntest'test\n'")
 
 	token, err := tokenizer.Peek()
 	var tokenizeError *TokenizeError
@@ -285,9 +285,9 @@ func TestRegexLiteralEscapes(t *testing.T) {
 }
 
 func TestRegexLiteralUnterminated(t *testing.T) {
-	tokenizer := Init("<hello\ntest<test\n>");
+	tokenizer := Init("<hello\ntest<test\n>")
 	token, err := tokenizer.Peek()
-	var tokenizeError *TokenizeError 
+	var tokenizeError *TokenizeError
 	if errors.As(err, &tokenizeError) {
 		if tokenizeError.Type != REGEX_LITERAL_UNTERMINATED {
 			println("Expected RegexLiteralUnterminatedError")
@@ -344,7 +344,7 @@ func TestCaptureGroup(t *testing.T) {
 }
 
 func TestIllegalCaptureGroup(t *testing.T) {
-	tokenizer := Init("$hello$34test");
+	tokenizer := Init("$hello$34test")
 	token, err := tokenizer.Peek()
 	var tokenizeError *TokenizeError
 	if errors.As(err, &tokenizeError) {
@@ -371,7 +371,7 @@ func TestIllegalCaptureGroup(t *testing.T) {
 }
 
 func TestSigns(t *testing.T) {
-	tokenizer := Init("{}{{==test")
+	tokenizer := Init("{}{{==test(),,(")
 	token, err := tokenizer.Peek()
 	helper.Check(err)
 	if token.Content != "{" || token.Type != OPENING_CURLY_BRACKET {
@@ -412,6 +412,36 @@ func TestSigns(t *testing.T) {
 	helper.Check(err)
 	if token.Content != "test" || token.Type != IDENTIFIER {
 		println("Exptected test, got " + token.Content)
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "(" || token.Type != OPENING_BRACKET {
+		println("Exptected (, got " + token.Content)
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != ")" || token.Type != CLOSING_BRACKET {
+		println("Exptected ), got " + token.Content)
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "," || token.Type != COMMA {
+		println("Exptected ',', got " + token.Content)
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "," || token.Type != COMMA {
+		println("Exptected ',', got " + token.Content)
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "(" || token.Type != OPENING_BRACKET {
+		println("Exptected (, got " + token.Content)
 		t.Fail()
 	}
 }
