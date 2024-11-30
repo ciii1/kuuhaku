@@ -16,9 +16,9 @@ const (
 )
 
 type ParseStackElement struct {
-	Type ParseStackElementType
+	Type   ParseStackElementType
 	String string
-	State int
+	State  int
 }
 
 type RuntimeErrorType int
@@ -29,23 +29,24 @@ const (
 )
 
 type RuntimeError struct {
-	Position kuuhaku_tokenizer.Position	
-	Message string
-	Type RuntimeErrorType
+	Position kuuhaku_tokenizer.Position
+	Message  string
+	Type     RuntimeErrorType
 }
+
 func (e RuntimeError) Error() string {
 	return fmt.Sprintf("Runtime error (%d, %d): %s", e.Position.Line, e.Position.Column, e.Message)
 }
 
 type RuntimeSyntaxError struct {
-	Position kuuhaku_tokenizer.Position	
-	Message string
+	Position kuuhaku_tokenizer.Position
+	Message  string
 	Expected *[]string
 }
+
 func (e RuntimeSyntaxError) Error() string {
 	return fmt.Sprintf("Syntax formatting error (%d, %d): %s", e.Position.Line, e.Position.Column, e.Message)
 }
-
 
 func ErrSyntaxError(position kuuhaku_tokenizer.Position, expected *[]string) *RuntimeSyntaxError {
 	expectedCombined := ""
@@ -53,34 +54,34 @@ func ErrSyntaxError(position kuuhaku_tokenizer.Position, expected *[]string) *Ru
 		expectedCombined += "\n\t" + expectedE
 	}
 
-	return &RuntimeSyntaxError {
-		Message: "Syntax is invalid. Expected one of the following:" + expectedCombined,
+	return &RuntimeSyntaxError{
+		Message:  "Syntax is invalid. Expected one of the following:" + expectedCombined,
 		Expected: expected,
 		Position: position,
 	}
 }
 
 func ErrExpectedEOFError(position kuuhaku_tokenizer.Position) *RuntimeSyntaxError {
-	return &RuntimeSyntaxError {
-		Message: "Syntax is invalid. Expected EOF.",
+	return &RuntimeSyntaxError{
+		Message:  "Syntax is invalid. Expected EOF.",
 		Position: position,
 		Expected: &[]string{"<end>"}, //TODO: make a struct for the expected[]
 	}
 }
 
 func ErrParseStackIsNotEmpty(position kuuhaku_tokenizer.Position) *RuntimeError {
-	return &RuntimeError {
-		Message: "Parse stack is not empty at the end of parsing.",
+	return &RuntimeError{
+		Message:  "Parse stack is not empty at the end of parsing.",
 		Position: position,
-		Type:PARSE_STACK_IS_NOT_EMPTY,
+		Type:     PARSE_STACK_IS_NOT_EMPTY,
 	}
 }
 
 func ErrReduceRuleIsNotMatching(position kuuhaku_tokenizer.Position) *RuntimeError {
-	return &RuntimeError {
-		Message: "The reduce rule on the parse table doesn't match the rule on the parse stack",
+	return &RuntimeError{
+		Message:  "The reduce rule on the parse table doesn't match the rule on the parse stack",
 		Position: position,
-		Type:REDUCE_RULE_IS_NOT_MATCHING,
+		Type:     REDUCE_RULE_IS_NOT_MATCHING,
 	}
 }
 
@@ -99,7 +100,7 @@ func Format(input string, format *kuuhaku_analyzer.AnalyzerResult) (string, erro
 		isThereSuccess := false
 		//TODO: Investigate. I'm pretty sure we can have only one parse table even if we have multiple start symbols
 		//For example, by adding one start symbol as the "unifier"
-		for _, parseTable := range format.ParseTables { 
+		for _, parseTable := range format.ParseTables {
 			res, resPos, err := runParseTable(input, currPos, &parseTable)
 			if err == nil {
 				isThereSuccess = true
@@ -124,18 +125,25 @@ func Format(input string, format *kuuhaku_analyzer.AnalyzerResult) (string, erro
 }
 
 func addToPositionFromSlicedString(prevPos kuuhaku_tokenizer.Position, sliced string) kuuhaku_tokenizer.Position {
-	raw := prevPos.Raw + len(sliced)	
-	
+	raw := prevPos.Raw + len(sliced)
+
 	col := prevPos.Column
 	colIfContainsNewLine := 1
 
 	i := len(sliced) - 1
-	for i >= 0 && sliced[i] != '\n' {
+	for i >= 0 {
+		if sliced[i] != '\n' {
+			break
+		}
 		col++
 		colIfContainsNewLine++
 		i--
 	}
-	if sliced[i+1] == '\n' {
+
+	//i is always -1 if a \n wasn't found. This is because the condition i >= 0 will not be satisfied untill
+	//i == -1, while sliced[i] != '\n' will only be satisfied if i > -1
+
+	if i >= 0 {
 		col = colIfContainsNewLine
 	}
 
@@ -146,10 +154,10 @@ func addToPositionFromSlicedString(prevPos kuuhaku_tokenizer.Position, sliced st
 		}
 	}
 
-	return kuuhaku_tokenizer.Position {
-		Raw: raw,
+	return kuuhaku_tokenizer.Position{
+		Raw:    raw,
 		Column: col,
-		Line: line,
+		Line:   line,
 	}
 }
 
@@ -197,28 +205,28 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 			currActionCell := currRow.ActionTable[lookaheadRegex]
 			if currActionCell.Action == kuuhaku_analyzer.SHIFT {
 				parseStack = append(parseStack, ParseStackElement{
-					Type: PARSE_STACK_ELEMENT_TYPE_TERMINAL,
+					Type:   PARSE_STACK_ELEMENT_TYPE_TERMINAL,
 					String: lookahead,
-					State: currState,
+					State:  currState,
 				})
 				currState = currActionCell.ShiftState
 				lookaheadFound = false
 			} else if currActionCell.Action == kuuhaku_analyzer.REDUCE {
 				var err error
 				//println(lookahead)
-				currState, err = applyRule(parseTable, currActionCell.ReduceRule, &parseStack, pos, false)	
+				currState, err = applyRule(parseTable, currActionCell.ReduceRule, &parseStack, pos, false)
 				if err != nil {
 					return "", pos, err
 				}
 			}
-		 } else {
+		} else {
 			if currRow.EndReduceRule != nil {
 				var err error
 				if currRow.EndReduceRule.Action == kuuhaku_analyzer.ACCEPT {
-					currState, err = applyRule(parseTable , currRow.EndReduceRule.ReduceRule, &parseStack, pos, true)	
+					currState, err = applyRule(parseTable, currRow.EndReduceRule.ReduceRule, &parseStack, pos, true)
 					break
 				} else if currRow.EndReduceRule.Action == kuuhaku_analyzer.REDUCE {
-					currState, err = applyRule(parseTable , currRow.EndReduceRule.ReduceRule, &parseStack, pos, false)	
+					currState, err = applyRule(parseTable, currRow.EndReduceRule.ReduceRule, &parseStack, pos, false)
 				}
 				if err != nil {
 					return "", pos, err
@@ -227,7 +235,7 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 				//printParseStack(&parseStack)
 				return "", pos, ErrSyntaxError(pos, &expected)
 			}
-		 }
+		}
 	}
 	if len(parseStack) != 1 {
 		return "", pos, ErrParseStackIsNotEmpty(pos)
@@ -257,8 +265,8 @@ func applyRule(parseTable *kuuhaku_analyzer.ParseTable, rule *kuuhaku_parser.Rul
 	targetStack := (*parseStack)[len(*parseStack)-ruleLength:]
 	*parseStack = (*parseStack)[:len(*parseStack)-ruleLength]
 
-	reducedString := ""	
-	
+	reducedString := ""
+
 	if len(rule.ReplaceRules) == 0 {
 		for _, targetElement := range targetStack {
 			reducedString += targetElement.String
@@ -306,10 +314,10 @@ func applyRule(parseTable *kuuhaku_analyzer.ParseTable, rule *kuuhaku_parser.Rul
 		nextState = 0
 	}
 
-	*parseStack = append(*parseStack, ParseStackElement {
-		Type: PARSE_STACK_ELEMENT_TYPE_REDUCED,
+	*parseStack = append(*parseStack, ParseStackElement{
+		Type:   PARSE_STACK_ELEMENT_TYPE_REDUCED,
 		String: reducedString,
-		State: nextState,
+		State:  nextState,
 	})
 
 	return nextState, nil
