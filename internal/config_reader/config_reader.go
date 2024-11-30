@@ -35,7 +35,7 @@ func ReadFormat(extension string) (*kuuhaku_analyzer.AnalyzerResult, []error) {
 		return nil, []error{ErrUnrecognizedExtension}
 	}
 
-	formatGrammar, err := os.ReadFile(formatFilePath) 
+	formatGrammar, err := os.ReadFile(formatFilePath)
 	helper.Check(err)
 	fmt.Println(string(formatGrammar))
 	ast, errs := kuuhaku_parser.Parse(string(formatGrammar))

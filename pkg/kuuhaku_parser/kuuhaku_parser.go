@@ -2,8 +2,8 @@ package kuuhaku_parser
 
 import (
 	"fmt"
-	"strconv"
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_tokenizer"
+	"strconv"
 )
 
 type ParseErrorType int
@@ -21,9 +21,9 @@ const (
 )
 
 type ParseError struct {
-	Position kuuhaku_tokenizer.Position	
-	Message string
-	Type ParseErrorType
+	Position kuuhaku_tokenizer.Position
+	Message  string
+	Type     ParseErrorType
 }
 
 func (e ParseError) Error() string {
@@ -31,80 +31,80 @@ func (e ParseError) Error() string {
 }
 
 func ErrLenArgumentInvalid(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
-	return &ParseError {
-		Message: "Len argument is invalid",
+	return &ParseError{
+		Message:  "Len argument is invalid",
 		Position: tokenizer.PrevPosition,
-		Type: LEN_ARGUMENT_INVALID,
+		Type:     LEN_ARGUMENT_INVALID,
 	}
 }
 
 func ErrMixedTypeMatchRule(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
-	return &ParseError {
-		Message: "Mixing regex literals and variables inside one rule is not allowed",
+	return &ParseError{
+		Message:  "Mixing regex literals and variables inside one rule is not allowed",
 		Position: tokenizer.PrevPosition,
-		Type: MIXED_TYPE_MATCH_RULE,
+		Type:     MIXED_TYPE_MATCH_RULE,
 	}
 }
 
 func ErrUnexpectedLen(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
-	return &ParseError {
-		Message: "Usage of len here is invalid",
+	return &ParseError{
+		Message:  "Usage of len here is invalid",
 		Position: tokenizer.PrevPosition,
-		Type: UNEXPECTED_LEN,
+		Type:     UNEXPECTED_LEN,
 	}
 }
 
 func ErrExpectedOpeningCurlyBracket(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
-	return &ParseError {
-		Message: "Expected an opening curly bracket",
+	return &ParseError{
+		Message:  "Expected an opening curly bracket",
 		Position: tokenizer.PrevPosition,
-		Type: EXPECTED_OPENING_CURLY_BRACKET,
+		Type:     EXPECTED_OPENING_CURLY_BRACKET,
 	}
 }
 
 func ErrExpectedClosingCurlyBracket(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
-	return &ParseError {
-		Message: "Expected a closing curly bracket",
+	return &ParseError{
+		Message:  "Expected a closing curly bracket",
 		Position: tokenizer.PrevPosition,
-		Type: EXPECTED_CLOSING_CURLY_BRACKET,
+		Type:     EXPECTED_CLOSING_CURLY_BRACKET,
 	}
 }
 
 func ErrExpectedEqualSign(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
-	return &ParseError {
-		Message: "Expected equal sign",
+	return &ParseError{
+		Message:  "Expected equal sign",
 		Position: tokenizer.PrevPosition,
-		Type: EXPECTED_EQUAL_SIGN,
+		Type:     EXPECTED_EQUAL_SIGN,
 	}
 }
 
 func ErrExpectedMatchRules(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
-	return &ParseError {
-		Message: "Expected match rules",
+	return &ParseError{
+		Message:  "Expected match rules",
 		Position: tokenizer.PrevPosition,
-		Type: EXPECTED_MATCH_RULE,
+		Type:     EXPECTED_MATCH_RULE,
 	}
 }
 
 func ErrExpectedReplaceRules(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
-	return &ParseError {
-		Message: "Expected replace rules",
+	return &ParseError{
+		Message:  "Expected replace rules",
 		Position: tokenizer.PrevPosition,
-		Type: EXPECTED_REPLACE_RULE,
+		Type:     EXPECTED_REPLACE_RULE,
 	}
 }
 
 func ErrExpectedRule(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
-	return &ParseError {
-		Message: "Expected a rule definition",
+	return &ParseError{
+		Message:  "Expected a rule definition",
 		Position: tokenizer.PrevPosition,
-		Type: EXPECTED_RULE,
+		Type:     EXPECTED_RULE,
 	}
 }
 
 type Parser struct {
 	tokenizer kuuhaku_tokenizer.Tokenizer
-	Errors []error
+	Errors    []error
 }
 
 func Parse(input string) (Ast, []error) {
@@ -114,16 +114,16 @@ func Parse(input string) (Ast, []error) {
 }
 
 func initParser(input string) Parser {
-	return Parser {
+	return Parser{
 		tokenizer: kuuhaku_tokenizer.Init(input),
-		Errors: []error{},
+		Errors:    []error{},
 	}
 }
 
 func (parser *Parser) consumeInput() *Ast {
-	output := Ast {
-		Rules: make(map[string][]*Rule),
-		Position: parser.tokenizer.Position,
+	output := Ast{
+		Rules:        make(map[string][]*Rule),
+		Position:     parser.tokenizer.Position,
 		IsSearchMode: false,
 	}
 
@@ -173,13 +173,13 @@ func (parser *Parser) consumeSearchMode() bool {
 	}
 	if token.Type == kuuhaku_tokenizer.SEARCH_MODE_KEYWORD {
 		parser.tokenizer.Next()
-		return true	
+		return true
 	} else {
 		return false
 	}
 }
 
-func (parser *Parser) consumeRule() *Rule {	
+func (parser *Parser) consumeRule() *Rule {
 	position := parser.tokenizer.Position
 	token, err := parser.tokenizer.Peek()
 	if err != nil {
@@ -189,24 +189,24 @@ func (parser *Parser) consumeRule() *Rule {
 	}
 	var name string
 	if token.Type == kuuhaku_tokenizer.IDENTIFIER {
-		name = token.Content	
+		name = token.Content
 	} else {
 		return nil
 	}
-		
+
 	token, err = parser.tokenizer.Next()
 	if err != nil {
 		parser.Errors = append(parser.Errors, err)
 		parser.tokenizer.Next()
-		return &Rule {
-			Name: name,	
+		return &Rule{
+			Name:     name,
 			Position: position,
 		}
 	}
 	if token.Type != kuuhaku_tokenizer.OPENING_CURLY_BRACKET {
 		parser.Errors = append(parser.Errors, ErrExpectedOpeningCurlyBracket(&parser.tokenizer))
-		return &Rule {
-			Name: name,	
+		return &Rule{
+			Name:     name,
 			Position: position,
 		}
 	}
@@ -216,8 +216,8 @@ func (parser *Parser) consumeRule() *Rule {
 	if matchRules == nil {
 		parser.Errors = append(parser.Errors, ErrExpectedMatchRules(&parser.tokenizer))
 		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
-		return &Rule {
-			Name: name,	
+		return &Rule{
+			Name:     name,
 			Position: position,
 		}
 	}
@@ -225,27 +225,27 @@ func (parser *Parser) consumeRule() *Rule {
 	token, err = parser.tokenizer.Peek()
 	if err != nil {
 		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
-		return &Rule {
-			Name: name,	
+		return &Rule{
+			Name:       name,
 			MatchRules: *matchRules,
-			Position: position,
+			Position:   position,
 		}
 	}
 	if token.Type == kuuhaku_tokenizer.CLOSING_CURLY_BRACKET {
 		parser.tokenizer.Next()
-		return &Rule {
-			Name: name,	
+		return &Rule{
+			Name:       name,
 			MatchRules: *matchRules,
-			Position: position,
+			Position:   position,
 		}
 	}
 	if token.Type != kuuhaku_tokenizer.EQUAL_SIGN {
 		parser.Errors = append(parser.Errors, ErrExpectedEqualSign(&parser.tokenizer))
 		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
-		return &Rule {
-			Name: name,	
+		return &Rule{
+			Name:       name,
 			MatchRules: *matchRules,
-			Position: position,
+			Position:   position,
 		}
 	}
 	parser.tokenizer.Next()
@@ -254,40 +254,40 @@ func (parser *Parser) consumeRule() *Rule {
 	if replaceRules == nil {
 		parser.Errors = append(parser.Errors, ErrExpectedReplaceRules(&parser.tokenizer))
 		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
-		return &Rule {
-			Name: name,	
+		return &Rule{
+			Name:       name,
 			MatchRules: *matchRules,
-			Position: position,
+			Position:   position,
 		}
 	}
 
 	token, err = parser.tokenizer.Peek()
 	if err != nil {
 		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
-		return &Rule {
-			Name: name,	
-			MatchRules: *matchRules,
+		return &Rule{
+			Name:         name,
+			MatchRules:   *matchRules,
 			ReplaceRules: *replaceRules,
-			Position: position,
+			Position:     position,
 		}
 	}
 	if token.Type != kuuhaku_tokenizer.CLOSING_CURLY_BRACKET {
 		parser.Errors = append(parser.Errors, ErrExpectedClosingCurlyBracket(&parser.tokenizer))
 		parser.panicTillToken(kuuhaku_tokenizer.CLOSING_CURLY_BRACKET)
-		return &Rule {
-			Name: name,	
-			MatchRules: *matchRules,
+		return &Rule{
+			Name:         name,
+			MatchRules:   *matchRules,
 			ReplaceRules: *replaceRules,
-			Position: position,
+			Position:     position,
 		}
 	}
 	parser.tokenizer.Next()
 
-	return &Rule {
-		Name: name,
-		MatchRules: *matchRules,
+	return &Rule{
+		Name:         name,
+		MatchRules:   *matchRules,
 		ReplaceRules: *replaceRules,
-		Position: position,
+		Position:     position,
 	}
 }
 
@@ -314,7 +314,7 @@ func (parser *Parser) consumeReplaceRules() *[]ReplaceRule {
 	}
 
 	for ok {
-		ok = parser.consumeToReplaceRuleArray(&output)	
+		ok = parser.consumeToReplaceRuleArray(&output)
 	}
 
 	return &output
@@ -327,12 +327,12 @@ func (parser *Parser) consumeToReplaceRuleArray(replaceRuleArray *[]ReplaceRule)
 		if lenParsed != nil {
 			lenParsed.FirstArgument = *stringLiteral
 			*replaceRuleArray = append(*replaceRuleArray, *lenParsed)
-			return true		
+			return true
 		} else {
 			*replaceRuleArray = append(*replaceRuleArray, *stringLiteral)
-			return true		
+			return true
 		}
-	}	
+	}
 
 	captureGroup := parser.consumeCaptureGroup()
 	if captureGroup != nil {
@@ -366,10 +366,10 @@ func (parser *Parser) consumeStringLiteral() *StringLiteral {
 	}
 	if token.Type == kuuhaku_tokenizer.STRING_LITERAL {
 		parser.tokenizer.Next()
-		return &StringLiteral {
-			String: token.Content,
+		return &StringLiteral{
+			String:   token.Content,
 			Position: token.Position,
-		};
+		}
 	} else {
 		return nil
 	}
@@ -389,10 +389,10 @@ func (parser *Parser) consumeCaptureGroup() *CaptureGroup {
 			parser.Errors = append(parser.Errors, err)
 			return nil
 		}
-		return &CaptureGroup {
-			Number: number,
+		return &CaptureGroup{
+			Number:   number,
 			Position: token.Position,
-		};
+		}
 	} else {
 		return nil
 	}
@@ -412,15 +412,15 @@ func (parser *Parser) consumeLen() *Len {
 		if !ok {
 			parser.Errors = append(parser.Errors, ErrLenArgumentInvalid(&parser.tokenizer))
 			parser.tokenizer.Next()
-			return &Len {
+			return &Len{
 				SecondArgument: nil,
-				Position: token.Position,
+				Position:       token.Position,
 			}
 		}
-		return &Len {
+		return &Len{
 			SecondArgument: argument,
-			Position: token.Position,
-		};
+			Position:       token.Position,
+		}
 	} else {
 		return nil
 	}
@@ -441,9 +441,9 @@ func (parser *Parser) consumeStringStmt(stringStmt *StringStmt) bool {
 }
 
 func (parser *Parser) consumeMatchRules() *[]MatchRule {
-	var output []MatchRule;
+	var output []MatchRule
 	doesRegexLiteralExist := false
-	
+
 	ok, isRegexLiteral := parser.consumeToMatchRuleArray(&output)
 	if !ok {
 		return nil
@@ -490,10 +490,10 @@ func (parser *Parser) consumeIdentifier() *Identifer {
 	}
 	if token.Type == kuuhaku_tokenizer.IDENTIFIER {
 		parser.tokenizer.Next()
-		return &Identifer {
-			Name: token.Content,
+		return &Identifer{
+			Name:     token.Content,
 			Position: token.Position,
-		};
+		}
 	} else {
 		return nil
 	}
@@ -508,10 +508,10 @@ func (parser *Parser) consumeRegexLiteral() *RegexLiteral {
 	}
 	if token.Type == kuuhaku_tokenizer.REGEX_LITERAL {
 		parser.tokenizer.Next()
-		return &RegexLiteral {
+		return &RegexLiteral{
 			RegexString: token.Content,
-			Position: token.Position,
-		};
+			Position:    token.Position,
+		}
 	} else {
 		return nil
 	}
