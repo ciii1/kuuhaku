@@ -8,16 +8,16 @@ import (
 type TokenizeErrorType int
 
 const (
- 	PATTERN_UNRECOGNIZED = iota
- 	STRING_LITERAL_UNTERMINATED
- 	REGEX_LITERAL_UNTERMINATED
+	PATTERN_UNRECOGNIZED = iota
+	STRING_LITERAL_UNTERMINATED
+	REGEX_LITERAL_UNTERMINATED
 	ILLEGAL_CAPTURE_GROUP
 )
 
 type TokenizeError struct {
-	Position Position	
-	Message string
-	Type TokenizeErrorType
+	Position Position
+	Message  string
+	Type     TokenizeErrorType
 }
 
 func (e TokenizeError) Error() string {
@@ -25,31 +25,31 @@ func (e TokenizeError) Error() string {
 }
 
 func ErrPatternUnrecognized(tokenizer Tokenizer) *TokenizeError {
-	return &TokenizeError {
-		Message: "Pattern is unrecognized",
+	return &TokenizeError{
+		Message:  "Pattern is unrecognized",
 		Position: tokenizer.Position,
-		Type: PATTERN_UNRECOGNIZED,
+		Type:     PATTERN_UNRECOGNIZED,
 	}
 }
 func ErrStringLiteralUnterminated(tokenizer Tokenizer) *TokenizeError {
-	return &TokenizeError {
-		Message: "String literal is not terminated",
+	return &TokenizeError{
+		Message:  "String literal is not terminated",
 		Position: tokenizer.Position,
-		Type: STRING_LITERAL_UNTERMINATED,
+		Type:     STRING_LITERAL_UNTERMINATED,
 	}
 }
 func ErrRegexLiteralUnterminated(tokenizer Tokenizer) *TokenizeError {
-	return &TokenizeError {
-		Message: "Regex literal is not terminated",
+	return &TokenizeError{
+		Message:  "Regex literal is not terminated",
 		Position: tokenizer.Position,
-		Type: REGEX_LITERAL_UNTERMINATED,
+		Type:     REGEX_LITERAL_UNTERMINATED,
 	}
 }
 func ErrIllegalCaptureGroup(tokenizer Tokenizer) *TokenizeError {
-	return &TokenizeError {
-		Message: "Illegal capture group",
+	return &TokenizeError{
+		Message:  "Illegal capture group",
 		Position: tokenizer.Position,
-		Type: ILLEGAL_CAPTURE_GROUP,
+		Type:     ILLEGAL_CAPTURE_GROUP,
 	}
 }
 
@@ -62,6 +62,9 @@ const (
 	CAPTURE_GROUP
 	OPENING_CURLY_BRACKET
 	CLOSING_CURLY_BRACKET
+	OPENING_BRACKET
+	CLOSING_BRACKET
+	COMMA
 	EQUAL_SIGN
 	LEN_KEYWORD
 	SEARCH_MODE_KEYWORD
@@ -69,38 +72,38 @@ const (
 )
 
 type Token struct {
-	Type TokenType
-	Content string
+	Type     TokenType
+	Content  string
 	Position Position
 }
 
 type Position struct {
 	Column int
-	Line int
-	Raw int
+	Line   int
+	Raw    int
 }
 
 type Tokenizer struct {
-	Position Position
+	Position     Position
 	PrevPosition Position
-	currToken *Token
-	currError error
-	Input string
+	currToken    *Token
+	currError    error
+	Input        string
 }
 
 func Init(input string) Tokenizer {
-	tokenizer := Tokenizer {
-		Position: Position {
+	tokenizer := Tokenizer{
+		Position: Position{
 			Column: 1,
-			Line: 1,
-			Raw: 0,
+			Line:   1,
+			Raw:    0,
 		},
 		currToken: nil,
 		currError: nil,
-		Input: input,
+		Input:     input,
 	}
 	tokenizer.Next() //Peek() would look at currToken so we need to initialize it first
-	return tokenizer;
+	return tokenizer
 }
 
 func (tokenizer *Tokenizer) Peek() (*Token, error) {
@@ -113,13 +116,13 @@ func (tokenizer *Tokenizer) Next() (*Token, error) {
 		isCurrentTrash = tokenizer.consumeNewline() || tokenizer.consumeWhitespace() || tokenizer.consumeComment()
 	}
 	if tokenizer.peekChar() == '\003' {
-		return tokenizer.returnToken(&Token {
-			Position: Position {
-				Raw: tokenizer.Position.Raw,
+		return tokenizer.returnToken(&Token{
+			Position: Position{
+				Raw:    tokenizer.Position.Raw,
 				Column: tokenizer.Position.Column,
-				Line: tokenizer.Position.Line,
+				Line:   tokenizer.Position.Line,
 			},
-			Type: EOF,
+			Type:    EOF,
 			Content: "\003",
 		}, nil)
 	}
@@ -140,6 +143,21 @@ func (tokenizer *Tokenizer) Next() (*Token, error) {
 	}
 
 	token = tokenizer.consumeEqualSign()
+	if token != nil {
+		return tokenizer.returnToken(token, nil)
+	}
+
+	token = tokenizer.consumeComma()
+	if token != nil {
+		return tokenizer.returnToken(token, nil)
+	}
+
+	token = tokenizer.consumeClosingBracket()
+	if token != nil {
+		return tokenizer.returnToken(token, nil)
+	}
+
+	token = tokenizer.consumeOpeningBracket()
 	if token != nil {
 		return tokenizer.returnToken(token, nil)
 	}
@@ -190,13 +208,13 @@ func (tokenizer *Tokenizer) peekChar() byte {
 		return '\003' //ETX (end of text) https://wikipedia.org/wiki/ASCII
 	}
 
-	return tokenizer.Input[tokenizer.Position.Raw];
+	return tokenizer.Input[tokenizer.Position.Raw]
 }
 
 func (tokenizer *Tokenizer) consumeNewline() bool {
 	currChar := tokenizer.peekChar()
 	if currChar == '\n' {
-		tokenizer.nextChar()	
+		tokenizer.nextChar()
 		tokenizer.Position.Column = 1
 		tokenizer.Position.Line += 1
 		return true
@@ -239,15 +257,15 @@ func (tokenizer *Tokenizer) consumeOpeningCurlyBracket() *Token {
 
 	tokenizer.nextChar()
 
-	return &Token {
-		Position: Position {
-			Raw: positionRaw,
+	return &Token{
+		Position: Position{
+			Raw:    positionRaw,
 			Column: column,
-			Line: line,
+			Line:   line,
 		},
-		Type: OPENING_CURLY_BRACKET,
+		Type:    OPENING_CURLY_BRACKET,
 		Content: "{",
-	}	
+	}
 }
 
 func (tokenizer *Tokenizer) consumeClosingCurlyBracket() *Token {
@@ -262,15 +280,15 @@ func (tokenizer *Tokenizer) consumeClosingCurlyBracket() *Token {
 
 	tokenizer.nextChar()
 
-	return &Token {
-		Position: Position {
-			Raw: positionRaw,
+	return &Token{
+		Position: Position{
+			Raw:    positionRaw,
 			Column: column,
-			Line: line,
+			Line:   line,
 		},
-		Type: CLOSING_CURLY_BRACKET,
+		Type:    CLOSING_CURLY_BRACKET,
 		Content: "}",
-	}	
+	}
 }
 
 func (tokenizer *Tokenizer) consumeEqualSign() *Token {
@@ -285,15 +303,84 @@ func (tokenizer *Tokenizer) consumeEqualSign() *Token {
 
 	tokenizer.nextChar()
 
-	return &Token {
-		Position: Position {
-			Raw: positionRaw,
+	return &Token{
+		Position: Position{
+			Raw:    positionRaw,
 			Column: column,
-			Line: line,
+			Line:   line,
 		},
-		Type: EQUAL_SIGN,
+		Type:    EQUAL_SIGN,
 		Content: "=",
-	}	
+	}
+}
+
+func (tokenizer *Tokenizer) consumeOpeningBracket() *Token {
+	positionRaw := tokenizer.Position.Raw
+	column := tokenizer.Position.Column
+	line := tokenizer.Position.Line
+
+	currChar := tokenizer.peekChar()
+	if currChar != '(' {
+		return nil
+	}
+
+	tokenizer.nextChar()
+
+	return &Token{
+		Position: Position{
+			Raw:    positionRaw,
+			Column: column,
+			Line:   line,
+		},
+		Type:    OPENING_BRACKET,
+		Content: "(",
+	}
+}
+
+func (tokenizer *Tokenizer) consumeClosingBracket() *Token {
+	positionRaw := tokenizer.Position.Raw
+	column := tokenizer.Position.Column
+	line := tokenizer.Position.Line
+
+	currChar := tokenizer.peekChar()
+	if currChar != ')' {
+		return nil
+	}
+
+	tokenizer.nextChar()
+
+	return &Token{
+		Position: Position{
+			Raw:    positionRaw,
+			Column: column,
+			Line:   line,
+		},
+		Type:    CLOSING_BRACKET,
+		Content: ")",
+	}
+}
+
+func (tokenizer *Tokenizer) consumeComma() *Token {
+	positionRaw := tokenizer.Position.Raw
+	column := tokenizer.Position.Column
+	line := tokenizer.Position.Line
+
+	currChar := tokenizer.peekChar()
+	if currChar != ',' {
+		return nil
+	}
+
+	tokenizer.nextChar()
+
+	return &Token{
+		Position: Position{
+			Raw:    positionRaw,
+			Column: column,
+			Line:   line,
+		},
+		Type:    COMMA,
+		Content: ",",
+	}
 }
 
 func (tokenizer *Tokenizer) consumeStringLiteral() (*Token, error) {
@@ -314,7 +401,7 @@ func (tokenizer *Tokenizer) consumeStringLiteral() (*Token, error) {
 		content += string(currChar)
 		prevPrevChar = prevChar
 		prevChar = tokenizer.peekChar()
-		currChar = tokenizer.nextChar()	
+		currChar = tokenizer.nextChar()
 		if currChar == '\n' || currChar == '\003' {
 			return nil, ErrStringLiteralUnterminated(*tokenizer)
 		}
@@ -326,13 +413,13 @@ func (tokenizer *Tokenizer) consumeStringLiteral() (*Token, error) {
 		return nil, err
 	}
 
-	return &Token {
-		Position: Position {
-			Raw: positionRaw,
+	return &Token{
+		Position: Position{
+			Raw:    positionRaw,
 			Column: column,
-			Line: line,
+			Line:   line,
 		},
-		Type: STRING_LITERAL,
+		Type:    STRING_LITERAL,
 		Content: content,
 	}, nil
 }
@@ -358,13 +445,13 @@ func (tokenizer *Tokenizer) consumeCaptureGroup() (*Token, error) {
 		return nil, ErrIllegalCaptureGroup(*tokenizer)
 	}
 
-	return &Token {
-		Position: Position {
-			Raw: positionRaw,
+	return &Token{
+		Position: Position{
+			Raw:    positionRaw,
 			Column: column,
-			Line: line,
+			Line:   line,
 		},
-		Type: CAPTURE_GROUP,
+		Type:    CAPTURE_GROUP,
 		Content: content,
 	}, nil
 }
@@ -386,7 +473,7 @@ func (tokenizer *Tokenizer) consumeRegexLiteral() (*Token, error) {
 	for currChar != '>' || (prevChar == '\\' && prevPrevChar != '\\') {
 		prevPrevChar = prevChar
 		prevChar = tokenizer.peekChar()
-		currChar = tokenizer.nextChar()	
+		currChar = tokenizer.nextChar()
 		if currChar == '>' && prevChar == '\\' && prevPrevChar != '\\' {
 
 		} else {
@@ -398,13 +485,13 @@ func (tokenizer *Tokenizer) consumeRegexLiteral() (*Token, error) {
 	}
 	tokenizer.nextChar()
 
-	return &Token {
-		Position: Position {
-			Raw: positionRaw,
+	return &Token{
+		Position: Position{
+			Raw:    positionRaw,
 			Column: column,
-			Line: line,
+			Line:   line,
 		},
-		Type: REGEX_LITERAL,
+		Type:    REGEX_LITERAL,
 		Content: content,
 	}, nil
 }
@@ -414,7 +501,7 @@ func (tokenizer *Tokenizer) consumeIdentifierOrKeyword() *Token {
 	column := tokenizer.Position.Column
 	line := tokenizer.Position.Line
 
-	currChar := tokenizer.peekChar();
+	currChar := tokenizer.peekChar()
 	if !isRuneIdentifier(currChar) {
 		return nil
 	}
@@ -428,7 +515,7 @@ func (tokenizer *Tokenizer) consumeIdentifierOrKeyword() *Token {
 		isCurrCharBetween_0_9 = isRuneNumber(currChar)
 	}
 
-	var tokenType TokenType	
+	var tokenType TokenType
 	if tokenContent == "len" {
 		tokenType = LEN_KEYWORD
 	} else if tokenContent == "SEARCH_MODE" {
@@ -437,13 +524,13 @@ func (tokenizer *Tokenizer) consumeIdentifierOrKeyword() *Token {
 		tokenType = IDENTIFIER
 	}
 
-	return &Token {
-		Position: Position {
-			Raw: positionRaw,
+	return &Token{
+		Position: Position{
+			Raw:    positionRaw,
 			Column: column,
-			Line: line,
+			Line:   line,
 		},
-		Type: tokenType,
+		Type:    tokenType,
 		Content: tokenContent,
 	}
 }
