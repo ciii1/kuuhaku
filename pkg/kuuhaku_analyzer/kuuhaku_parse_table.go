@@ -11,19 +11,18 @@ type StateTransition struct {
 }
 
 type SymbolGroup struct {
-	Title   SymbolTitle
+	Title SymbolTitle
 	Symbols *[]*Symbol
 }
 
 type Symbol struct {
-	Position   int
-	Title      SymbolTitle
-	Rule       *kuuhaku_parser.Rule
+	Position int
+	Title SymbolTitle
+	Rule *kuuhaku_parser.Rule
 	Lookeahead SymbolTitle
 }
 
 type SymbolTitleType int
-
 const (
 	REGEX_LITERAL_TITLE = iota
 	IDENTIFIER_TITLE
@@ -32,33 +31,33 @@ const (
 
 type SymbolTitle struct {
 	String string
-	Type   SymbolTitleType
+	Type SymbolTitleType
 }
 
 type AnalyzerResult struct {
-	ParseTables  []ParseTable
+	ParseTables []ParseTable
 	IsSearchMode bool
 }
 
 type ParseTable struct {
-	States    []ParseTableState
+	States []ParseTableState
 	Terminals []TerminalList
-	Lhss      []string
+	Lhss []string
 }
 
 type TerminalList struct {
-	Terminal   string
+	Terminal string	
 	Precedence int
-	Regexp     *regexp.Regexp
+	Regexp *regexp.Regexp
 }
 
 type ParseTableState struct {
 	ActionTable map[string]*ActionCell //map[kuuhaku_parser.RegexLiteral.Content]ActionCell
-	GotoTable   map[string]*GotoCell   //map[kuuhaku_parser.Rule.Name]GotoCell
+	GotoTable map[string]*GotoCell //map[kuuhaku_parser.Rule.Name]GotoCell
 
 	//How the parser would read the following field: test all terminals inside action table, if no match
 	//then use EndReduceRule. If it's a nil, then return error
-	EndReduceRule *ActionCell
+	EndReduceRule *ActionCell 
 }
 
 type Action int
@@ -71,12 +70,12 @@ const (
 
 type ActionCell struct {
 	LookaheadTerminal string
-	Action            Action
-	ReduceRule        *kuuhaku_parser.Rule
-	ShiftState        int
+	Action Action
+	ReduceRule *kuuhaku_parser.Rule
+	ShiftState int
 }
 
 type GotoCell struct {
-	Lhs       string
+	Lhs string
 	GotoState int
 }

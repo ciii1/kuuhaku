@@ -2,19 +2,19 @@ package main
 
 import (
 	"flag"
-	"fmt"
+    "os"
+    "fmt"
 	"github.com/ciii1/kuuhaku/internal/formatter"
-	"os"
 )
 
 func main() {
-	flag.Usage = PrintHelp
-	var isRecursive = flag.Bool("recursive", false, "Process files recursively")
+	flag.Usage = PrintHelp;
+	var isRecursive = flag.Bool("recursive", false, "Process files recursively");
 	var tabNum = flag.Int("tab", 0, "Don't format the file but replace indents to tab times the specified integer")
 	var whitespaceNum = flag.Int("whitespace", 0, "Same as -tab but replace with whitespace times the specified integer")
 
-	if len(os.Args) > 1 {
-		flag.Parse()
+	if (len(os.Args) > 1) {
+		flag.Parse();
 		fmt.Println("-recursive=", *isRecursive)
 		fmt.Println("-tab=", *tabNum)
 		fmt.Println("-whitespace=", *whitespaceNum)

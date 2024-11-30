@@ -14,13 +14,13 @@ import (
 )
 
 func TestErrorUndefinedVariable(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest2{identifier}\ntest34{test4}")
+	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest2{identifier}\ntest34{test4}");
 	if len(errs) != 1 {
-		println("Expected parser errors length to be 1")
+		println("Expected parser errors length to be 1")	
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
-	_ = analyzer.analyzeStart()
+	_ = analyzer.analyzeStart()	
 	if len(analyzer.Errors) != 2 {
 		println("Expected analyzer Errors length to be 2")
 		t.Fatal()
@@ -65,13 +65,13 @@ func TestErrorUndefinedVariable(t *testing.T) {
 }
 
 func TestErrorOutOfBoundCaptureGroup(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("identifier{<\\.>=$1}\ntest2{test34 identifier = $5}\ntest34{<test>}")
+	ast, errs := kuuhaku_parser.Parse("identifier{<\\.>=$1}\ntest2{test34 identifier = $5}\ntest34{<test>}");
 	if len(errs) != 0 {
-		println("Expected parser errors length to be 0")
+		println("Expected parser errors length to be 0")	
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
-	_ = analyzer.analyzeStart()
+	_ = analyzer.analyzeStart()	
 	if len(analyzer.Errors) != 2 {
 		println("Expected analyzer Errors length to be 2")
 		t.Fatal()
@@ -93,7 +93,7 @@ func TestErrorOutOfBoundCaptureGroup(t *testing.T) {
 			t.Fail()
 		}
 		if analyzeError.Message != "The capture group exceeds the index of the last element in the match rule which is 1" && analyzeError.Message != "The capture group exceeds the index of the last element in the match rule which is 0" {
-			println("Wrong error message, got :\n\t" + analyzeError.Message)
+			println("Wrong error message, got :\n\t" +  analyzeError.Message)
 			t.Fail()
 		}
 	} else {
@@ -113,7 +113,7 @@ func TestErrorOutOfBoundCaptureGroup(t *testing.T) {
 			t.Fail()
 		}
 		if analyzeError.Message != "The capture group exceeds the index of the last element in the match rule which is 1" && analyzeError.Message != "The capture group exceeds the index of the last element in the match rule which is 0" {
-			println("Wrong error message, got :\n\t" + analyzeError.Message)
+			println("Wrong error message, got :\n\t" +  analyzeError.Message)
 			t.Fail()
 		}
 	} else {
@@ -123,13 +123,13 @@ func TestErrorOutOfBoundCaptureGroup(t *testing.T) {
 }
 
 func TestStartSymbols(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}")
+	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}");
 	if len(errs) != 1 {
-		println("Expected parser errors length to be 1")
+		println("Expected parser errors length to be 1")	
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
-	startSymbols := analyzer.analyzeStart()
+	startSymbols := analyzer.analyzeStart()	
 	if len(analyzer.Errors) != 0 {
 		println("Expected analyzer Errors length to be 0")
 		t.Fatal()
@@ -139,7 +139,7 @@ func TestStartSymbols(t *testing.T) {
 		println("Expected startSymbols length to be 2")
 		t.Fatal()
 	}
-
+	
 	if startSymbols[0] == "identifier" {
 		if startSymbols[1] != "test3" {
 			println("Expected startSymbols[1] to be \"test3\", got" + startSymbols[1])
@@ -157,14 +157,14 @@ func TestStartSymbols(t *testing.T) {
 }
 
 func TestExpandSymbol(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}")
+	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}");
 	if len(errs) != 1 {
-		println("Expected parser errors length to be 1")
+		println("Expected parser errors length to be 1")	
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
 	rules := ast.Rules["identifier"]
-	expandedSymbols := analyzer.expandSymbol(&rules, 0, &[]*Symbol{}, SymbolTitle{Type: EMPTY_TITLE})
+	expandedSymbols := analyzer.expandSymbol(&rules, 0, &[]*Symbol{}, SymbolTitle{Type:EMPTY_TITLE})
 	if len(analyzer.Errors) != 0 {
 		println("Expected analyzer Errors length to be 0")
 		t.Fatal()
@@ -255,14 +255,14 @@ func TestExpandSymbol(t *testing.T) {
 }
 
 func TestExpandSymbol2(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("identifier{<\\.>test}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}")
+	ast, errs := kuuhaku_parser.Parse("identifier{<\\.>test}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}");
 	if len(errs) != 1 {
-		println("Expected parser errors length to be 1")
+		println("Expected parser errors length to be 1")	
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
 	rules := ast.Rules["identifier"]
-	expandedSymbols := analyzer.expandSymbol(&rules, 1, &[]*Symbol{}, SymbolTitle{Type: EMPTY_TITLE})
+	expandedSymbols := analyzer.expandSymbol(&rules, 1, &[]*Symbol{},SymbolTitle{Type:EMPTY_TITLE})
 	if len(analyzer.Errors) != 0 {
 		println("Expected analyzer Errors length to be 0")
 		t.Fatal()
@@ -285,6 +285,7 @@ func TestExpandSymbol2(t *testing.T) {
 		println("Expected expandedSymbols[0].Title.String to be \"test\"")
 		t.Fail()
 	}
+	
 
 	if !reflect.DeepEqual(*firstSymbol.Rule, *ast.Rules["identifier"][0]) {
 		println("The first symbol's rule is not matching")
@@ -296,7 +297,7 @@ func TestExpandSymbol2(t *testing.T) {
 
 	secondSymbol := (*(*expandedSymbols)[1])
 	title2 := secondSymbol.Title
-	if title2.Type != REGEX_LITERAL_TITLE {
+	if title2.Type != REGEX_LITERAL_TITLE{
 		println("Expected expandedSymbols[1].Title to be a regex literal")
 		t.Fail()
 	}
@@ -342,14 +343,14 @@ func TestExpandSymbol2(t *testing.T) {
 }
 
 func TestExpandSymbol3(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("identifier{<\\.>test}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}")
+	ast, errs := kuuhaku_parser.Parse("identifier{<\\.>test}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}");
 	if len(errs) != 1 {
-		println("Expected parser errors length to be 1")
+		println("Expected parser errors length to be 1")	
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
 	rules := ast.Rules["test"]
-	expandedSymbols := analyzer.expandSymbol(&rules, 2, &[]*Symbol{}, SymbolTitle{Type: EMPTY_TITLE})
+	expandedSymbols := analyzer.expandSymbol(&rules, 2, &[]*Symbol{},SymbolTitle{Type:EMPTY_TITLE})
 	if len(analyzer.Errors) != 0 {
 		println("Expected analyzer Errors length to be 0")
 		t.Fatal()
@@ -370,14 +371,14 @@ func TestExpandSymbol3(t *testing.T) {
 }
 
 func TestGroupSymbols(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}")
+	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}");
 	if len(errs) != 1 {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
 	analyzer := initAnalyzer(&ast)
 	rules := ast.Rules["identifier"]
-	expandedSymbols := analyzer.expandSymbol(&rules, 0, &[]*Symbol{}, SymbolTitle{Type: EMPTY_TITLE})
+	expandedSymbols := analyzer.expandSymbol(&rules, 0, &[]*Symbol{},SymbolTitle{Type:EMPTY_TITLE})
 	if len(analyzer.Errors) != 0 {
 		println("Expected analyzer Errors length to be 0")
 		t.Fatal()
@@ -396,18 +397,18 @@ func TestGroupSymbols(t *testing.T) {
 		fmt.Printf("%# v\n", pretty.Formatter(*groupedSymbols))
 		t.Fatal()
 	}
-
+	
 	comparedTitle1 := SymbolTitle{
-		String: "\\.",
-		Type:   REGEX_LITERAL_TITLE,
+		String: "\\.", 
+		Type: REGEX_LITERAL_TITLE,
 	}
 	comparedTitle2 := SymbolTitle{
-		String: "test",
-		Type:   IDENTIFIER_TITLE,
+		String: "test", 
+		Type: IDENTIFIER_TITLE,
 	}
 	var regexLitGroup *SymbolGroup
 	var identifierGroup *SymbolGroup
-	if (*groupedSymbols)[0].Title == comparedTitle1 {
+	if (*groupedSymbols)[0].Title == comparedTitle1 {	
 		if (*groupedSymbols)[1].Title != comparedTitle2 {
 			println("Expected groupedSymbols[1].Title to be \"test\" with the type identifier")
 			fmt.Printf("%# v\n", pretty.Formatter((*groupedSymbols)[1].Title))
@@ -425,7 +426,7 @@ func TestGroupSymbols(t *testing.T) {
 		t.Fatal()
 	}
 
-	firstSymbol := *(*identifierGroup.Symbols)[0]
+	firstSymbol := *(*identifierGroup.Symbols)[0] 
 	title1 := firstSymbol.Title
 	if title1.Type != IDENTIFIER_TITLE {
 		println("Expected expandedSymbols[0].Title to be an identifier")
@@ -444,7 +445,7 @@ func TestGroupSymbols(t *testing.T) {
 		println("Expected expandedSymbols[0].Position to be 0")
 	}
 
-	secondSymbol := *(*regexLitGroup.Symbols)[0]
+	secondSymbol := *(*regexLitGroup.Symbols)[0] 
 	title2 := secondSymbol.Title
 	if title2.Type != REGEX_LITERAL_TITLE {
 		println("Expected expandedSymbols[1].Title to be a regex literal")
@@ -485,7 +486,7 @@ func TestGroupSymbols(t *testing.T) {
 }
 
 func TestBuildParseTableStateTransition(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<hello>}\nidentifier{<\\.>}\ntest3{<\\.>}")
+	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<hello>}\nidentifier{<\\.>}\ntest3{<\\.>}");
 	if len(errs) != 1 {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
@@ -508,15 +509,15 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 	titles := []SymbolTitle{
 		{
 			String: "test",
-			Type:   IDENTIFIER_TITLE,
+			Type: IDENTIFIER_TITLE,
 		},
 		{
 			String: "\\.",
-			Type:   REGEX_LITERAL_TITLE,
+			Type: REGEX_LITERAL_TITLE,
 		},
 		{
 			String: "hello",
-			Type:   REGEX_LITERAL_TITLE,
+			Type: REGEX_LITERAL_TITLE,
 		},
 	}
 
@@ -524,11 +525,11 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 		isExist := false
 		for _, group := range *(*stateTransitions)[0].SymbolGroups {
 			if title == group.Title {
-				isExist = true
+				isExist = true	
 			}
 		}
 		if !isExist {
-			println("Expected the first state transition to contain groups with title \"test\", \"\\.\", and \"hello\"")
+			println("Expected the first state transition to contain groups with title \"test\", \"\\.\", and \"hello\"")	
 			t.Fail()
 		}
 	}
@@ -556,36 +557,36 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 	titles2 := []SymbolTitle{
 		{
 			String: "\\.",
-			Type:   REGEX_LITERAL_TITLE,
+			Type: REGEX_LITERAL_TITLE,
 		},
 		{
 			String: "<end>",
-			Type:   EMPTY_TITLE,
+			Type: EMPTY_TITLE,
 		},
 		{
 			String: "<end>",
-			Type:   EMPTY_TITLE,
+			Type: EMPTY_TITLE,
 		},
 	}
 	for _, title := range titles2 {
 		isExist := false
 		for _, transition := range middleTransitions {
 			if title == (*(*transition).SymbolGroups)[0].Title {
-				isExist = true
+				isExist = true	
 			}
 		}
 		if !isExist {
-			println("Expected the second, third, and fourth state transition to contain groups with title {\"test\", 1}, and two empty titles")
+			println("Expected the second, third, and fourth state transition to contain groups with title {\"test\", 1}, and two empty titles")	
 			t.Fail()
 		}
 	}
 
-	lastSymbol := SymbolTitle{
+	lastSymbol := SymbolTitle {
 		String: "<end>",
-		Type:   EMPTY_TITLE,
+		Type: EMPTY_TITLE,
 	}
 	if (*(*stateTransitions)[4].SymbolGroups)[0].Title != lastSymbol {
-		println("Expected the fifth state transition to contain group with an empty title")
+		println("Expected the fifth state transition to contain group with an empty title")	
 		t.Fail()
 	}
 
@@ -596,7 +597,7 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 }
 
 func TestBuildParseTable(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}")
+	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}");
 	if len(errs) != 1 {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
@@ -628,7 +629,7 @@ func TestBuildParseTable(t *testing.T) {
 		t.Fail()
 	}
 
-	secondRow := analyzer.parseTables[0].States[firstRow.ActionTable["\\."].ShiftState]
+	secondRow := analyzer.parseTables[0].States[firstRow.ActionTable["\\."].ShiftState] 
 	if secondRow.ActionTable["\\."].Action != REDUCE {
 		println("Expected the second state row to have REDUCE on column \"\\.\"")
 		t.Fail()
@@ -646,13 +647,13 @@ func TestBuildParseTable(t *testing.T) {
 		t.Fail()
 	}
 
-	thirdRow := analyzer.parseTables[0].States[firstRow.GotoTable["test"].GotoState]
+	thirdRow := analyzer.parseTables[0].States[firstRow.GotoTable["test"].GotoState] 
 	if thirdRow.ActionTable["\\."].Action != SHIFT {
 		println("Expected the second state row to have SHIFT on column \"\\.\"")
 		t.Fail()
 	}
 
-	fourthRow := analyzer.parseTables[0].States[thirdRow.ActionTable["\\."].ShiftState]
+	fourthRow := analyzer.parseTables[0].States[thirdRow.ActionTable["\\."].ShiftState] 
 	if fourthRow.EndReduceRule.ReduceRule != ast.Rules["identifier"][0] {
 		println("Expected the second state row to have the end reduce rule 1 on column \"\\.\"")
 		t.Fail()
@@ -664,7 +665,7 @@ func TestBuildParseTable(t *testing.T) {
 }
 
 func TestBuildParseTableErrorMultiplePartialReduce(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("E{B <1>} E{<1> B C} B{<1> <2>} B{<2>} C{<2>} C{<1>}")
+	ast, errs := kuuhaku_parser.Parse("E{B <1>} E{<1> B C} B{<1> <2>} B{<2>} C{<2>} C{<1>}");
 	if len(errs) != 3 {
 		println("Expected parser errors length to be 3")
 		t.Fatal()
@@ -672,7 +673,7 @@ func TestBuildParseTableErrorMultiplePartialReduce(t *testing.T) {
 	analyzer := initAnalyzer(&ast)
 	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("E"))
 	analyzer.buildParseTable("E")
-
+	
 	println("TestBuildParseTableErrorMultiplePartialReduce - Errors:")
 	helper.DisplayAllErrors(analyzer.Errors)
 
@@ -683,13 +684,13 @@ func TestBuildParseTableErrorMultiplePartialReduce(t *testing.T) {
 
 	var conflictError *ConflictError
 	if errors.As(analyzer.Errors[0], &conflictError) {
-		if conflictError.Symbol1.Rule.Order == 3 {
-			if conflictError.Symbol2.Rule.Order != 2 {
+ 		if conflictError.Symbol1.Rule.Order == 3 {
+ 			if conflictError.Symbol2.Rule.Order != 2 {
 				println("Expected the rule order to be 2, 3 or 3, 2")
 				t.Fail()
 			}
 		} else if conflictError.Symbol1.Rule.Order == 2 {
-			if conflictError.Symbol2.Rule.Order != 3 {
+ 			if conflictError.Symbol2.Rule.Order != 3 {
 				println("Expected the rule order to be 2, 3 or 3, 2")
 				t.Fail()
 			}
@@ -698,13 +699,13 @@ func TestBuildParseTableErrorMultiplePartialReduce(t *testing.T) {
 			t.Fail()
 		}
 
-		if conflictError.Position1.Line == 1 && conflictError.Position1.Column == 27 {
+ 		if conflictError.Position1.Line == 1 && conflictError.Position1.Column == 27 {
 			if conflictError.Position2.Line != 1 || conflictError.Position2.Column != 34 {
 				println("Expected the rule position to be (1, 34) and (1, 27) or reversed")
 				t.Fail()
 			}
 		} else if conflictError.Position1.Line == 1 && conflictError.Position1.Column == 34 {
-			if conflictError.Position2.Line != 1 || conflictError.Position2.Column != 27 {
+ 			if conflictError.Position2.Line != 1 || conflictError.Position2.Column != 27 {
 				println("Expected the rule position to be (1, 34) and (1, 27) or reversed")
 				t.Fail()
 			}
@@ -713,7 +714,7 @@ func TestBuildParseTableErrorMultiplePartialReduce(t *testing.T) {
 			t.Fail()
 		}
 
-		if conflictError.Symbol1.Lookeahead.String == "C" {
+ 		if conflictError.Symbol1.Lookeahead.String == "C" {
 			if conflictError.Symbol2.Lookeahead.String != "1" {
 				println("Expected the lookaheads to be (1, C) or reversed")
 				t.Fail()
@@ -734,7 +735,7 @@ func TestBuildParseTableErrorMultiplePartialReduce(t *testing.T) {
 }
 
 func TestBuildParseTable2(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("E{E <*> B} E{E <+> B} E{B} B{<0>} B{<1>}")
+	ast, errs := kuuhaku_parser.Parse("E{E <*> B} E{E <+> B} E{B} B{<0>} B{<1>}");
 	if len(errs) != 2 {
 		println("Expected parser errors length to be 2")
 		t.Fatal()
@@ -742,7 +743,7 @@ func TestBuildParseTable2(t *testing.T) {
 	analyzer := initAnalyzer(&ast)
 	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("E"))
 	stateTransitions := analyzer.buildParseTable("E")
-
+	
 	if len(analyzer.Errors) != 0 {
 		println("Expected analyzer.Error length to be 0, got " + strconv.Itoa(len(analyzer.Errors)))
 		helper.DisplayAllErrors(analyzer.Errors)
@@ -782,8 +783,9 @@ func TestBuildParseTable2(t *testing.T) {
 	}
 }
 
+
 func TestBuildParseTableErrorPartialReduceAndShift(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("E{B <1>} E{<1> B C} B{<2> <1>} B{<1>} C{<2>} C{<1>}")
+	ast, errs := kuuhaku_parser.Parse("E{B <1>} E{<1> B C} B{<2> <1>} B{<1>} C{<2>} C{<1>}");
 	if len(errs) != 3 {
 		println("Expected parser errors length to be 3")
 		t.Fatal()
@@ -791,7 +793,7 @@ func TestBuildParseTableErrorPartialReduceAndShift(t *testing.T) {
 	analyzer := initAnalyzer(&ast)
 	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("E"))
 	analyzer.buildParseTable("E")
-
+	
 	println("TestBuildParseTableErrorPartialReduceAndShift - Errors:")
 	helper.DisplayAllErrors(analyzer.Errors)
 
@@ -802,19 +804,19 @@ func TestBuildParseTableErrorPartialReduceAndShift(t *testing.T) {
 
 	var conflictError *ConflictError
 	if errors.As(analyzer.Errors[0], &conflictError) {
-		if conflictError.Symbol1.Rule.Order == 2 {
-			if conflictError.Symbol2.Rule.Order != 3 || conflictError.Symbol1.Rule.Order != 3 {
+ 		if conflictError.Symbol1.Rule.Order == 2 {
+ 			if conflictError.Symbol2.Rule.Order != 3 ||  conflictError.Symbol1.Rule.Order != 3 {
 				println("Expected the rule order to be both 3")
 				t.Fail()
 			}
 		}
 
-		if conflictError.Position1.Line != 1 || conflictError.Position1.Column != 34 || conflictError.Position2.Line != 1 || conflictError.Position2.Column != 34 {
+ 		if conflictError.Position1.Line != 1 || conflictError.Position1.Column != 34 || conflictError.Position2.Line != 1 || conflictError.Position2.Column != 34 {
 			println("Expected the rule position to be (1, 34) and (1, 34)")
 			t.Fail()
 		}
 
-		if conflictError.Symbol1.Lookeahead.String == "C" {
+ 		if conflictError.Symbol1.Lookeahead.String == "C" {
 			if conflictError.Symbol2.Lookeahead.String != "1" {
 				println("Expected the lookaheads to be (1, C) or reversed")
 				t.Fail()
@@ -835,7 +837,7 @@ func TestBuildParseTableErrorPartialReduceAndShift(t *testing.T) {
 }
 
 func TestBuildParseTableErrorMultipleEndReduce(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("E{C} E{B} B{<0>} B{<1>} C{<1>}")
+	ast, errs := kuuhaku_parser.Parse("E{C} E{B} B{<0>} B{<1>} C{<1>}");
 	if len(errs) != 0 {
 		println("Expected parser errors length to be 0")
 		t.Fatal()
@@ -843,7 +845,7 @@ func TestBuildParseTableErrorMultipleEndReduce(t *testing.T) {
 	analyzer := initAnalyzer(&ast)
 	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("E"))
 	analyzer.buildParseTable("E")
-
+	
 	println("TestBuildParseTableErrorMultipleEndReduce - Errors:")
 	helper.DisplayAllErrors(analyzer.Errors)
 
@@ -854,13 +856,13 @@ func TestBuildParseTableErrorMultipleEndReduce(t *testing.T) {
 
 	var conflictError *ConflictError
 	if errors.As(analyzer.Errors[0], &conflictError) {
-		if conflictError.Symbol1.Rule.Order == 3 {
-			if conflictError.Symbol2.Rule.Order != 4 {
+ 		if conflictError.Symbol1.Rule.Order == 3 {
+ 			if conflictError.Symbol2.Rule.Order != 4 {
 				println("Expected the rule order to be 4, 3 or 3, 4")
 				t.Fail()
 			}
 		} else if conflictError.Symbol1.Rule.Order == 4 {
-			if conflictError.Symbol2.Rule.Order != 3 {
+ 			if conflictError.Symbol2.Rule.Order != 3 {
 				println("Expected the rule order to be 4, 3 or 3, 4")
 				t.Fail()
 			}
@@ -869,13 +871,13 @@ func TestBuildParseTableErrorMultipleEndReduce(t *testing.T) {
 			t.Fail()
 		}
 
-		if conflictError.Position1.Line == 1 && conflictError.Position1.Column == 27 {
+ 		if conflictError.Position1.Line == 1 && conflictError.Position1.Column == 27 {
 			if conflictError.Position2.Line != 1 || conflictError.Position2.Column != 20 {
 				println("Expected the rule position to be (1, 20) and (1, 27) or reversed")
 				t.Fail()
 			}
 		} else if conflictError.Position1.Line == 1 && conflictError.Position1.Column == 20 {
-			if conflictError.Position2.Line != 1 || conflictError.Position2.Column != 27 {
+ 			if conflictError.Position2.Line != 1 || conflictError.Position2.Column != 27 {
 				println("Expected the rule position to be (1, 20) and (1, 27) or reversed")
 				t.Fail()
 			}
@@ -884,7 +886,7 @@ func TestBuildParseTableErrorMultipleEndReduce(t *testing.T) {
 			t.Fail()
 		}
 
-		if conflictError.Symbol1.Lookeahead.Type != EMPTY_TITLE || conflictError.Symbol2.Lookeahead.Type != EMPTY_TITLE {
+ 		if conflictError.Symbol1.Lookeahead.Type != EMPTY_TITLE || conflictError.Symbol2.Lookeahead.Type != EMPTY_TITLE {
 			println("Expected the lookaheads to be (<end>, <end>)")
 			t.Fail()
 		}
@@ -895,7 +897,7 @@ func TestBuildParseTableErrorMultipleEndReduce(t *testing.T) {
 }
 
 func TestGetAllTerminalsAndLhs(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("E{C} E{B} B{<0>} B{<1>} C{<1>} D{<3> F} F{<1>} B{<5>} B{<10>} B{<9>}")
+	ast, errs := kuuhaku_parser.Parse("E{C} E{B} B{<0>} B{<1>} C{<1>} D{<3> F} F{<1>} B{<5>} B{<10>} B{<9>}");
 	if len(errs) != 1 {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
@@ -908,9 +910,9 @@ func TestGetAllTerminalsAndLhs(t *testing.T) {
 	terminalsMap, lhsMap = analyzer.getAllTerminalsAndLhs("E", &terminalsMapInput, &lhsMapInput)
 
 	lhsMapCorrect := map[string]bool{
-		"E": true,
-		"C": true,
-		"B": true,
+		"E": true,	
+		"C": true,	
+		"B": true,	
 	}
 
 	regexCompiled1, _ := regexp.Compile("^0")
@@ -920,30 +922,30 @@ func TestGetAllTerminalsAndLhs(t *testing.T) {
 	regexCompiled5, _ := regexp.Compile("^9")
 	terminalsMapCorrect := map[string]TerminalList{
 		"0": {
-			Terminal:   "0",
+			Terminal: "0",
 			Precedence: 2,
-			Regexp:     regexCompiled1,
-		},
+			Regexp: regexCompiled1, 
+		},	
 		"1": {
-			Terminal:   "1",
+			Terminal: "1",
 			Precedence: 3,
-			Regexp:     regexCompiled2,
-		},
-		"5": {
-			Terminal:   "5",
+			Regexp: regexCompiled2, 
+		},	
+		"5":{
+			Terminal: "5",
 			Precedence: 7,
-			Regexp:     regexCompiled3,
-		},
-		"10": {
-			Terminal:   "10",
+			Regexp: regexCompiled3, 
+		},	
+		"10":{
+			Terminal: "10",
 			Precedence: 8,
-			Regexp:     regexCompiled4,
-		},
-		"9": {
-			Terminal:   "9",
+			Regexp: regexCompiled4, 
+		},	
+		"9":{
+			Terminal: "9",
 			Precedence: 9,
-			Regexp:     regexCompiled5,
-		},
+			Regexp: regexCompiled5, 
+		},	
 	}
 
 	if !reflect.DeepEqual(lhsMapCorrect, *lhsMap) {
@@ -956,13 +958,13 @@ func TestGetAllTerminalsAndLhs(t *testing.T) {
 
 	for terminal, terminalList := range *terminalsMap {
 		if terminalsMapCorrect[terminal].Terminal != terminalList.Terminal {
-			println("terminalsMap[" + terminal + "].Terminal (" + terminalList.Terminal + ") != terminalsMapCorrect[" +
+			println("terminalsMap[" + terminal + "].Terminal (" + terminalList.Terminal + ") != terminalsMapCorrect[" + 
 				terminal + "].Terminal (" + terminalsMapCorrect[terminal].Terminal + ")")
 			t.Fail()
 		}
 		if terminalsMapCorrect[terminal].Precedence != terminalList.Precedence {
-			println("terminalsMap[" + terminal + "].Precedence (" + strconv.Itoa(terminalList.Precedence) +
-				") != terminalsMapCorrect[" + terminal + "].Precedence (" +
+			println("terminalsMap[" + terminal + "].Precedence (" + strconv.Itoa(terminalList.Precedence) + 
+				") != terminalsMapCorrect[" + terminal + "].Precedence (" + 
 				strconv.Itoa(terminalsMapCorrect[terminal].Precedence) + ")")
 			t.Fail()
 		}
@@ -975,44 +977,44 @@ func TestGetAllTerminalsAndLhs(t *testing.T) {
 
 	terminalsCorrect := []TerminalList{
 		{
-			Terminal:   "0",
+			Terminal: "0",
 			Precedence: 2,
-			Regexp:     regexCompiled1,
-		},
+			Regexp: regexCompiled1, 
+		},	
 		{
-			Terminal:   "1",
+			Terminal: "1",
 			Precedence: 3,
-			Regexp:     regexCompiled2,
-		},
+			Regexp: regexCompiled2, 
+		},	
 		{
-			Terminal:   "5",
+			Terminal: "5",
 			Precedence: 7,
-			Regexp:     regexCompiled3,
-		},
+			Regexp: regexCompiled3, 
+		},	
 		{
-			Terminal:   "10",
+			Terminal: "10",
 			Precedence: 8,
-			Regexp:     regexCompiled4,
-		},
+			Regexp: regexCompiled4, 
+		},	
 		{
-			Terminal:   "9",
+			Terminal: "9",
 			Precedence: 9,
-			Regexp:     regexCompiled5,
-		},
+			Regexp: regexCompiled5, 
+		},	
 	}
 
 	terminals := sortTerminalsMaptoArray(terminalsMap)
 
 	for i, terminalList := range *terminals {
 		if terminalsCorrect[i].Terminal != terminalList.Terminal {
-			println("terminals[" + strconv.Itoa(i) + "].Terminal (" +
+			println("terminals[" + strconv.Itoa(i) + "].Terminal (" + 
 				terminalList.Terminal + ") != terminalsMapCorrect[" + strconv.Itoa(i) + "].Terminal (" +
 				terminalsCorrect[i].Terminal + ")")
 			t.Fail()
 		}
 		if terminalsCorrect[i].Precedence != terminalList.Precedence {
-			println("terminalsMap[" + strconv.Itoa(i) + "].Precedence (" + strconv.Itoa(terminalList.Precedence) +
-				") != terminalsMapCorrect[" + strconv.Itoa(i) + "].Precedence (" +
+			println("terminalsMap[" + strconv.Itoa(i) + "].Precedence (" + strconv.Itoa(terminalList.Precedence) + 
+				") != terminalsMapCorrect[" + strconv.Itoa(i) + "].Precedence (" + 
 				strconv.Itoa(terminalsCorrect[i].Precedence) + ")")
 			t.Fail()
 		}
@@ -1025,7 +1027,7 @@ func TestGetAllTerminalsAndLhs(t *testing.T) {
 }
 
 func TestGetAllTerminalsAndLhsRegexError(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("E{C} E{B} B{<0>} B{<1>} C{<1>} D{<3> F} F{<1>} B{<5>} B{<10>} B{<[>}")
+	ast, errs := kuuhaku_parser.Parse("E{C} E{B} B{<0>} B{<1>} C{<1>} D{<3> F} F{<1>} B{<5>} B{<10>} B{<[>}");
 	if len(errs) != 1 {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
@@ -1034,7 +1036,7 @@ func TestGetAllTerminalsAndLhsRegexError(t *testing.T) {
 	terminalsMapInput := make(map[string]*TerminalList)
 	lhsMapInput := make(map[string]bool)
 	_, _ = analyzer.getAllTerminalsAndLhs("E", &terminalsMapInput, &lhsMapInput)
-
+	
 	if len(analyzer.Errors) != 1 {
 		println("Expected analyzer Errors length to be 1, got " + strconv.Itoa(len(analyzer.Errors)))
 		t.Fatal()
@@ -1050,8 +1052,8 @@ func TestGetAllTerminalsAndLhsRegexError(t *testing.T) {
 			t.Fail()
 		}
 		if analyzeError.Position.Column != 65 || analyzeError.Position.Line != 1 {
-			println("Expected position to be (1, 65), got (" +
-				strconv.Itoa(analyzeError.Position.Line) + ", " +
+			println("Expected position to be (1, 65), got (" + 
+				strconv.Itoa(analyzeError.Position.Line) + ", " + 
 				strconv.Itoa(analyzeError.Position.Column) + ")")
 			t.Fail()
 		}
@@ -1059,11 +1061,11 @@ func TestGetAllTerminalsAndLhsRegexError(t *testing.T) {
 		println("Expected AnalyzeError")
 		t.Fail()
 	}
-
+	
 }
 
 func TestAnalyze(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("E{C} E{B} B{<0>} B{<1>} C{<1>} D{<3> F} F{<1>}")
+	ast, errs := kuuhaku_parser.Parse("E{C} E{B} B{<0>} B{<1>} C{<1>} D{<3> F} F{<1>}");
 	if len(errs) != 1 {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
@@ -1090,7 +1092,7 @@ func TestAnalyze(t *testing.T) {
 }
 
 func TestAnalyze2(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("SEARCH_MODE E{C} E{B} B{<0>} B{<1>} C{<3>} D{<3> F} F{<1>} G{<2>}")
+	ast, errs := kuuhaku_parser.Parse("SEARCH_MODE E{C} E{B} B{<0>} B{<1>} C{<3>} D{<3> F} F{<1>} G{<2>}");
 	if len(errs) != 1 {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
