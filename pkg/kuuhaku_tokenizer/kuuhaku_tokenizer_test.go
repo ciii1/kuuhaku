@@ -240,6 +240,83 @@ func TestStringLiteralUnterminated(t *testing.T) {
 	}
 }
 
+func TestLuaLiteralBasic(t *testing.T) {
+	tokenizer := Init("``hello`` ``test``")
+	token, err := tokenizer.Peek()
+	helper.Check(err)
+	if token.Content != "hello" || token.Type != LUA_LITERAL {
+		println("Expected \"hello\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "test" || token.Type != LUA_LITERAL {
+		println("Expected \"test\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+}
+
+func TestLuaLiteralEscapes(t *testing.T) {
+	tokenizer := Init("``hello\\n`` ``test\\``` ``te`st\n`` ``test2\\\\``")
+	token, err := tokenizer.Peek()
+	helper.Check(err)
+	if token.Content != "hello\\n" || token.Type != LUA_LITERAL {
+		println("Expected 'hello\\n', got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "test`" || token.Type != LUA_LITERAL {
+		println("Expected \"test`\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "te`st\n" || token.Type != LUA_LITERAL {
+		println("Expected \"te`st\n\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "test2\\\\" || token.Type != LUA_LITERAL {
+		println("Expected \"test2\\\\\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+}
+
+func TestLuaLiteralUnterminated(t *testing.T) {
+	tokenizer := Init("``nice````hello\nhi\nhello")
+	token, err := tokenizer.Peek()
+	helper.Check(err)
+	if token.Content != "nice" || token.Type != LUA_LITERAL {
+		println("Expected \"nice\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	_, err = tokenizer.Next()
+	var tokenizeError *TokenizeError
+	if errors.As(err, &tokenizeError) {
+		if tokenizeError.Type != LUA_LITERAL_UNTERMINATED {
+			println("Expected LuaLiteralUnterminatedError")
+			t.Fail()
+		}
+		if tokenizeError.Position.Column != 9 {
+			println("Expected column number to be 9")
+			t.Fail()
+		}
+		if tokenizeError.Position.Raw != 8 {
+			println("Expected raw to be 8")
+			t.Fail()
+		}
+		if tokenizeError.Position.Line != 1 {
+			println("Expected line number to be 1")
+			t.Fail()
+		}
+	} else {
+		println("Expected TokenizeError")
+		t.Fail()
+	}
+}
+
 func TestRegexLiteralBasic(t *testing.T) {
 	tokenizer := Init("<hello> <test>")
 	token, err := tokenizer.Peek()

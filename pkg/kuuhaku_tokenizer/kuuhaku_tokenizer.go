@@ -11,6 +11,7 @@ const (
 	PATTERN_UNRECOGNIZED = iota
 	STRING_LITERAL_UNTERMINATED
 	REGEX_LITERAL_UNTERMINATED
+	LUA_LITERAL_UNTERMINATED
 	ILLEGAL_CAPTURE_GROUP
 )
 
@@ -45,6 +46,15 @@ func ErrRegexLiteralUnterminated(tokenizer Tokenizer) *TokenizeError {
 		Type:     REGEX_LITERAL_UNTERMINATED,
 	}
 }
+
+// we want the position instead of the tokenizer because the position we have to display is not the current position
+func ErrLuaLiteralUnterminated(pos Position) *TokenizeError {
+	return &TokenizeError{
+		Message:  "Lua literal is not terminated",
+		Position: pos,
+		Type:     LUA_LITERAL_UNTERMINATED,
+	}
+}
 func ErrIllegalCaptureGroup(tokenizer Tokenizer) *TokenizeError {
 	return &TokenizeError{
 		Message:  "Illegal capture group",
@@ -59,6 +69,7 @@ const (
 	IDENTIFIER = iota
 	REGEX_LITERAL
 	STRING_LITERAL
+	LUA_LITERAL
 	CAPTURE_GROUP
 	OPENING_CURLY_BRACKET
 	CLOSING_CURLY_BRACKET
@@ -170,6 +181,14 @@ func (tokenizer *Tokenizer) Next() (*Token, error) {
 		return tokenizer.returnToken(token, nil)
 	}
 
+	token, err = tokenizer.consumeLuaLiteral()
+	if err != nil {
+		return tokenizer.returnToken(nil, err)
+	}
+	if token != nil {
+		return tokenizer.returnToken(token, nil)
+	}
+
 	token, err = tokenizer.consumeRegexLiteral()
 	if err != nil {
 		return tokenizer.returnToken(nil, err)
@@ -200,6 +219,13 @@ func (tokenizer *Tokenizer) returnToken(token *Token, err error) (*Token, error)
 func (tokenizer *Tokenizer) nextChar() byte {
 	tokenizer.Position.Raw += 1
 	tokenizer.Position.Column += 1
+	return tokenizer.peekChar()
+}
+
+// never use this at the start of a lexing function
+func (tokenizer *Tokenizer) prevChar() byte {
+	tokenizer.Position.Raw -= 1
+	tokenizer.Position.Column -= 1
 	return tokenizer.peekChar()
 }
 
@@ -456,6 +482,57 @@ func (tokenizer *Tokenizer) consumeCaptureGroup() (*Token, error) {
 	}, nil
 }
 
+func (tokenizer *Tokenizer) consumeLuaLiteral() (*Token, error) {
+	positionRaw := tokenizer.Position.Raw
+	column := tokenizer.Position.Column
+	line := tokenizer.Position.Line
+	content := ""
+
+	currChar := tokenizer.peekChar()
+	if currChar != '`' {
+		return nil, nil
+	}
+	currChar = tokenizer.nextChar()
+	if currChar != '`' {
+		tokenizer.prevChar()
+		return nil, nil
+	}
+
+	prevPrevPrevChar := byte(0)
+	prevPrevChar := tokenizer.peekChar()
+	prevChar := tokenizer.nextChar()
+	currChar = tokenizer.nextChar()
+	for currChar != '`' || prevChar != '`' || (prevPrevChar == '\\' && prevPrevPrevChar != '\\') {
+		prevPrevPrevChar = prevPrevChar
+		prevPrevChar = prevChar
+		prevChar = tokenizer.peekChar()
+		currChar = tokenizer.nextChar()
+		if currChar == '`' && prevChar == '`' && prevPrevChar == '\\' && prevPrevPrevChar != '\\' {
+
+		} else {
+			content += string(prevPrevChar)
+		}
+		if currChar == '\003' {
+			return nil, ErrLuaLiteralUnterminated(Position{
+				Raw:    positionRaw,
+				Column: column,
+				Line:   line,
+			})
+		}
+	}
+	tokenizer.nextChar()
+
+	return &Token{
+		Position: Position{
+			Raw:    positionRaw,
+			Column: column,
+			Line:   line,
+		},
+		Type:    LUA_LITERAL,
+		Content: content,
+	}, nil
+}
+
 func (tokenizer *Tokenizer) consumeRegexLiteral() (*Token, error) {
 	positionRaw := tokenizer.Position.Raw
 	column := tokenizer.Position.Column
@@ -474,6 +551,7 @@ func (tokenizer *Tokenizer) consumeRegexLiteral() (*Token, error) {
 		prevPrevChar = prevChar
 		prevChar = tokenizer.peekChar()
 		currChar = tokenizer.nextChar()
+		//For escaping characters
 		if currChar == '>' && prevChar == '\\' && prevPrevChar != '\\' {
 
 		} else {
