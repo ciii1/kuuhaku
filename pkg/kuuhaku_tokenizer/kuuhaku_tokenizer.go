@@ -2,14 +2,12 @@ package kuuhaku_tokenizer
 
 import (
 	"fmt"
-	"strconv"
 )
 
 type TokenizeErrorType int
 
 const (
 	PATTERN_UNRECOGNIZED = iota
-	STRING_LITERAL_UNTERMINATED
 	REGEX_LITERAL_UNTERMINATED
 	LUA_LITERAL_UNTERMINATED
 	ILLEGAL_CAPTURE_GROUP
@@ -32,13 +30,6 @@ func ErrPatternUnrecognized(tokenizer Tokenizer) *TokenizeError {
 		Type:     PATTERN_UNRECOGNIZED,
 	}
 }
-func ErrStringLiteralUnterminated(tokenizer Tokenizer) *TokenizeError {
-	return &TokenizeError{
-		Message:  "String literal is not terminated",
-		Position: tokenizer.Position,
-		Type:     STRING_LITERAL_UNTERMINATED,
-	}
-}
 func ErrRegexLiteralUnterminated(tokenizer Tokenizer) *TokenizeError {
 	return &TokenizeError{
 		Message:  "Regex literal is not terminated",
@@ -55,13 +46,6 @@ func ErrLuaLiteralUnterminated(pos Position) *TokenizeError {
 		Type:     LUA_LITERAL_UNTERMINATED,
 	}
 }
-func ErrIllegalCaptureGroup(tokenizer Tokenizer) *TokenizeError {
-	return &TokenizeError{
-		Message:  "Illegal capture group",
-		Position: tokenizer.Position,
-		Type:     ILLEGAL_CAPTURE_GROUP,
-	}
-}
 
 type TokenType int
 
@@ -70,7 +54,6 @@ const (
 	REGEX_LITERAL
 	STRING_LITERAL
 	LUA_LITERAL
-	CAPTURE_GROUP
 	OPENING_CURLY_BRACKET
 	CLOSING_CURLY_BRACKET
 	OPENING_BRACKET
@@ -173,15 +156,7 @@ func (tokenizer *Tokenizer) Next() (*Token, error) {
 		return tokenizer.returnToken(token, nil)
 	}
 
-	token, err := tokenizer.consumeStringLiteral()
-	if err != nil {
-		return tokenizer.returnToken(nil, err)
-	}
-	if token != nil {
-		return tokenizer.returnToken(token, nil)
-	}
-
-	token, err = tokenizer.consumeLuaLiteral()
+	token, err := tokenizer.consumeLuaLiteral()
 	if err != nil {
 		return tokenizer.returnToken(nil, err)
 	}
@@ -190,14 +165,6 @@ func (tokenizer *Tokenizer) Next() (*Token, error) {
 	}
 
 	token, err = tokenizer.consumeRegexLiteral()
-	if err != nil {
-		return tokenizer.returnToken(nil, err)
-	}
-	if token != nil {
-		return tokenizer.returnToken(token, nil)
-	}
-
-	token, err = tokenizer.consumeCaptureGroup()
 	if err != nil {
 		return tokenizer.returnToken(nil, err)
 	}
@@ -407,79 +374,6 @@ func (tokenizer *Tokenizer) consumeComma() *Token {
 		Type:    COMMA,
 		Content: ",",
 	}
-}
-
-func (tokenizer *Tokenizer) consumeStringLiteral() (*Token, error) {
-	positionRaw := tokenizer.Position.Raw
-	column := tokenizer.Position.Column
-	line := tokenizer.Position.Line
-	content := ""
-
-	startChar := tokenizer.peekChar()
-	if startChar != '"' && startChar != '\'' {
-		return nil, nil
-	}
-
-	prevPrevChar := byte(0)
-	prevChar := tokenizer.peekChar()
-	currChar := tokenizer.nextChar()
-	for currChar != startChar || (prevChar == '\\' && prevPrevChar != '\\') {
-		content += string(currChar)
-		prevPrevChar = prevChar
-		prevChar = tokenizer.peekChar()
-		currChar = tokenizer.nextChar()
-		if currChar == '\n' || currChar == '\003' {
-			return nil, ErrStringLiteralUnterminated(*tokenizer)
-		}
-	}
-	tokenizer.nextChar()
-
-	content, err := strconv.Unquote("\"" + content + "\"")
-	if err != nil {
-		return nil, err
-	}
-
-	return &Token{
-		Position: Position{
-			Raw:    positionRaw,
-			Column: column,
-			Line:   line,
-		},
-		Type:    STRING_LITERAL,
-		Content: content,
-	}, nil
-}
-
-func (tokenizer *Tokenizer) consumeCaptureGroup() (*Token, error) {
-	positionRaw := tokenizer.Position.Raw
-	column := tokenizer.Position.Column
-	line := tokenizer.Position.Line
-	content := ""
-
-	currChar := tokenizer.peekChar()
-	if currChar != '$' {
-		return nil, nil
-	}
-
-	currChar = tokenizer.nextChar()
-	for isRuneNumber(currChar) {
-		content += string(currChar)
-		currChar = tokenizer.nextChar()
-	}
-
-	if len(content) == 0 {
-		return nil, ErrIllegalCaptureGroup(*tokenizer)
-	}
-
-	return &Token{
-		Position: Position{
-			Raw:    positionRaw,
-			Column: column,
-			Line:   line,
-		},
-		Type:    CAPTURE_GROUP,
-		Content: content,
-	}, nil
 }
 
 func (tokenizer *Tokenizer) consumeLuaLiteral() (*Token, error) {
