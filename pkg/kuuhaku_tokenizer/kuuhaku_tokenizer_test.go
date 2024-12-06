@@ -44,24 +44,6 @@ func TestIdentifierWithNumber(t *testing.T) {
 	}
 }
 
-func TestIdentifierWithLen(t *testing.T) {
-	tokenizer := Init("test9230\nlen\nlens")
-	token, err := tokenizer.Peek()
-	helper.Check(err)
-	if token.Content != "test9230" || token.Type != IDENTIFIER {
-		t.Fail()
-	}
-	token, err = tokenizer.Next()
-	helper.Check(err)
-	if token.Content != "len" || token.Type != LEN_KEYWORD {
-		t.Fail()
-	}
-	token, err = tokenizer.Next()
-	helper.Check(err)
-	if token.Content != "lens" || token.Type != IDENTIFIER {
-		t.Fail()
-	}
-}
 
 func TestSearchMode(t *testing.T) {
 	tokenizer := Init("SEARCH_MODE a9230\nSEARCH_MODE2\nSEARCH_MODE")
@@ -109,7 +91,7 @@ func TestPatternUnrecognizedError(t *testing.T) {
 
 	token, err = tokenizer.Next()
 	helper.Check(err)
-	if token.Content != "len" || token.Type != LEN_KEYWORD {
+	if token.Content != "len" || token.Type != IDENTIFIER {
 		t.Fail()
 	}
 

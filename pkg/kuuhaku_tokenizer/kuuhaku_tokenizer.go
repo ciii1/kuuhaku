@@ -60,7 +60,6 @@ const (
 	CLOSING_BRACKET
 	COMMA
 	EQUAL_SIGN
-	LEN_KEYWORD
 	SEARCH_MODE_KEYWORD
 	EOF
 )
@@ -488,9 +487,7 @@ func (tokenizer *Tokenizer) consumeIdentifierOrKeyword() *Token {
 	}
 
 	var tokenType TokenType
-	if tokenContent == "len" {
-		tokenType = LEN_KEYWORD
-	} else if tokenContent == "SEARCH_MODE" {
+	if tokenContent == "SEARCH_MODE" {
 		tokenType = SEARCH_MODE_KEYWORD
 	} else {
 		tokenType = IDENTIFIER
