@@ -134,121 +134,8 @@ func TestConsumeMatchRulesError2(t *testing.T) {
 	}
 }
 
-func TestConsumeReplaceRules(t *testing.T) {
-	parser := initParser("\"\\t\"len$0$2 \"hi\"")
-	replaceRulesP := parser.consumeReplaceRules()
-	if len(parser.Errors) != 0 {
-		panic(parser.Errors)
-	}
-	replaceRules := *replaceRulesP
-	if len(replaceRules) != 3 {
-		println("Expected replaceRules length to be 3")
-		t.Fail()
-	}
-	node1, ok := replaceRules[0].(Len)
-	if ok == false {
-		println("Expected matchRules[0] to be len")
-		t.Fail()
-	} else if firstArg, ok := node1.FirstArgument.(StringLiteral); ok {
-		if firstArg.String != "\t" {
-			println("Expected Len.FirstArgument to contain \"\\t\"")
-			t.Fail()
-		}
-		if secondArg, ok := node1.SecondArgument.(CaptureGroup); ok {
-			if secondArg.Number != 0 {
-				println("Expected Len.SecondArgument to contain 0")
-				t.Fail()
-			}
-		} else {
-			println("Expected Len.SecondArgument to be a capture group")
-			t.Fail()
-		}
-	} else {
-		println("Expected Len.FirstArgument to be a string literal")
-		t.Fail()
-	}
-
-	node2, ok := replaceRules[1].(CaptureGroup)
-	if ok == false {
-		println("Expected matchRules[1] to be a capture group")
-		t.Fail()
-	} else if node2.Number != 2 {
-		println("Expected matchRules[1] to contain 2")
-		t.Fail()
-	}
-
-	node3, ok := replaceRules[2].(StringLiteral)
-	if ok == false {
-		println("Expected matchRules[2] to be a string literal")
-		t.Fail()
-	} else if node3.String != "hi" {
-		println("Expected matchRules[2] to contain \"hi\"")
-		t.Fail()
-	}
-}
-
-func TestErrorConsumeReplaceRules(t *testing.T) {
-	parser := initParser("\"test\nlen test\nlen$1")
-	parser.consumeReplaceRules()
-	token, _ := parser.tokenizer.Next()
-	if token.Type != kuuhaku_tokenizer.EOF {
-		println("Expected the parser to reach EOF, got token with content " + token.Content)
-		token, _ := parser.tokenizer.Next()
-		println("Next content is " + token.Content)
-		t.Fatal()
-	}
-	println("TestErrorConsumeReplaceRules - All errors:")
-	helper.DisplayAllErrors(parser.Errors)
-
-	var tokenizeError *kuuhaku_tokenizer.TokenizeError
-	if errors.As(parser.Errors[0], &tokenizeError) {
-		if tokenizeError.Type != kuuhaku_tokenizer.STRING_LITERAL_UNTERMINATED {
-			println("Expected ErrStringLiteralUnterminated error")
-			t.Fail()
-		}
-	} else {
-		println("Expected TokenizeError")
-		t.Fail()
-	}
-
-	var parseError *ParseError
-	if errors.As(parser.Errors[1], &parseError) {
-		if parseError.Type != LEN_ARGUMENT_INVALID {
-			println("Expected ErrLenArgumentInvalid error")
-			t.Fail()
-		}
-		if parseError.Position.Column != 5 || parseError.Position.Line != 2 {
-			println("Expected ErrLenArgumentInvalid error with column 5, line 2")
-			t.Fail()
-		}
-	} else {
-		println("Expected ParseError")
-		t.Fail()
-	}
-
-	if errors.As(parser.Errors[2], &parseError) {
-		if parseError.Type != UNEXPECTED_LEN {
-			println("Expected ErrUnexpectedLen error")
-			t.Fail()
-		}
-	} else {
-		println("Expected ParseError")
-		t.Fail()
-	}
-
-	if errors.As(parser.Errors[3], &parseError) {
-		if parseError.Type != UNEXPECTED_LEN {
-			println("Expected ErrUnexpectedLen error at the last len")
-			t.Fail()
-		}
-	} else {
-		println("Expected ParseError")
-		t.Fail()
-	}
-}
-
 func TestConsumeRule(t *testing.T) {
-	parser := initParser("test{\nidentifier\n=\n\"\\t\"$0}")
+	parser := initParser("test{\nidentifier\n=\n``test=10; return test``\n}")
 	rule := parser.consumeRule()
 	if len(parser.Errors) != 0 {
 		println("Expected len(parser.Errors) to be 0")
@@ -269,32 +156,14 @@ func TestConsumeRule(t *testing.T) {
 		println("Expected MatchRules[0].Name to be \"identifier\"")
 		t.Fail()
 	}
-	if len(rule.ReplaceRules) != 2 {
-		println("Expected len(ReplaceRules) to be 2")
-		t.Fail()
-	}
-	node2, ok := rule.ReplaceRules[0].(StringLiteral)
-	if !ok {
-		println("Expected ReplaceRules[0] to be a string literal")
-		t.Fail()
-	}
-	if node2.String != "\t" {
-		println("Expected ReplaceRules[0].String to be \"\t\"")
-		t.Fail()
-	}
-	node3, ok := rule.ReplaceRules[1].(CaptureGroup)
-	if !ok {
-		println("Expected ReplaceRules[1] to be a capture group")
-		t.Fail()
-	}
-	if node3.Number != 0 {
-		println("Expected ReplaceRules[1].Number to be 0")
+	if rule.ReplaceRule.LuaString != "test=10; return test" {
+		println("Expected replace rules to contain \"test=10; return test\", got " + rule.ReplaceRule.LuaString)
 		t.Fail()
 	}
 }
 
 func TestErrorConsumeRule(t *testing.T) {
-	parser := initParser("test{\"test2\"=len$1}\nanotherTest{}")
+	parser := initParser("test{``test2``=<test>}\nanotherTest{}")
 	parser.consumeRule()
 	parser.consumeRule()
 	token, _ := parser.tokenizer.Next()
@@ -331,7 +200,7 @@ func TestErrorConsumeRule(t *testing.T) {
 }
 
 func TestErrorPosition(t *testing.T) {
-	parser := initParser("test\ntest{\"test2\"=len$1}\ntest{test\"hello\"}\ntest{test=len$1}test{\"test}")
+	parser := initParser("test\ntest{``est``=``n``}\ntest{test``ell``}\ntest{test=``n``}test{``est}")
 	parser.consumeRule()
 	parser.consumeRule()
 	parser.consumeRule()
@@ -395,53 +264,24 @@ func TestErrorPosition(t *testing.T) {
 		t.Fail()
 	}
 
-	if errors.As(parser.Errors[3], &parseError) {
-		if parseError.Type != UNEXPECTED_LEN {
-			println("Expected UnexpectedLenError error")
-			t.Fail()
-		}
-		if parseError.Position.Column != 11 || parseError.Position.Line != 4 {
-			println("Expected UnexpectedLenError error with column 11 and line 4")
-			t.Fail()
-		}
-	} else {
-		println("Expected ParseError")
-		t.Fail()
-	}
-
 	var tokenizeError *kuuhaku_tokenizer.TokenizeError
-	if errors.As(parser.Errors[4], &tokenizeError) {
-		if tokenizeError.Type != kuuhaku_tokenizer.STRING_LITERAL_UNTERMINATED {
-			println("Expected StringLiteralUnterminatedError error")
+	if errors.As(parser.Errors[3], &tokenizeError) {
+		if tokenizeError.Type != kuuhaku_tokenizer.LUA_LITERAL_UNTERMINATED {
+			println("Expected LuaLiteralUnterminatedError error")
 			t.Fail()
 		}
-		if tokenizeError.Position.Column != 28 || tokenizeError.Position.Line != 4 {
-			println("Expected StringLiteralUnterminatedError error with column 28 and line 4")
+		if tokenizeError.Position.Column != 22 || tokenizeError.Position.Line != 4 {
+			println("Expected LuaLiteralUnterminatedError error with column 22 and line 4")
 			t.Fail()
 		}
 	} else {
 		println("Expected TokenizeError")
 		t.Fail()
 	}
-
-	if errors.As(parser.Errors[5], &parseError) {
-		if parseError.Type != EXPECTED_MATCH_RULE {
-			println("Expected ExpectedMatchRuleError error")
-			t.Fail()
-		}
-		if parseError.Position.Column != 22 || parseError.Position.Line != 4 {
-			println("Expected ExpectedMatchRuleError error with column 22 and line 4")
-			t.Fail()
-		}
-	} else {
-		println("Expected ParseError")
-		t.Fail()
-	}
-
 }
 
 func TestConsumeInput(t *testing.T) {
-	parser := initParser("test{identifier=\"\\t\"len$0}\nidentifier{<[a-zA-Z]>}\nidentifier{<[a-zA-Z][0-9]>}")
+	parser := initParser("test{identifier=``hello``}\nidentifier{<[a-zA-Z]>}\nidentifier{<[a-zA-Z][0-9]>}")
 	ast := parser.consumeInput()
 	token, _ := parser.tokenizer.Next()
 	if token.Type != kuuhaku_tokenizer.EOF {
@@ -488,7 +328,7 @@ func TestConsumeInput(t *testing.T) {
 }
 
 func TestConsumeSearchMode(t *testing.T) {
-	parser := initParser("SEARCH_MODE test{identifier=\"\\t\"len$0}\nidentifier{<[a-zA-Z]>}\nidentifier{<[a-zA-Z][0-9]>}")
+	parser := initParser("SEARCH_MODE test{identifier=``allen``}\nidentifier{<[a-zA-Z]>}\nidentifier{<[a-zA-Z][0-9]>}")
 	ast := parser.consumeInput()
 	token, _ := parser.tokenizer.Next()
 	if token.Type != kuuhaku_tokenizer.EOF {
@@ -525,7 +365,7 @@ func TestConsumeSearchMode(t *testing.T) {
 }
 
 func TestConsumeSearchModeError(t *testing.T) {
-	parser := initParser("1 SEARCH_MODE test{identifier=\"\\t\"len$0}\nidentifier{<[a-zA-Z]>}\nidentifier{<[a-zA-Z][0-9]>}")
+	parser := initParser("1 SEARCH_MODE test{identifier=``allen``}\nidentifier{<[a-zA-Z]>}\nidentifier{<[a-zA-Z][0-9]>}")
 	ast := parser.consumeInput()
 	token, _ := parser.tokenizer.Next()
 	if token.Type != kuuhaku_tokenizer.EOF {
@@ -537,7 +377,7 @@ func TestConsumeSearchModeError(t *testing.T) {
 
 	if len(parser.Errors) != 2 {
 		println("Expected len(parser.Errors) to be 2")
-		println("TestConsumeInput - All errors:")
+		println("TestConsumeSearchModeError - All errors:")
 		helper.DisplayAllErrors(parser.Errors)
 		t.Fatal()
 	}
@@ -562,7 +402,7 @@ func TestConsumeSearchModeError(t *testing.T) {
 }
 
 func TestErrorConsumeInput(t *testing.T) {
-	parser := initParser("test{\"test2\"=len$1}\n\"test\"test\nidentifier<test>")
+	parser := initParser("test{``est``=``n``}\n``es``test\nidentifier<test>")
 	parser.consumeInput()
 	token, _ := parser.tokenizer.Next()
 	if token.Type != kuuhaku_tokenizer.EOF {
@@ -628,7 +468,7 @@ func TestErrorConsumeInput(t *testing.T) {
 }
 
 func TestErrorTokenizeError(t *testing.T) {
-	parser := initParser("test{\"test2\"\\=len$1}\n\"test\"@test\nidentifier<test>")
+	parser := initParser("test{``est``\\=``n``}\n<test>@test\nidentifier<test>")
 	parser.consumeInput()
 	token, _ := parser.tokenizer.Next()
 	if token.Type != kuuhaku_tokenizer.EOF {

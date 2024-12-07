@@ -14,22 +14,13 @@ type Rule struct {
 	Name         string
 	Order        int
 	MatchRules   []MatchRule
-	ReplaceRules []ReplaceRule
+	ReplaceRule  LuaLiteral
 	Position     kuuhaku_tokenizer.Position
 }
 
 type MatchRule interface {
 	matchRule()
 	GetPosition() kuuhaku_tokenizer.Position
-}
-
-type ReplaceRule interface {
-	replaceRule()
-}
-
-type StringStmt interface {
-	ReplaceRule
-	stringStmt()
 }
 
 type Identifer struct {
@@ -52,26 +43,7 @@ func (r RegexLiteral) GetPosition() kuuhaku_tokenizer.Position {
 	return r.Position
 }
 
-type CaptureGroup struct {
-	Number   int
-	Position kuuhaku_tokenizer.Position
+type LuaLiteral struct {
+	LuaString string
+	Position    kuuhaku_tokenizer.Position
 }
-
-func (c CaptureGroup) replaceRule() {}
-func (c CaptureGroup) stringStmt()  {}
-
-type StringLiteral struct {
-	String   string
-	Position kuuhaku_tokenizer.Position
-}
-
-func (s StringLiteral) replaceRule() {}
-func (s StringLiteral) stringStmt()  {}
-
-type Len struct {
-	FirstArgument  StringStmt
-	SecondArgument StringStmt
-	Position       kuuhaku_tokenizer.Position
-}
-
-func (l Len) replaceRule() {}
