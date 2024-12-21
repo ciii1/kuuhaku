@@ -58,6 +58,101 @@ func TestConsumeMatchRules(t *testing.T) {
 	}
 }
 
+func TestConsumeArgList(t *testing.T) {
+	parser := initParser("(``test``, ``test3``, ``test2``)")
+	argsP := parser.consumeArgList()
+	if len(parser.Errors) != 0 {
+		println("TestConsumeArgList - All errors:")
+		helper.DisplayAllErrors(parser.Errors)
+	}
+	args := *argsP
+	if len(args) != 3 {
+		println("Expected args length to be 3, got " + strconv.Itoa(len(args)))
+		t.Fatal()
+	}
+	if args[0].LuaString != "test" {
+		println("Expected args[0] to contain 'test'")
+		t.Fail()
+	}
+	if args[1].LuaString != "test3" {
+		println("Expected args[1] to contain 'test3'")
+		t.Fail()
+	}
+	if args[2].LuaString != "test2" {
+		println("Expected args[0] to contain 'test2'")
+		t.Fail()
+	}
+}
+
+func TestConsumeArgListError1(t *testing.T) {
+	parser := initParser("(``test``,)")
+	parser.consumeArgList()
+	if len(parser.Errors) != 1 {
+		println("Expected parser errors length to be 1, got " + strconv.Itoa(len(parser.Errors)))
+		t.Fail()
+	}
+	var parseError *ParseError
+	if errors.As(parser.Errors[0], &parseError) {
+		if parseError.Type != EXPECTED_ARG {
+			println("Expected ErrExpectedArg error")
+			t.Fail()
+		}
+		if parseError.Position.Column != 11 || parseError.Position.Line != 1 {
+			println("Expected error position to be (1, 11), got (" + strconv.Itoa(parseError.Position.Line) + "," + strconv.Itoa(parseError.Position.Column))
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+}
+
+func TestConsumeArgListError2(t *testing.T) {
+	parser := initParser("(,)")
+	parser.consumeArgList()
+	if len(parser.Errors) != 1 {
+		println("Expected parser errors length to be 1")
+		t.Fail()
+	}
+	var parseError *ParseError
+	if errors.As(parser.Errors[0], &parseError) {
+		if parseError.Type != EXPECTED_ARG {
+			println("Expected ErrExpectedArg error")
+			t.Fail()
+		}
+		if parseError.Position.Column != 2 || parseError.Position.Line != 1 {
+			println("Expected error position to be (1, 2), got (" + strconv.Itoa(parseError.Position.Line) + "," + strconv.Itoa(parseError.Position.Column))
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+}
+
+func TestConsumeArgListError3(t *testing.T) {
+	parser := initParser("(``test`` ``test``)")
+	parser.consumeArgList()
+	if len(parser.Errors) != 1 {
+		println("Expected parser errors length to be 1")
+		t.Fail()
+	}
+	var parseError *ParseError
+	if errors.As(parser.Errors[0], &parseError) {
+		if parseError.Type != EXPECTED_CLOSING_BRACKET_OR_COMMA {
+			println("Expected ErrExpectedArg error")
+			t.Fail()
+		}
+		if parseError.Position.Column != 11 || parseError.Position.Line != 1 {
+			println("Expected error position to be (1, 11), got (" + strconv.Itoa(parseError.Position.Line) + "," + strconv.Itoa(parseError.Position.Column) + ")")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+}
+
 func TestConsumeMatchRules2(t *testing.T) {
 	parser := initParser("hello hello2=")
 	matchRulesP := parser.consumeMatchRules()

@@ -10,6 +10,9 @@ type ParseErrorType int
 const (
 	EXPECTED_OPENING_CURLY_BRACKET ParseErrorType = iota
 	EXPECTED_CLOSING_CURLY_BRACKET
+	EXPECTED_CLOSING_BRACKET_OR_COMMA
+	EXPECTED_ARG
+	EXPECTED_ARG_LIST
 	EXPECTED_EQUAL_SIGN
 	EXPECTED_REPLACE_RULE
 	EXPECTED_MATCH_RULE
@@ -43,11 +46,35 @@ func ErrExpectedOpeningCurlyBracket(tokenizer *kuuhaku_tokenizer.Tokenizer) *Par
 	}
 }
 
+func ErrExpectedClosingBracketOrComma(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	return &ParseError{
+		Message:  "Expected a closing bracket or a comma",
+		Position: tokenizer.PrevPosition,
+		Type:     EXPECTED_CLOSING_BRACKET_OR_COMMA,
+	}
+}
+
 func ErrExpectedClosingCurlyBracket(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
 	return &ParseError{
 		Message:  "Expected a closing curly bracket",
 		Position: tokenizer.PrevPosition,
 		Type:     EXPECTED_CLOSING_CURLY_BRACKET,
+	}
+}
+
+func ErrExpectedArg(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	return &ParseError{
+		Message:  "Expected an argument",
+		Position: tokenizer.PrevPosition,
+		Type:     EXPECTED_ARG,
+	}
+}
+
+func ErrExpectedArgList(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	return &ParseError{
+		Message:  "Expected an argument list",
+		Position: tokenizer.PrevPosition,
+		Type:     EXPECTED_ARG_LIST,
 	}
 }
 
@@ -361,6 +388,57 @@ func (parser *Parser) consumeRegexLiteral() *RegexLiteral {
 	} else {
 		return nil
 	}
+}
+
+
+func (parser *Parser) consumeArgList() *[]LuaLiteral {
+	var argList []LuaLiteral;
+	token, err := parser.tokenizer.Peek()
+	if err != nil {
+		parser.tokenizer.Next()
+		parser.Errors = append(parser.Errors, err)
+		return nil
+	}
+	if token.Type != kuuhaku_tokenizer.OPENING_BRACKET {
+		return nil
+	}
+
+	parser.tokenizer.Next()
+
+	arg := parser.consumeLuaLiteral()
+	if arg == nil {
+		parser.Errors = append(parser.Errors, ErrExpectedArg(&parser.tokenizer))
+		return nil;
+	}
+	argList = append(argList, *arg)
+	
+	for true {
+		token, err := parser.tokenizer.Peek()
+		if err != nil {
+			parser.tokenizer.Next()
+			parser.Errors = append(parser.Errors, err)
+			return nil
+		}
+
+		if token.Type == kuuhaku_tokenizer.CLOSING_BRACKET {
+			parser.tokenizer.Next()
+			break
+		} else if token.Type == kuuhaku_tokenizer.COMMA {
+			parser.tokenizer.Next()
+		} else {
+			parser.Errors = append(parser.Errors, ErrExpectedClosingBracketOrComma(&parser.tokenizer))
+			return nil
+		}
+
+		arg := parser.consumeLuaLiteral()
+		if arg == nil {
+			parser.Errors = append(parser.Errors, ErrExpectedArg(&parser.tokenizer))
+			return nil;
+		}
+		argList = append(argList, *arg)
+	}
+
+	return &argList;	
 }
 
 func (parser *Parser) consumeLuaLiteral() *LuaLiteral {
