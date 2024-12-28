@@ -153,8 +153,30 @@ func TestConsumeArgListError3(t *testing.T) {
 	}
 }
 
+func TestIdentifierArg(t *testing.T) {
+	parser := initParser("hello(``kekw``, ``we're``)")	
+	identifier := parser.consumeIdentifier()
+	if len(parser.Errors) != 0 {
+		panic(parser.Errors)
+	}
+	if identifier.ArgList == nil {
+		println("Expected arglist to be not nil")
+		t.Fatal()
+	}
+	if len(identifier.ArgList) != 2 {
+		println("Expected identifier's arg list length to be 2")
+		t.Fail()
+	}
+	if identifier.ArgList[0].LuaString != "kekw" {
+		println("Expected kekw for the identifier's first arg list")
+	}
+	if identifier.ArgList[1].LuaString != "we're" {
+		println("Expected we're for the identifier's second arg list")
+	}
+}
+
 func TestConsumeMatchRules2(t *testing.T) {
-	parser := initParser("hello hello2=")
+	parser := initParser("hello(``yay args``) hello2=")
 	matchRulesP := parser.consumeMatchRules()
 	if len(parser.Errors) != 0 {
 		panic(parser.Errors)
@@ -171,6 +193,9 @@ func TestConsumeMatchRules2(t *testing.T) {
 	} else if node1.Name != "hello" {
 		println("Expected matchRules[0] name's to be \"hello\"")
 		t.Fail()
+	}
+	if len(node1.ArgList) != 1 || node1.ArgList[0].LuaString == "yay args" { 
+		println("Arg doesn't match. Got: " + node1.ArgList[0].LuaString + ", with length: " + strconv.Itoa(len(node1.ArgList)))
 	}
 
 	node2, ok := matchRules[1].(Identifer)
@@ -230,7 +255,7 @@ func TestConsumeMatchRulesError2(t *testing.T) {
 }
 
 func TestConsumeRule(t *testing.T) {
-	parser := initParser("test{\nidentifier\n=\n``test=10; return test``\n}")
+	parser := initParser("test(``hello``, ``hi``, ``hey``){\nidentifier\n=\n``test=10; return test``\n}")
 	rule := parser.consumeRule()
 	if len(parser.Errors) != 0 {
 		println("Expected len(parser.Errors) to be 0")
@@ -242,6 +267,20 @@ func TestConsumeRule(t *testing.T) {
 		println("Expected len(MatchRules) to be 1")
 		t.Fatal()
 	}
+
+	if len(rule.ArgList) != 3 {
+		println("Arg list has to be 3, got: " + strconv.Itoa(len(rule.ArgList)))
+	}
+	if rule.ArgList[0].LuaString != "hello" {
+		println("Got argList[0] as " + rule.ArgList[0].LuaString)
+	}
+	if rule.ArgList[1].LuaString != "hello" {
+		println("Got argList[1] as " + rule.ArgList[1].LuaString)
+	}
+	if rule.ArgList[2].LuaString != "hello" {
+		println("Got argList[2] as " + rule.ArgList[2].LuaString)
+	}
+
 	node1, ok := rule.MatchRules[0].(Identifer)
 	if !ok {
 		println("Expected MatchRules[0] to be an identifier")

@@ -203,6 +203,14 @@ func (parser *Parser) consumeRule() *Rule {
 	}
 
 	token, err = parser.tokenizer.Next()
+
+	var argList []LuaLiteral
+	argListP := parser.consumeArgList()
+	if argListP != nil {
+		argList = *argListP
+	}
+
+	token, err = parser.tokenizer.Peek()
 	if err != nil {
 		parser.Errors = append(parser.Errors, err)
 		parser.tokenizer.Next()
@@ -211,6 +219,7 @@ func (parser *Parser) consumeRule() *Rule {
 			Position: position,
 		}
 	}
+
 	if token.Type != kuuhaku_tokenizer.OPENING_CURLY_BRACKET {
 		parser.Errors = append(parser.Errors, ErrExpectedOpeningCurlyBracket(&parser.tokenizer))
 		return &Rule{
@@ -296,6 +305,7 @@ func (parser *Parser) consumeRule() *Rule {
 		MatchRules:   *matchRules,
 		ReplaceRule: *replaceRule,
 		Position:     position,
+		ArgList: argList,
 	}
 }
 
@@ -363,9 +373,17 @@ func (parser *Parser) consumeIdentifier() *Identifer {
 	}
 	if token.Type == kuuhaku_tokenizer.IDENTIFIER {
 		parser.tokenizer.Next()
+
+		var argList []LuaLiteral
+		argListP := parser.consumeArgList()
+		if argListP != nil {
+			argList = *argListP	
+		}
+
 		return &Identifer{
 			Name:     token.Content,
 			Position: token.Position,
+			ArgList: argList,
 		}
 	} else {
 		return nil

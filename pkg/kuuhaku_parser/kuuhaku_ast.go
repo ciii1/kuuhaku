@@ -16,6 +16,7 @@ type Rule struct {
 	MatchRules   []MatchRule
 	ReplaceRule  LuaLiteral
 	Position     kuuhaku_tokenizer.Position
+	ArgList      []LuaLiteral
 }
 
 type MatchRule interface {
@@ -25,6 +26,7 @@ type MatchRule interface {
 
 type Identifer struct {
 	Name     string
+	ArgList  []LuaLiteral
 	Position kuuhaku_tokenizer.Position
 }
 
