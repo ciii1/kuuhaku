@@ -18,6 +18,7 @@ const (
 	MULTIPLE_START_SYMBOLS
 	OUT_OF_BOUND_CAPTURE_GROUP
 	INVALID_REGEX
+	INVALID_ARG_LENGTH
 )
 
 type AnalyzeError struct {
@@ -69,6 +70,14 @@ func ErrMultipleStartSymbols(position kuuhaku_tokenizer.Position, startSymbol1 s
 func ErrInvalidRegex(position kuuhaku_tokenizer.Position, regex string, regexError error) *AnalyzeError {
 	return &AnalyzeError{
 		Message:  "Invalid regex: <" + regex + "> (" + regexError.Error() + ")",
+		Position: position,
+		Type:     INVALID_REGEX,
+	}
+}
+
+func ErrInvalidArgLength(position kuuhaku_tokenizer.Position, identifierName string, argLength int) *AnalyzeError {
+	return &AnalyzeError{
+		Message:  strconv.Itoa(argLength) + " is an invalid argument length when using the rule " + identifierName ,
 		Position: position,
 		Type:     INVALID_REGEX,
 	}
@@ -189,7 +198,7 @@ func (analyzer *Analyzer) getAllTerminalsAndLhs(startSymbol string, previousTerm
 					}
 				}
 			} else {
-				identifierCurr, ok := matchRule.(kuuhaku_parser.Identifer)
+				identifierCurr, ok := matchRule.(kuuhaku_parser.Identifier)
 				if ok {
 					if !(*lhsMap)[identifierCurr.Name] {
 						terminalsMap, lhsMap = analyzer.getAllTerminalsAndLhs(identifierCurr.Name, terminalsMap, lhsMap)
@@ -206,7 +215,7 @@ func makeEndSymbolTitle() SymbolTitle {
 }
 
 func getSymbolTitleFromMatchRule(matchRule kuuhaku_parser.MatchRule) SymbolTitle {
-	currIdentifier, ok := matchRule.(kuuhaku_parser.Identifer)
+	currIdentifier, ok := matchRule.(kuuhaku_parser.Identifier)
 	if ok {
 		return SymbolTitle{
 			String: currIdentifier.Name,
@@ -251,7 +260,7 @@ func (analyzer *Analyzer) expandSymbol(rules *[]*kuuhaku_parser.Rule, position i
 			Lookeahead: lookahead,
 		})
 
-		currIdentifier, ok := currMatchRule.(kuuhaku_parser.Identifer)
+		currIdentifier, ok := currMatchRule.(kuuhaku_parser.Identifier)
 		if ok {
 			is_included := false
 			for _, e := range *output {
@@ -491,7 +500,7 @@ func (analyzer *Analyzer) makeAugmentedGrammar(startSymbol string) *Symbol {
 		Name:  ruleName,
 		Order: order,
 		MatchRules: []kuuhaku_parser.MatchRule{
-			kuuhaku_parser.Identifer{
+			kuuhaku_parser.Identifier{
 				Name:     startSymbol,
 				Position: startRules[0].Position,
 			},
@@ -518,25 +527,21 @@ func (analyzer *Analyzer) analyzeStart() []string {
 	for ruleName, ruleArray := range analyzer.input.Rules {
 		for _, rule := range ruleArray {
 			for _, matchRule := range rule.MatchRules {
-				identifier, ok := matchRule.(kuuhaku_parser.Identifer)
+				identifier, ok := matchRule.(kuuhaku_parser.Identifier)
 				if !ok {
 					continue
 				}
+
 				if len(analyzer.input.Rules[identifier.Name]) == 0 {
+					analyzer.Errors = append(analyzer.Errors, ErrUndefinedVariable(identifier.Position, identifier.Name))
+				}
+
+				if !analyzer.doesMatchingArgumentNumberRuleExist(identifier) {
 					analyzer.Errors = append(analyzer.Errors, ErrUndefinedVariable(identifier.Position, identifier.Name))
 				}
 
 				if identifier.Name != ruleName {
 					helper.EmptyStringByValue(&startSymbols, identifier.Name)
-				}
-			}
-			for _, replaceRule := range rule.ReplaceRules {
-				captureGroup, ok := replaceRule.(kuuhaku_parser.CaptureGroup)
-				if !ok {
-					continue
-				}
-				if captureGroup.Number >= len(rule.MatchRules) {
-					analyzer.Errors = append(analyzer.Errors, ErrOutOfBoundCaptureGroup(captureGroup.Position, len(rule.MatchRules)-1))
 				}
 			}
 		}
@@ -551,4 +556,13 @@ func (analyzer *Analyzer) analyzeStart() []string {
 	}
 
 	return outputSymbols
+}
+
+func (analyzer *Analyzer) doesMatchingArgumentNumberRuleExist(ruleName kuuhaku_parser.Identifier) bool {
+	for _, rule := range analyzer.input.Rules[ruleName.Name] {
+		if len(rule.ArgList) == len(ruleName.ArgList) {
+			return true
+		}
+	}
+	return false
 }
