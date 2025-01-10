@@ -79,7 +79,7 @@ func ErrInvalidArgLength(position kuuhaku_tokenizer.Position, identifierName str
 	return &AnalyzeError{
 		Message:  strconv.Itoa(argLength) + " is an invalid argument length when using the rule " + identifierName ,
 		Position: position,
-		Type:     INVALID_REGEX,
+		Type:     INVALID_ARG_LENGTH,
 	}
 }
 
@@ -534,10 +534,8 @@ func (analyzer *Analyzer) analyzeStart() []string {
 
 				if len(analyzer.input.Rules[identifier.Name]) == 0 {
 					analyzer.Errors = append(analyzer.Errors, ErrUndefinedVariable(identifier.Position, identifier.Name))
-				}
-
-				if !analyzer.doesMatchingArgumentNumberRuleExist(identifier) {
-					analyzer.Errors = append(analyzer.Errors, ErrUndefinedVariable(identifier.Position, identifier.Name))
+				} else if !analyzer.doesMatchingArgumentNumberRuleExist(identifier) {
+					analyzer.Errors = append(analyzer.Errors, ErrInvalidArgLength(identifier.Position, identifier.Name, len(identifier.ArgList)))
 				}
 
 				if identifier.Name != ruleName {

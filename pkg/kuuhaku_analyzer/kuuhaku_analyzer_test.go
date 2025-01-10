@@ -13,21 +13,75 @@ import (
 	"github.com/kr/pretty"
 )
 
+func TestErrorInvalidArgumentLength(t *testing.T) {
+	ast, errs := kuuhaku_parser.Parse("identifier{test2(``'hwhwhw'``, ``'hello'``)}\ntest2(``test``){identifier(``'hello'``)}")
+	if len(errs) != 0 {
+		println("Expected parser errors length to be 0")
+		t.Fatal()
+	}
+
+	analyzer := initAnalyzer(&ast)
+	_ = analyzer.analyzeStart()
+
+	println("TestErrorInvalidArgumentLength - Errors:")
+	helper.DisplayAllErrors(analyzer.Errors)
+
+	if len(analyzer.Errors) != 2 {
+		println("Expected analyzer Errors length to be 2")
+		t.Fatal()
+	}
+
+	var analyzeError *AnalyzeError
+	if errors.As(analyzer.Errors[0], &analyzeError) {
+		if analyzeError.Type != INVALID_ARG_LENGTH {
+			println("Expected InvalidArgLength error")
+			t.Fail()
+		}
+		if (analyzeError.Position.Column != 12 || analyzeError.Position.Line != 1) && (analyzeError.Position.Column != 17 || analyzeError.Position.Line != 2) {
+			col := strconv.Itoa(analyzeError.Position.Column)
+			line := strconv.Itoa(analyzeError.Position.Line)
+			println("Expected InvalidArgLength error with column 12 and line 1, got (" + col + ", " + line + ")")
+			t.Fail()
+		}
+	} else {
+		println("Expected AnalyzeError")
+		t.Fail()
+	}
+
+	if errors.As(analyzer.Errors[1], &analyzeError) {
+		if analyzeError.Type != INVALID_ARG_LENGTH {
+			println("Expected InvalidArgLength error")
+			t.Fail()
+		}
+		if (analyzeError.Position.Column != 17 || analyzeError.Position.Line != 2) && (analyzeError.Position.Column != 12 || analyzeError.Position.Line != 1) {
+			col := strconv.Itoa(analyzeError.Position.Column)
+			line := strconv.Itoa(analyzeError.Position.Line)
+			println("Expected InvalidArgLength error with column 17 and line 2, got (" + col + ", " + line + ")")
+			t.Fail()
+		}
+	} else {
+		println("Expected AnalyzeError")
+		t.Fail()
+	}
+}
+
 func TestErrorUndefinedVariable(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest2{identifier}\ntest34{test4}")
 	if len(errs) != 1 {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
+
 	analyzer := initAnalyzer(&ast)
 	_ = analyzer.analyzeStart()
+
+	println("TestErrorUndefinedVariable - Errors:")
+	helper.DisplayAllErrors(analyzer.Errors)
+
 	if len(analyzer.Errors) != 2 {
 		println("Expected analyzer Errors length to be 2")
 		t.Fatal()
 	}
-
-	println("TestErrorUndefinedVariable - Errors:")
-	helper.DisplayAllErrors(analyzer.Errors)
 
 	var analyzeError *AnalyzeError
 	if errors.As(analyzer.Errors[0], &analyzeError) {
@@ -62,64 +116,6 @@ func TestErrorUndefinedVariable(t *testing.T) {
 		t.Fail()
 	}
 
-}
-
-func TestErrorOutOfBoundCaptureGroup(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("identifier{<\\.>=$1}\ntest2{test34 identifier = $5}\ntest34{<test>}")
-	if len(errs) != 0 {
-		println("Expected parser errors length to be 0")
-		t.Fatal()
-	}
-	analyzer := initAnalyzer(&ast)
-	_ = analyzer.analyzeStart()
-	if len(analyzer.Errors) != 2 {
-		println("Expected analyzer Errors length to be 2")
-		t.Fatal()
-	}
-
-	println("TestErrorOutOfBoundCaptureGroup - Errors:")
-	helper.DisplayAllErrors(analyzer.Errors)
-
-	var analyzeError *AnalyzeError
-	if errors.As(analyzer.Errors[0], &analyzeError) {
-		if analyzeError.Type != OUT_OF_BOUND_CAPTURE_GROUP {
-			println("Expected OutOfBoundCaptureGroupError error")
-			t.Fail()
-		}
-		if (analyzeError.Position.Column != 17 || analyzeError.Position.Line != 1) && (analyzeError.Position.Column != 27 || analyzeError.Position.Line != 2) {
-			col := strconv.Itoa(analyzeError.Position.Column)
-			line := strconv.Itoa(analyzeError.Position.Line)
-			println("Expected OutOfBoundCaptureGroupError error with column 12 and line 1, got (" + col + ", " + line + ")")
-			t.Fail()
-		}
-		if analyzeError.Message != "The capture group exceeds the index of the last element in the match rule which is 1" && analyzeError.Message != "The capture group exceeds the index of the last element in the match rule which is 0" {
-			println("Wrong error message, got :\n\t" + analyzeError.Message)
-			t.Fail()
-		}
-	} else {
-		println("Expected AnalyzeError")
-		t.Fail()
-	}
-
-	if errors.As(analyzer.Errors[1], &analyzeError) {
-		if analyzeError.Type != OUT_OF_BOUND_CAPTURE_GROUP {
-			println("Expected OutOfBoundCaptureGroupError error")
-			t.Fail()
-		}
-		if (analyzeError.Position.Column != 17 || analyzeError.Position.Line != 1) && (analyzeError.Position.Column != 27 || analyzeError.Position.Line != 2) {
-			col := strconv.Itoa(analyzeError.Position.Column)
-			line := strconv.Itoa(analyzeError.Position.Line)
-			println("Expected OutOfBoundCaptureGroupError error with column 12 and line 1, got (" + col + ", " + line + ")")
-			t.Fail()
-		}
-		if analyzeError.Message != "The capture group exceeds the index of the last element in the match rule which is 1" && analyzeError.Message != "The capture group exceeds the index of the last element in the match rule which is 0" {
-			println("Wrong error message, got :\n\t" + analyzeError.Message)
-			t.Fail()
-		}
-	} else {
-		println("Expected AnalyzeError")
-		t.Fail()
-	}
 }
 
 func TestStartSymbols(t *testing.T) {

@@ -24,14 +24,14 @@ type MatchRule interface {
 	GetPosition() kuuhaku_tokenizer.Position
 }
 
-type Identifer struct {
+type Identifier struct {
 	Name     string
 	ArgList  []LuaLiteral
 	Position kuuhaku_tokenizer.Position
 }
 
-func (i Identifer) matchRule() {}
-func (i Identifer) GetPosition() kuuhaku_tokenizer.Position {
+func (i Identifier) matchRule() {}
+func (i Identifier) GetPosition() kuuhaku_tokenizer.Position {
 	return i.Position
 }
 

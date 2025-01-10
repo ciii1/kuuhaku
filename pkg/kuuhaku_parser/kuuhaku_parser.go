@@ -364,7 +364,7 @@ func (parser *Parser) consumeToMatchRuleArray(matchRuleArray *[]MatchRule) (bool
 	return false, false
 }
 
-func (parser *Parser) consumeIdentifier() *Identifer {
+func (parser *Parser) consumeIdentifier() *Identifier {
 	token, err := parser.tokenizer.Peek()
 	if err != nil {
 		parser.tokenizer.Next()
@@ -380,7 +380,7 @@ func (parser *Parser) consumeIdentifier() *Identifer {
 			argList = *argListP	
 		}
 
-		return &Identifer{
+		return &Identifier{
 			Name:     token.Content,
 			Position: token.Position,
 			ArgList: argList,
