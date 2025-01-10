@@ -43,6 +43,9 @@ func TestErrorInvalidArgumentLength(t *testing.T) {
 			println("Expected InvalidArgLength error with column 12 and line 1, got (" + col + ", " + line + ")")
 			t.Fail()
 		}
+		if (analyzeError.Message[0] != '1' && analyzeError.Message[0] != '2') {
+			println("Expected the message to start with a 1")
+		}
 	} else {
 		println("Expected AnalyzeError")
 		t.Fail()
@@ -58,6 +61,9 @@ func TestErrorInvalidArgumentLength(t *testing.T) {
 			line := strconv.Itoa(analyzeError.Position.Line)
 			println("Expected InvalidArgLength error with column 17 and line 2, got (" + col + ", " + line + ")")
 			t.Fail()
+		}
+		if (analyzeError.Message[0] != '1' && analyzeError.Message[0] != '2') {
+			println("Expected the message to start with a 2")
 		}
 	} else {
 		println("Expected AnalyzeError")
