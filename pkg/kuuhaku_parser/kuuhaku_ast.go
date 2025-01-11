@@ -11,12 +11,12 @@ type Ast struct {
 }
 
 type Rule struct {
-	Name         string
-	Order        int
-	MatchRules   []MatchRule
-	ReplaceRule  LuaLiteral
-	Position     kuuhaku_tokenizer.Position
-	ArgList      []LuaLiteral
+	Name        string
+	Order       int
+	MatchRules  []MatchRule
+	ReplaceRule LuaLiteral
+	Position    kuuhaku_tokenizer.Position
+	ArgList     []LuaLiteral
 }
 
 type MatchRule interface {
@@ -47,5 +47,13 @@ func (r RegexLiteral) GetPosition() kuuhaku_tokenizer.Position {
 
 type LuaLiteral struct {
 	LuaString string
-	Position    kuuhaku_tokenizer.Position
+	Position  kuuhaku_tokenizer.Position
+	Type LuaLiteralType
 }
+
+const (
+	LUA_LITERAL_TYPE_MULTI_STMT = iota
+	LUA_LITERAL_TYPE_RETURN
+)
+
+type LuaLiteralType int

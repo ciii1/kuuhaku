@@ -44,7 +44,6 @@ func TestIdentifierWithNumber(t *testing.T) {
 	}
 }
 
-
 func TestSearchMode(t *testing.T) {
 	tokenizer := Init("SEARCH_MODE a9230\nSEARCH_MODE2\nSEARCH_MODE")
 	token, err := tokenizer.Peek()
@@ -117,6 +116,76 @@ func TestComment(t *testing.T) {
 	token, err = tokenizer.Next()
 	helper.Check(err)
 	if token.Content != "test" || token.Type != IDENTIFIER {
+		t.Fail()
+	}
+}
+
+func TestLuaReturnLiteralBasic(t *testing.T) {
+	tokenizer := Init("`hello``test`")
+	token, err := tokenizer.Peek()
+	helper.Check(err)
+	if token.Content != "hello" || token.Type != LUA_RETURN_LITERAL {
+		println("Expected \"hello\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "test" || token.Type != LUA_RETURN_LITERAL {
+		println("Expected \"test\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+}
+func TestLuaReturnLiteralEscapes(t *testing.T) {
+	tokenizer := Init("`hello\\n` `test\\`` `test2\\\\`")
+	token, err := tokenizer.Peek()
+	helper.Check(err)
+	if token.Content != "hello\\n" || token.Type != LUA_RETURN_LITERAL {
+		println("Expected 'hello\\n', got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "test`" || token.Type != LUA_RETURN_LITERAL {
+		println("Expected \"test`\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Content != "test2\\\\" || token.Type != LUA_RETURN_LITERAL {
+		println("Expected \"test2\\\\\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+}
+
+func TestLuaReturnLiteralUnterminated(t *testing.T) {
+	tokenizer := Init("`nice` `hello\n`")
+	token, err := tokenizer.Peek()
+	helper.Check(err)
+	if token.Content != "nice" || token.Type != LUA_RETURN_LITERAL {
+		println("Expected \"nice\", got \"" + token.Content + "\"")
+		t.Fail()
+	}
+	_, err = tokenizer.Next()
+	var tokenizeError *TokenizeError
+	if errors.As(err, &tokenizeError) {
+		if tokenizeError.Type != LUA_RETURN_LITERAL_UNTERMINATED {
+			println("Expected LuaLiteralUnterminatedError")
+			t.Fail()
+		}
+		if tokenizeError.Position.Column != 14 {
+			println("Expected column number to be 14")
+			t.Fail()
+		}
+		if tokenizeError.Position.Raw != 13 {
+			println("Expected raw to be 13")
+			t.Fail()
+		}
+		if tokenizeError.Position.Line != 1 {
+			println("Expected line number to be 1")
+			t.Fail()
+		}
+	} else {
+		println("Expected TokenizeError")
 		t.Fail()
 	}
 }

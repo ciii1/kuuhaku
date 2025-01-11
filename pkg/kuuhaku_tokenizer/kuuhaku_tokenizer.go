@@ -10,6 +10,7 @@ const (
 	PATTERN_UNRECOGNIZED = iota
 	REGEX_LITERAL_UNTERMINATED
 	LUA_LITERAL_UNTERMINATED
+	LUA_RETURN_LITERAL_UNTERMINATED
 	ILLEGAL_CAPTURE_GROUP
 )
 
@@ -38,6 +39,14 @@ func ErrRegexLiteralUnterminated(tokenizer Tokenizer) *TokenizeError {
 	}
 }
 
+func ErrLuaReturnLiteralUnterminated(tokenizer Tokenizer) *TokenizeError {
+	return &TokenizeError{
+		Message:  "Regex literal is not terminated",
+		Position: tokenizer.Position,
+		Type:     LUA_RETURN_LITERAL_UNTERMINATED,
+	}
+}
+
 // we want the position instead of the tokenizer because the position we have to display is not the current position
 func ErrLuaLiteralUnterminated(pos Position) *TokenizeError {
 	return &TokenizeError{
@@ -54,6 +63,7 @@ const (
 	REGEX_LITERAL
 	STRING_LITERAL
 	LUA_LITERAL
+	LUA_RETURN_LITERAL
 	OPENING_CURLY_BRACKET
 	CLOSING_CURLY_BRACKET
 	OPENING_BRACKET
@@ -156,6 +166,14 @@ func (tokenizer *Tokenizer) Next() (*Token, error) {
 	}
 
 	token, err := tokenizer.consumeLuaLiteral()
+	if err != nil {
+		return tokenizer.returnToken(nil, err)
+	}
+	if token != nil {
+		return tokenizer.returnToken(token, nil)
+	}
+
+	token, err = tokenizer.consumeLuaReturnLiteral()
 	if err != nil {
 		return tokenizer.returnToken(nil, err)
 	}
@@ -422,6 +440,47 @@ func (tokenizer *Tokenizer) consumeLuaLiteral() (*Token, error) {
 			Line:   line,
 		},
 		Type:    LUA_LITERAL,
+		Content: content,
+	}, nil
+}
+
+func (tokenizer *Tokenizer) consumeLuaReturnLiteral() (*Token, error) {
+	positionRaw := tokenizer.Position.Raw
+	column := tokenizer.Position.Column
+	line := tokenizer.Position.Line
+	content := ""
+
+	currChar := tokenizer.peekChar()
+	if currChar != '`' {
+		return nil, nil
+	}
+
+	prevPrevChar := byte(0)
+	prevChar := tokenizer.peekChar()
+	currChar = tokenizer.nextChar()
+	for currChar != '`' || (prevChar == '\\' && prevPrevChar != '\\') {
+		prevPrevChar = prevChar
+		prevChar = tokenizer.peekChar()
+		currChar = tokenizer.nextChar()
+		//For escaping characters
+		if currChar == '`' && prevChar == '\\' && prevPrevChar != '\\' {
+
+		} else {
+			content += string(prevChar)
+		}
+		if currChar == '\n' || currChar == '\003' {
+			return nil, ErrLuaReturnLiteralUnterminated(*tokenizer)
+		}
+	}
+	tokenizer.nextChar()
+
+	return &Token{
+		Position: Position{
+			Raw:    positionRaw,
+			Column: column,
+			Line:   line,
+		},
+		Type:    LUA_RETURN_LITERAL,
 		Content: content,
 	}, nil
 }

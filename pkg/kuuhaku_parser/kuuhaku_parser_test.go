@@ -59,7 +59,7 @@ func TestConsumeMatchRules(t *testing.T) {
 }
 
 func TestConsumeArgList(t *testing.T) {
-	parser := initParser("(``test``, ``test3``, ``test2``)")
+	parser := initParser("(`test`, ``test3``, ``test2``)")
 	argsP := parser.consumeArgList()
 	if len(parser.Errors) != 0 {
 		println("TestConsumeArgList - All errors:")
@@ -70,16 +70,31 @@ func TestConsumeArgList(t *testing.T) {
 		println("Expected args length to be 3, got " + strconv.Itoa(len(args)))
 		t.Fatal()
 	}
+
 	if args[0].LuaString != "test" {
 		println("Expected args[0] to contain 'test'")
 		t.Fail()
 	}
+	if args[0].Type != LUA_LITERAL_TYPE_RETURN {
+		println("Expected args[0] to be a lua return literal")
+		t.Fail()
+	}
+
 	if args[1].LuaString != "test3" {
 		println("Expected args[1] to contain 'test3'")
 		t.Fail()
 	}
+	if args[1].Type != LUA_LITERAL_TYPE_MULTI_STMT {
+		println("Expected args[1] to be a lua multi statement literal")
+		t.Fail()
+	}
+
 	if args[2].LuaString != "test2" {
 		println("Expected args[0] to contain 'test2'")
+		t.Fail()
+	}
+	if args[2].Type != LUA_LITERAL_TYPE_MULTI_STMT {
+		println("Expected args[2] to be a lua multi statement literal")
 		t.Fail()
 	}
 }
@@ -154,7 +169,7 @@ func TestConsumeArgListError3(t *testing.T) {
 }
 
 func TestIdentifierArg(t *testing.T) {
-	parser := initParser("hello(``kekw``, ``we're``)")	
+	parser := initParser("hello(``kekw``, ``we're``)")
 	identifier := parser.consumeIdentifier()
 	if len(parser.Errors) != 0 {
 		panic(parser.Errors)
@@ -186,7 +201,7 @@ func TestConsumeMatchRules2(t *testing.T) {
 		println("Expected matchRules length to be 2")
 		t.Fail()
 	}
-	node1, ok := matchRules[0].(Identifer)
+	node1, ok := matchRules[0].(Identifier)
 	if ok == false {
 		println("Expected matchRules[0] to be an identifier")
 		t.Fail()
@@ -194,11 +209,11 @@ func TestConsumeMatchRules2(t *testing.T) {
 		println("Expected matchRules[0] name's to be \"hello\"")
 		t.Fail()
 	}
-	if len(node1.ArgList) != 1 || node1.ArgList[0].LuaString == "yay args" { 
+	if len(node1.ArgList) != 1 || node1.ArgList[0].LuaString == "yay args" {
 		println("Arg doesn't match. Got: " + node1.ArgList[0].LuaString + ", with length: " + strconv.Itoa(len(node1.ArgList)))
 	}
 
-	node2, ok := matchRules[1].(Identifer)
+	node2, ok := matchRules[1].(Identifier)
 	if ok == false {
 		println("Expected matchRules[1] to be an identifier")
 		t.Fail()
@@ -255,8 +270,9 @@ func TestConsumeMatchRulesError2(t *testing.T) {
 }
 
 func TestConsumeRule(t *testing.T) {
-	parser := initParser("test(``hello``, ``hi``, ``hey``){\nidentifier\n=\n``test=10; return test``\n}")
+	parser := initParser("test(``hello``, ``hi``, ``hey``){\nidentifier\n=\n``test=10; return test``\n} test(``a``){test}")
 	rule := parser.consumeRule()
+	rule2 := parser.consumeRule()
 	if len(parser.Errors) != 0 {
 		println("Expected len(parser.Errors) to be 0")
 		println("TestConsumeRule - All errors:")
@@ -271,6 +287,12 @@ func TestConsumeRule(t *testing.T) {
 	if len(rule.ArgList) != 3 {
 		println("Arg list has to be 3, got: " + strconv.Itoa(len(rule.ArgList)))
 	}
+
+	if len(rule2.ArgList) != 1 {
+		println("Expected len(rule2.ArgList) to be 1")
+		t.Fatal()
+	}
+
 	if rule.ArgList[0].LuaString != "hello" {
 		println("Got argList[0] as " + rule.ArgList[0].LuaString)
 	}
@@ -281,7 +303,7 @@ func TestConsumeRule(t *testing.T) {
 		println("Got argList[2] as " + rule.ArgList[2].LuaString)
 	}
 
-	node1, ok := rule.MatchRules[0].(Identifer)
+	node1, ok := rule.MatchRules[0].(Identifier)
 	if !ok {
 		println("Expected MatchRules[0] to be an identifier")
 		t.Fail()
