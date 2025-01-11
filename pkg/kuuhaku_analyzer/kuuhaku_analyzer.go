@@ -9,6 +9,7 @@ import (
 	"github.com/ciii1/kuuhaku/internal/helper"
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_parser"
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_tokenizer"
+	"github.com/yuin/gopher-lua"
 )
 
 type AnalyzeErrorType int
@@ -19,6 +20,7 @@ const (
 	OUT_OF_BOUND_CAPTURE_GROUP
 	INVALID_REGEX
 	INVALID_ARG_LENGTH
+	INVALID_LUA_LITERAL
 )
 
 type AnalyzeError struct {
@@ -77,9 +79,17 @@ func ErrInvalidRegex(position kuuhaku_tokenizer.Position, regex string, regexErr
 
 func ErrInvalidArgLength(position kuuhaku_tokenizer.Position, identifierName string, argLength int) *AnalyzeError {
 	return &AnalyzeError{
-		Message:  strconv.Itoa(argLength) + " is an invalid argument length when using the rule " + identifierName ,
+		Message:  strconv.Itoa(argLength) + " is an invalid argument length when using the rule " + identifierName,
 		Position: position,
 		Type:     INVALID_ARG_LENGTH,
+	}
+}
+
+func ErrInvalidLuaLiteral(position kuuhaku_tokenizer.Position, luaError string) *AnalyzeError {
+	return &AnalyzeError{
+		Message:  "Invalid Lua literal. Error:\n\t " + luaError,
+		Position: position,
+		Type:     INVALID_LUA_LITERAL,
 	}
 }
 
@@ -515,6 +525,24 @@ func (analyzer *Analyzer) makeAugmentedGrammar(startSymbol string) *Symbol {
 	}
 }
 
+func (analyzer *Analyzer) analyzeLuaLiteral(source kuuhaku_parser.LuaLiteral) string {
+	L := lua.NewState()
+	defer L.Close()
+
+	outStr := ""
+	if source.Type == kuuhaku_parser.LUA_LITERAL_TYPE_RETURN {
+		outStr += "return "	
+	}
+	outStr += source.LuaString
+
+	_, err := L.LoadString(outStr)
+	if err != nil {
+		analyzer.Errors = append(analyzer.Errors, ErrInvalidLuaLiteral(source.Position, err.Error()))
+	}
+
+	return outStr
+}
+
 // return start symbols
 func (analyzer *Analyzer) analyzeStart() []string {
 	startSymbols := make([]string, len(analyzer.input.Rules))
@@ -526,6 +554,10 @@ func (analyzer *Analyzer) analyzeStart() []string {
 
 	for ruleName, ruleArray := range analyzer.input.Rules {
 		for _, rule := range ruleArray {
+			for _, arg := range rule.ArgList {
+				analyzer.analyzeLuaLiteral(arg)
+			}
+			analyzer.analyzeLuaLiteral(rule.ReplaceRule)
 			for _, matchRule := range rule.MatchRules {
 				identifier, ok := matchRule.(kuuhaku_parser.Identifier)
 				if !ok {
@@ -536,6 +568,10 @@ func (analyzer *Analyzer) analyzeStart() []string {
 					analyzer.Errors = append(analyzer.Errors, ErrUndefinedVariable(identifier.Position, identifier.Name))
 				} else if !analyzer.doesMatchingArgumentNumberRuleExist(identifier) {
 					analyzer.Errors = append(analyzer.Errors, ErrInvalidArgLength(identifier.Position, identifier.Name, len(identifier.ArgList)))
+				}
+
+				for _, arg := range identifier.ArgList {
+					analyzer.analyzeLuaLiteral(arg)
 				}
 
 				if identifier.Name != ruleName {

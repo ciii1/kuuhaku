@@ -14,7 +14,7 @@ import (
 )
 
 func TestErrorInvalidArgumentLength(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("identifier{test2(``'hwhwhw'``, ``'hello'``)}\ntest2(``test``){identifier(``'hello'``)}")
+	ast, errs := kuuhaku_parser.Parse("identifier{test2(`'test'`)}\ntest2(`test`){identifier(`'hello'`)}")
 	if len(errs) != 0 {
 		println("Expected parser errors length to be 0")
 		t.Fatal()
@@ -26,8 +26,8 @@ func TestErrorInvalidArgumentLength(t *testing.T) {
 	println("TestErrorInvalidArgumentLength - Errors:")
 	helper.DisplayAllErrors(analyzer.Errors)
 
-	if len(analyzer.Errors) != 2 {
-		println("Expected analyzer Errors length to be 2")
+	if len(analyzer.Errors) != 1 {
+		println("Expected analyzer Errors length to be 1")
 		t.Fatal()
 	}
 
@@ -37,33 +37,14 @@ func TestErrorInvalidArgumentLength(t *testing.T) {
 			println("Expected InvalidArgLength error")
 			t.Fail()
 		}
-		if (analyzeError.Position.Column != 12 || analyzeError.Position.Line != 1) && (analyzeError.Position.Column != 17 || analyzeError.Position.Line != 2) {
+		if analyzeError.Position.Column != 15 || analyzeError.Position.Line != 2 {
 			col := strconv.Itoa(analyzeError.Position.Column)
 			line := strconv.Itoa(analyzeError.Position.Line)
-			println("Expected InvalidArgLength error with column 12 and line 1, got (" + col + ", " + line + ")")
+			println("Expected InvalidArgLength error with column 15 and line 2, got (" + col + ", " + line + ")")
 			t.Fail()
 		}
-		if (analyzeError.Message[0] != '1' && analyzeError.Message[0] != '2') {
+		if analyzeError.Message[0] != '1' {
 			println("Expected the message to start with a 1")
-		}
-	} else {
-		println("Expected AnalyzeError")
-		t.Fail()
-	}
-
-	if errors.As(analyzer.Errors[1], &analyzeError) {
-		if analyzeError.Type != INVALID_ARG_LENGTH {
-			println("Expected InvalidArgLength error")
-			t.Fail()
-		}
-		if (analyzeError.Position.Column != 17 || analyzeError.Position.Line != 2) && (analyzeError.Position.Column != 12 || analyzeError.Position.Line != 1) {
-			col := strconv.Itoa(analyzeError.Position.Column)
-			line := strconv.Itoa(analyzeError.Position.Line)
-			println("Expected InvalidArgLength error with column 17 and line 2, got (" + col + ", " + line + ")")
-			t.Fail()
-		}
-		if (analyzeError.Message[0] != '1' && analyzeError.Message[0] != '2') {
-			println("Expected the message to start with a 2")
 		}
 	} else {
 		println("Expected AnalyzeError")

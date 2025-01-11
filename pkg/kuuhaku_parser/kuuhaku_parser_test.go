@@ -270,7 +270,7 @@ func TestConsumeMatchRulesError2(t *testing.T) {
 }
 
 func TestConsumeRule(t *testing.T) {
-	parser := initParser("test(``hello``, ``hi``, ``hey``){\nidentifier\n=\n``test=10; return test``\n} test(``a``){test}")
+	parser := initParser("test(``hello``, `hi`, ``hey``){\nidentifier\n=\n``test=10; return test``\n} test(``a``){test}")
 	rule := parser.consumeRule()
 	rule2 := parser.consumeRule()
 	if len(parser.Errors) != 0 {
