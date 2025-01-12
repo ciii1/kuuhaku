@@ -98,8 +98,8 @@ func Format(input string, format *kuuhaku_analyzer.AnalyzerResult) (string, erro
 		}
 
 		isThereSuccess := false
-		//TODO: Investigate. I'm pretty sure we can have only one parse table even if we have multiple start symbols
-		//For example, by adding one start symbol as the "unifier"
+		// We cannot have only one parse table for multiple start symbols because that'll 
+		// prevent us from having the backtracking mechanism
 		for _, parseTable := range format.ParseTables {
 			res, resPos, err := runParseTable(input, currPos, &parseTable)
 			if err == nil {
