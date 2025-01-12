@@ -358,7 +358,7 @@ func (parser *Parser) consumeMatchRules() *[]MatchRule {
 	return &output
 }
 
-/* returns (ok bool, isRegexLiteral bool) */
+// returns (ok bool, isRegexLiteral bool) 
 func (parser *Parser) consumeToMatchRuleArray(matchRuleArray *[]MatchRule) (bool, bool) {
 	identifier := parser.consumeIdentifier()
 	if identifier != nil {

@@ -141,7 +141,8 @@ func addToPositionFromSlicedString(prevPos kuuhaku_tokenizer.Position, sliced st
 	}
 
 	//i is always -1 if a \n wasn't found. This is because the condition i >= 0 will not be satisfied untill
-	//i == -1, while sliced[i] != '\n' will only be satisfied if i > -1
+	//i == -1, while sliced[i] != '\n' will only be satisfied if i > -1. So it is safe to check if i > -1 to
+	//check for newlines
 
 	if i >= 0 {
 		col = colIfContainsNewLine
