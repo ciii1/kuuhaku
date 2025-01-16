@@ -128,23 +128,17 @@ func ErrReduceRuleIsNotMatching(position kuuhaku_tokenizer.Position) *RuntimeErr
 	}
 }
 
-func Format(input string, format *kuuhaku_analyzer.AnalyzerResult) (string, error) {
+func Format(input string, format *kuuhaku_analyzer.AnalyzerResult, isRun bool) (string, error) {
 	var currPos kuuhaku_tokenizer.Position
 	currPos.Line = 1
+	currPos.Column = 1
 	out := ""
 	for currPos.Raw < len(input) {
-		if input[currPos.Raw] == '\n' {
-			currPos.Line++
-			currPos.Column = 1
-		} else {
-			currPos.Column++
-		}
-
 		isThereSuccess := false
 		// We cannot have only one parse table for multiple start symbols because that'll 
 		// prevent us from having the backtracking mechanism
 		for _, parseTable := range format.ParseTables {
-			res, resPos, err := runParseTable(input, currPos, &parseTable)
+			res, resPos, err := runParseTable(input, currPos, &parseTable, isRun)
 			if err == nil {
 				isThereSuccess = true
 				currPos = resPos
@@ -175,7 +169,7 @@ func addToPositionFromSlicedString(prevPos kuuhaku_tokenizer.Position, sliced st
 
 	i := len(sliced) - 1
 	for i >= 0 {
-		if sliced[i] != '\n' {
+		if sliced[i] == '\n' {
 			break
 		}
 		col++
@@ -205,7 +199,7 @@ func addToPositionFromSlicedString(prevPos kuuhaku_tokenizer.Position, sliced st
 	}
 }
 
-func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuuhaku_analyzer.ParseTable) (string, kuuhaku_tokenizer.Position, error) {
+func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuuhaku_analyzer.ParseTable, isRun bool) (string, kuuhaku_tokenizer.Position, error) {
 	var parseStack []ParseStackElement
 	currState := 0
 	lookahead := ""
@@ -283,8 +277,13 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 	if len(parseStack) != 1 {
 		return "", pos, ErrParseStackIsNotEmpty(pos)
 	}
-	printParseStack(&parseStack)
-	return runParseStack(&parseStack), pos, nil
+	out := ""
+	if isRun {
+		out = runParseStack(&parseStack)
+	} else {
+		out = parseStackToString(&parseStack)
+	}
+	return out, pos, nil
 }
 
 func printParseStack(parseStack *[]ParseStackElement) {
@@ -296,6 +295,18 @@ func printParseStack(parseStack *[]ParseStackElement) {
 		print(parseStackElement.GetString())
 	}
 	println("]")
+}
+
+func parseStackToString(parseStack *[]ParseStackElement) string {
+	out := "["
+	for i, parseStackElement := range *parseStack {
+		if i != 0 {
+			out += ","
+		}
+		out += parseStackElement.GetString()
+	}
+	out += "]"
+	return out
 }
 
 func runParseStack(parseStack *[]ParseStackElement) string {
