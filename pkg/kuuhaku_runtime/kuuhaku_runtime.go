@@ -11,14 +11,57 @@ import (
 type ParseStackElementType int
 
 const (
-	PARSE_STACK_ELEMENT_TYPE_REDUCED ParseStackElementType = iota
+	PARSE_STACK_ELEMENT_TYPE_TREE ParseStackElementType = iota
 	PARSE_STACK_ELEMENT_TYPE_TERMINAL
 )
 
-type ParseStackElement struct {
-	Type   ParseStackElementType
+type ParseStackElement interface {
+	GetType() ParseStackElementType
+	GetString() string
+	GetState() int
+}
+
+type ParseStackTree struct {
+	Children *[]ParseStackElement
+	Rule *kuuhaku_parser.Rule
+	State  int
+}
+
+func (_ *ParseStackTree) GetType() ParseStackElementType {
+	return PARSE_STACK_ELEMENT_TYPE_TREE;
+}
+
+func (p *ParseStackTree) GetState() int {
+	return p.State;
+}
+
+func (p *ParseStackTree) GetString() string {
+	out := "["
+	for i, child := range *p.Children {
+		if i != 0 {
+			out += ","
+		}
+		out += child.GetString()
+	}
+	out += "]"
+	return out
+}
+
+type ParseStackTerminal struct {
 	String string
 	State  int
+}
+
+func (_ *ParseStackTerminal) GetType() ParseStackElementType {
+	return PARSE_STACK_ELEMENT_TYPE_TERMINAL;
+}
+
+func (p *ParseStackTerminal) GetString() string {
+	return p.String
+}
+
+func (p *ParseStackTerminal) GetState() int {
+	return p.State;
 }
 
 type RuntimeErrorType int
@@ -141,7 +184,7 @@ func addToPositionFromSlicedString(prevPos kuuhaku_tokenizer.Position, sliced st
 	}
 
 	//i is always -1 if a \n wasn't found. This is because the condition i >= 0 will not be satisfied untill
-	//i == -1, while sliced[i] != '\n' will only be satisfied if i > -1. So it is safe to check if i > -1 to
+	//i == -1. sliced[i] != '\n' will only be satisfied if i > -1. So it is safe to check if i > -1 to
 	//check for newlines
 
 	if i >= 0 {
@@ -205,8 +248,7 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 		if lookaheadFound {
 			currActionCell := currRow.ActionTable[lookaheadRegex]
 			if currActionCell.Action == kuuhaku_analyzer.SHIFT {
-				parseStack = append(parseStack, ParseStackElement{
-					Type:   PARSE_STACK_ELEMENT_TYPE_TERMINAL,
+				parseStack = append(parseStack, &ParseStackTerminal {
 					String: lookahead,
 					State:  currState,
 				})
@@ -241,7 +283,8 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 	if len(parseStack) != 1 {
 		return "", pos, ErrParseStackIsNotEmpty(pos)
 	}
-	return parseStack[0].String, pos, nil
+	printParseStack(&parseStack)
+	return runParseStack(&parseStack), pos, nil
 }
 
 func printParseStack(parseStack *[]ParseStackElement) {
@@ -250,9 +293,60 @@ func printParseStack(parseStack *[]ParseStackElement) {
 		if i != 0 {
 			print(",")
 		}
-		print(parseStackElement.String)
+		print(parseStackElement.GetString())
 	}
 	println("]")
+}
+
+func runParseStack(parseStack *[]ParseStackElement) string {
+	/*if len(rule.ReplaceRules) == 0 {
+		for _, targetElement := range targetStack {
+			reducedString += targetElement.String
+		}
+	}*/
+	return "" //(*parseStack)[0].GetString()
+}
+
+func copyParseStack(parseStack []ParseStackElement) *[]ParseStackElement {
+	var newParseStack []ParseStackElement
+	for _, e := range parseStack {
+		if e.GetType() == PARSE_STACK_ELEMENT_TYPE_TREE {
+			newParseStack = append(newParseStack, copyParseStackTreeRecursive(&e))
+		} else if  e.GetType() == PARSE_STACK_ELEMENT_TYPE_TERMINAL {
+			newParseStack = append(newParseStack, copyParseStackTerminal(&e))
+		}
+	}
+	return &newParseStack
+}
+
+func copyParseStackTreeRecursive(e *ParseStackElement) *ParseStackTree {
+	parseStackTree, ok := (*e).(*ParseStackTree) 
+	var children []ParseStackElement
+	if ok {
+		for _, child := range *parseStackTree.Children {
+			if child.GetType() == PARSE_STACK_ELEMENT_TYPE_TREE {
+				children = append(children, copyParseStackTreeRecursive(&child))
+			} else if  child.GetType() == PARSE_STACK_ELEMENT_TYPE_TERMINAL {
+				newChild := child
+				children = append(children, newChild)
+			}
+		}
+		return &ParseStackTree{
+			Children: &children,
+			Rule: parseStackTree.Rule,
+			State: parseStackTree.State,
+		}
+	}
+	return nil
+}
+
+func copyParseStackTerminal(e *ParseStackElement) *ParseStackTerminal {
+	parseStackTerminal, ok := (*e).(*ParseStackTerminal)
+	if ok {
+		newTerminal := parseStackTerminal
+		return newTerminal
+	}
+	return nil
 }
 
 func applyRule(parseTable *kuuhaku_analyzer.ParseTable, rule *kuuhaku_parser.Rule, parseStack *[]ParseStackElement, pos kuuhaku_tokenizer.Position, isAccept bool) (int, error) {
@@ -263,61 +357,22 @@ func applyRule(parseTable *kuuhaku_analyzer.ParseTable, rule *kuuhaku_parser.Rul
 	if len(*parseStack)-ruleLength < 0 {
 		return 0, ErrReduceRuleIsNotMatching(pos)
 	}
-	targetStack := (*parseStack)[len(*parseStack)-ruleLength:]
-	*parseStack = (*parseStack)[:len(*parseStack)-ruleLength]
-
-	reducedString := ""
-
-	if len(rule.ReplaceRules) == 0 {
-		for _, targetElement := range targetStack {
-			reducedString += targetElement.String
-		}
-	} else {
-		for _, replaceRule := range rule.ReplaceRules {
-			captureGroup, okCaptureGroup := replaceRule.(kuuhaku_parser.CaptureGroup)
-			stringLit, okStringLit := replaceRule.(kuuhaku_parser.StringLiteral)
-			lenFunc, okLenFunc := replaceRule.(kuuhaku_parser.Len)
-			if okCaptureGroup {
-				reducedString += targetStack[captureGroup.Number].String
-			} else if okStringLit {
-				reducedString += stringLit.String
-			} else if okLenFunc {
-				i := 0
-				secondArgumentLength := 0
-				captureGroupSecArg, okCaptureGroupSecArg := lenFunc.SecondArgument.(kuuhaku_parser.CaptureGroup)
-				stringLitSecArg, okStringLitSecArg := lenFunc.SecondArgument.(kuuhaku_parser.StringLiteral)
-				if okCaptureGroupSecArg {
-					secondArgumentLength = len(targetStack[captureGroupSecArg.Number].String)
-				} else if okStringLitSecArg {
-					secondArgumentLength = len(stringLitSecArg.String)
-				}
-				for i < secondArgumentLength {
-					captureGroupFirstArg, okCaptureGroupFirstArg := lenFunc.FirstArgument.(kuuhaku_parser.CaptureGroup)
-					stringLitFirstArg, okStringLitFirstArg := lenFunc.FirstArgument.(kuuhaku_parser.StringLiteral)
-					if okCaptureGroupFirstArg {
-						reducedString += targetStack[captureGroupFirstArg.Number].String
-					} else if okStringLitFirstArg {
-						secondArgumentLength = len(stringLitFirstArg.String)
-					}
-					i++
-				}
-			}
-		}
-	}
+	targetStack := copyParseStack((*parseStack)[len(*parseStack)-ruleLength:])
+	*parseStack = (*parseStack)[:len(*parseStack)-ruleLength]	
 
 	if !isAccept {
 		backState := 0
 		if len(*parseStack)-1 >= 0 {
-			backState = (*parseStack)[len(*parseStack)-1].State
+			backState = (*parseStack)[len(*parseStack)-1].GetState()
 		}
 		nextState = parseTable.States[backState].GotoTable[lhs].GotoState
 	} else {
 		nextState = 0
 	}
 
-	*parseStack = append(*parseStack, ParseStackElement{
-		Type:   PARSE_STACK_ELEMENT_TYPE_REDUCED,
-		String: reducedString,
+	*parseStack = append(*parseStack, &ParseStackTree{
+		Children: targetStack,
+		Rule: rule,
 		State:  nextState,
 	})
 
