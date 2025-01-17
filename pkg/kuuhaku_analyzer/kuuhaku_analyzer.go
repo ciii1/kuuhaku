@@ -638,7 +638,7 @@ func PrintParseTable(parseTable *ParseTable) {
 		print(" ")
 		i++
 	}
-	print(" ||")
+	print(" || $end ||")
 
 	for _, terminal := range parseTable.Terminals {
 		print(" " + terminal.Terminal)
@@ -667,7 +667,7 @@ func PrintParseTable(parseTable *ParseTable) {
 		print("-")
 		i++
 	}
-	print("-++")
+	print("-++------++")
 	for _, terminal := range parseTable.Terminals {
 		print("-")
 		for range terminal.Terminal {
@@ -680,7 +680,7 @@ func PrintParseTable(parseTable *ParseTable) {
 		}
 		print("-+")
 	}
-	print("++")
+	print("+")
 	for _, lhs := range parseTable.Lhss {
 		print("-")
 		for range lhs {
@@ -704,6 +704,12 @@ func PrintParseTable(parseTable *ParseTable) {
 			i++
 		}
 		print(" ||")
+
+		if state.EndReduceRule != nil {
+			print(" acc  ||")
+		} else {
+			print("      ||")
+		}
 		
 		for _, terminal := range parseTable.Terminals {
 			print(" ")
