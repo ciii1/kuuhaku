@@ -615,14 +615,14 @@ func PrintParseTable(parseTable *ParseTable) {
 		for _, terminal := range parseTable.Terminals {
 			if state.ActionTable[terminal.Terminal] != nil {
 				if len(strconv.Itoa(state.ActionTable[terminal.Terminal].ShiftState)) > maxWidthTerminals[terminal.Terminal] {
-					maxWidthTerminals[terminal.Terminal] = state.ActionTable[terminal.Terminal].ShiftState
+					maxWidthTerminals[terminal.Terminal] = len(strconv.Itoa(state.ActionTable[terminal.Terminal].ShiftState))
 				}
 			}
 		}
 		for _, lhs := range parseTable.Lhss {
 			if state.GotoTable[lhs] != nil {
-				if len(strconv.Itoa(state.GotoTable[lhs].GotoState)) > maxWidthTerminals[lhs] {
-					maxWidthLhss[lhs] = state.GotoTable[lhs].GotoState
+				if len(strconv.Itoa(state.GotoTable[lhs].GotoState)) > maxWidthLhss[lhs] {
+					maxWidthLhss[lhs] = len(strconv.Itoa(state.GotoTable[lhs].GotoState))
 				}
 			}
 		}
