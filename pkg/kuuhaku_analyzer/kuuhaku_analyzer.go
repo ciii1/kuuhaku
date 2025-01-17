@@ -600,3 +600,143 @@ func (analyzer *Analyzer) doesMatchingArgumentNumberRuleExist(ruleName kuuhaku_p
 	}
 	return false
 }
+
+func PrintParseTable(parseTable *ParseTable) {
+
+	maxWidthTerminals := make(map[string]int)
+	maxWidthLhss := make(map[string]int)
+	for _, terminal := range parseTable.Terminals {
+		maxWidthTerminals[terminal.Terminal] = len(terminal.Terminal)
+	}
+	for _, lhs := range parseTable.Lhss {
+		maxWidthLhss[lhs] = len(lhs)
+	}
+	for _, state := range parseTable.States {
+		for _, terminal := range parseTable.Terminals {
+			if state.ActionTable[terminal.Terminal] != nil {
+				if len(strconv.Itoa(state.ActionTable[terminal.Terminal].ShiftState)) > maxWidthTerminals[terminal.Terminal] {
+					maxWidthTerminals[terminal.Terminal] = state.ActionTable[terminal.Terminal].ShiftState
+				}
+			}
+		}
+		for _, lhs := range parseTable.Lhss {
+			if state.GotoTable[lhs] != nil {
+				if len(strconv.Itoa(state.GotoTable[lhs].GotoState)) > maxWidthTerminals[lhs] {
+					maxWidthLhss[lhs] = state.GotoTable[lhs].GotoState
+				}
+			}
+		}
+	}
+	maxWidthState := 6
+	if maxWidthState < len(strconv.Itoa(len(parseTable.States))) {
+		maxWidthState = len(strconv.Itoa(len(parseTable.States)))
+	}
+
+	print("| States")
+	i := 0
+	for i < maxWidthState - 6 {
+		print(" ")
+		i++
+	}
+	print(" ||")
+
+	for _, terminal := range parseTable.Terminals {
+		print(" " + terminal.Terminal)
+		i = 0
+		for i < maxWidthTerminals[terminal.Terminal] - len(terminal.Terminal) {
+			print(" ")
+			i++
+		}
+		print(" |")
+	}
+	print("|")
+	for _, lhs := range parseTable.Lhss {
+		print(" " + lhs)
+		i = 0
+		for i < maxWidthLhss[lhs] - len(lhs) {
+			print(" ")
+			i++
+		}
+		print(" |")
+	}
+	println("")
+
+	print("+-------")
+	i = 0
+	for i < maxWidthState - 6 {
+		print("-")
+		i++
+	}
+	print("-++")
+	for _, terminal := range parseTable.Terminals {
+		print("-")
+		for range terminal.Terminal {
+			print("-")
+		}
+		i = 0
+		for i < maxWidthTerminals[terminal.Terminal] - len(terminal.Terminal) {
+			print("-")
+			i++
+		}
+		print("-+")
+	}
+	print("++")
+	for _, lhs := range parseTable.Lhss {
+		print("-")
+		for range lhs {
+			print("-")
+		}
+		i = 0
+		for i < maxWidthLhss[lhs] - len(lhs) {
+			print("-")
+			i++
+		}
+		print("-+")
+	}
+
+	for i, state := range parseTable.States {
+		println("")
+		print("| ")
+		print(strconv.Itoa(i))
+		i = 0
+		for i < maxWidthState - len(strconv.Itoa(i)) {
+			print(" ")
+			i++
+		}
+		print(" ||")
+		
+		for _, terminal := range parseTable.Terminals {
+			print(" ")
+			actionNumberLength := 0
+			if state.ActionTable[terminal.Terminal] != nil{
+				print(state.ActionTable[terminal.Terminal].ShiftState)
+				actionNumberLength = len(strconv.Itoa(state.ActionTable[terminal.Terminal].ShiftState))
+			}
+			i = 0
+			for i < maxWidthTerminals[terminal.Terminal] - actionNumberLength {
+				print(" ")
+				i++
+			}
+			print(" |")
+		}
+
+		print("|")
+
+		for _, lhs := range parseTable.Lhss {
+			print(" ")
+			lhsNumberLength := 0
+			if state.GotoTable[lhs] != nil{
+				print(state.GotoTable[lhs].GotoState)
+				lhsNumberLength = len(strconv.Itoa(state.GotoTable[lhs].GotoState))
+			}
+			i = 0
+			for i < maxWidthLhss[lhs] - lhsNumberLength {
+				print(" ")
+				i++
+			}
+			print(" |")
+		}
+	}
+
+	println("")
+}

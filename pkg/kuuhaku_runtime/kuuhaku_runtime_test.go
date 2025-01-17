@@ -1,19 +1,14 @@
 package kuuhaku_runtime
 
 import (
+	"strconv"
 	"testing"
 
+	"github.com/ciii1/kuuhaku/internal/helper"
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_analyzer"
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_parser"
 )
 
-func TestShit(t *testing.T) {
-	ast, _ := kuuhaku_parser.Parse("SEARCH_MODE E {C D = `nil`} C {<a>} D{<b>}")
-	res, _ := kuuhaku_analyzer.Analyze(&ast)
-	strRes, _ := Format("ab", &res)
-	println("Result from TestShit: " + strRes)
-}
-/*
 func TestRuntime1(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse("SEARCH_MODE E{C D = `\"hello\"`} C{<a>} D{<b>}")
 	if len(errs) != 0 {
@@ -27,7 +22,7 @@ func TestRuntime1(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	strRes, err := Format("abababaa", &res)
+	strRes, err := Format("abababaa", &res, false)
 
 	if len(errs) != 0 {
 		println("Expected runtime errors length to be 0, got " + strconv.Itoa(len(errs)))
@@ -35,7 +30,7 @@ func TestRuntime1(t *testing.T) {
 		t.Fatal()
 	}
 
-	if strRes != "a b a b a b aa" {
+	if strRes != "[[[a],[b]]][[[a],[b]]][[[a],[b]]]aa" {
 		println("Expected the string to be \"a b a b a b aa\", got " + strRes)
 		t.Fatal()
 	}
@@ -55,7 +50,7 @@ func TestRuntime2(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	strRes, err := Format("test.Hello test2.Hello3", &res)
+	strRes, err := Format("test.Hello test2.Hello3", &res, false)
 
 	if err != nil {
 		println("Expected runtime errors length to be 0, got " + strconv.Itoa(len(errs)))
@@ -63,15 +58,15 @@ func TestRuntime2(t *testing.T) {
 		t.Fatal()
 	}
 
-	if strRes != "test.\nHello test2.\nHello3" {
-		println("Expected the string to be \"test.\nHello test2.\nHello3\", got \"" + strRes + "\"")
+	if strRes != "[[[test],[.],[Hello]]] [[[test2],[.],[Hello3]]]" {
+		println("Expected the string to be \"[[[test],[.],[Hello]]] [[[test2],[.],[Hello3]]]\", got \"" + strRes + "\"")
 		t.Fatal()
 	}
 }
 
 func TestRuntime3(t *testing.T) {
 	println("TestRuntime3:")
-	ast, errs := kuuhaku_parser.Parse("SEARCH_MODE E{E l nl = ``return \"hello\"``} E{l nl = ``return \"hi\"``} l{<test>} nl{<\\n>}")
+	ast, errs := kuuhaku_parser.Parse("E{E l nl} E{l nl} l{<test>} nl{<hello>}")
 	if len(errs) != 0 {
 		println("Expected parser errors length to be 0")
 		helper.DisplayAllErrors(errs)
@@ -83,16 +78,17 @@ func TestRuntime3(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	strRes, err := Format("test\ntest\ntest\ntest", &res)
+	kuuhaku_analyzer.PrintParseTable(&res.ParseTables[0])
+	strRes, err := Format("testhellotesthello", &res, false)
 
 	if err != nil {
-		println("Expected runtime errors length to be 0, got " + strconv.Itoa(len(errs)))
+		println("Expected runtime errors length to be 0")
 		println(err.Error())
 		t.Fatal()
 	}
 
-	if strRes != "test.\nHello test2.\nHello3" {
+	if strRes != "" {
 		println("Expected the string to be \"test.\nHello test2.\nHello3\", got \"" + strRes + "\"")
 		t.Fatal()
 	}
-}*/
+}
