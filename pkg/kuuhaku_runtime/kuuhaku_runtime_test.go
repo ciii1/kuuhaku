@@ -66,7 +66,7 @@ func TestRuntime2(t *testing.T) {
 
 func TestRuntime3(t *testing.T) {
 	println("TestRuntime3:")
-	ast, errs := kuuhaku_parser.Parse("E{E l nl} E{l nl} l{<test>} nl{<hello>}")
+	ast, errs := kuuhaku_parser.Parse("E{l nl} E{E l nl} l{<test>} nl{<hello>}")
 	if len(errs) != 0 {
 		println("Expected parser errors length to be 0")
 		helper.DisplayAllErrors(errs)
@@ -78,7 +78,7 @@ func TestRuntime3(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	kuuhaku_analyzer.PrintParseTable(&res.ParseTables[0])
+	//kuuhaku_analyzer.PrintParseTable(&res.ParseTables[0])
 	strRes, err := Format("testhellotesthello", &res, false)
 
 	if err != nil {

@@ -585,7 +585,8 @@ func (analyzer *Analyzer) analyzeStart() []string {
 
 	for _, startSymbol := range startSymbols {
 		if startSymbol != "" {
-			outputSymbols = append(outputSymbols, startSymbol)
+			outputSymbols = append(outputSymbols, "S" + startSymbol)
+			analyzer.makeAugmentedGrammar(startSymbol)
 		}
 	}
 
@@ -705,7 +706,7 @@ func PrintParseTable(parseTable *ParseTable) {
 		}
 		print(" ||")
 
-		if state.EndReduceRule != nil {
+		if state.EndReduceRule != nil && state.EndReduceRule.Action == ACCEPT {
 			print(" acc  ||")
 		} else {
 			print("      ||")
