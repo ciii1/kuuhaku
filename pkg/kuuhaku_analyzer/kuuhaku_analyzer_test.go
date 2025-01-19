@@ -123,14 +123,14 @@ func TestStartSymbols(t *testing.T) {
 		t.Fatal()
 	}
 
-	if startSymbols[0] == "identifier" {
-		if startSymbols[1] != "test3" {
-			println("Expected startSymbols[1] to be \"test3\", got" + startSymbols[1])
+	if startSymbols[0] == "Sidentifier" {
+		if startSymbols[1] != "Stest3" {
+			println("Expected startSymbols[1] to be \"Stest3\", got" + startSymbols[1])
 			t.Fail()
 		}
-	} else if startSymbols[1] == "identifier" {
-		if startSymbols[0] != "test3" {
-			println("Expected startSymbols[1] to be \"test3\", got" + startSymbols[1])
+	} else if startSymbols[1] == "Sidentifier" {
+		if startSymbols[0] != "Stest3" {
+			println("Expected startSymbols[1] to be \"Stest3\", got" + startSymbols[1])
 			t.Fail()
 		}
 	} else {
