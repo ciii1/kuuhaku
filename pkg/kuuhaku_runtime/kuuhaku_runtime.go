@@ -200,7 +200,6 @@ func addToPositionFromSlicedString(prevPos kuuhaku_tokenizer.Position, sliced st
 }
 
 func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuuhaku_analyzer.ParseTable, isRun bool) (string, kuuhaku_tokenizer.Position, error) {
-	kuuhaku_analyzer.PrintParseTable(parseTable)
 	var parseStack []ParseStackElement
 	currState := 0
 	lookahead := ""
@@ -288,25 +287,24 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 }
 
 func printParseStack(parseStack *[]ParseStackElement) {
-	print("Parse stack: [")
+	print("Parse stack: ")
 	for i, parseStackElement := range *parseStack {
 		if i != 0 {
 			print(",")
 		}
 		print(parseStackElement.GetString())
 	}
-	println("]")
+	println("")
 }
 
 func parseStackToString(parseStack *[]ParseStackElement) string {
-	out := "["
+	out := ""
 	for i, parseStackElement := range *parseStack {
 		if i != 0 {
 			out += ","
 		}
 		out += parseStackElement.GetString()
 	}
-	out += "]"
 	return out
 }
 

@@ -31,7 +31,7 @@ func TestRuntime1(t *testing.T) {
 	}
 
 	if strRes != "[[[a],[b]]][[[a],[b]]][[[a],[b]]]aa" {
-		println("Expected the string to be \"a b a b a b aa\", got " + strRes)
+		println("Expected the string to be \"[[[[a],[b]]]][[[[a],[b]]]][[[[a],[b]]]]aa\", got " + strRes)
 		t.Fatal()
 	}
 }
@@ -59,7 +59,7 @@ func TestRuntime2(t *testing.T) {
 	}
 
 	if strRes != "[[[test],[.],[Hello]]] [[[test2],[.],[Hello3]]]" {
-		println("Expected the string to be \"[[[test],[.],[Hello]]] [[[test2],[.],[Hello3]]]\", got \"" + strRes + "\"")
+		println("Expected the string to be \"[[[test],[.],[Hello]]] [[[[test2],[.],[Hello3]]]\", got \"" + strRes + "\"")
 		t.Fatal()
 	}
 }
@@ -78,7 +78,6 @@ func TestRuntime3(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	//kuuhaku_analyzer.PrintParseTable(&res.ParseTables[0])
 	strRes, err := Format("testhellotesthello", &res, false)
 
 	if err != nil {
@@ -87,7 +86,7 @@ func TestRuntime3(t *testing.T) {
 		t.Fatal()
 	}
 
-	if strRes != "" {
+	if strRes != "[[[[test],[hello]],[test],[hello]]]" {
 		println("Expected the string to be \"test.\nHello test2.\nHello3\", got \"" + strRes + "\"")
 		t.Fatal()
 	}
