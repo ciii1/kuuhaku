@@ -699,10 +699,10 @@ func PrintParseTable(parseTable *ParseTable) {
 		println("")
 		print("| ")
 		print(strconv.Itoa(i))
-		i = 0
-		for i < maxWidthState - len(strconv.Itoa(i)) {
+		j := 0
+		for j < maxWidthState - len(strconv.Itoa(i)) {
 			print(" ")
-			i++
+			j++
 		}
 		print(" ||")
 
@@ -719,10 +719,10 @@ func PrintParseTable(parseTable *ParseTable) {
 				print(state.ActionTable[terminal.Terminal].ShiftState)
 				actionNumberLength = len(strconv.Itoa(state.ActionTable[terminal.Terminal].ShiftState))
 			}
-			i = 0
-			for i < maxWidthTerminals[terminal.Terminal] - actionNumberLength {
+			j = 0
+			for j < maxWidthTerminals[terminal.Terminal] - actionNumberLength {
 				print(" ")
-				i++
+				j++
 			}
 			print(" |")
 		}
@@ -736,10 +736,10 @@ func PrintParseTable(parseTable *ParseTable) {
 				print(state.GotoTable[lhs].GotoState)
 				lhsNumberLength = len(strconv.Itoa(state.GotoTable[lhs].GotoState))
 			}
-			i = 0
-			for i < maxWidthLhss[lhs] - lhsNumberLength {
+			j = 0
+			for j < maxWidthLhss[lhs] - lhsNumberLength {
 				print(" ")
-				i++
+				j++
 			}
 			print(" |")
 		}
