@@ -724,7 +724,9 @@ func TestBuildParseTable2(t *testing.T) {
 	}
 	analyzer := initAnalyzer(&ast)
 	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("E"))
-	stateTransitions := analyzer.buildParseTable("E")
+	analyzer.makeAugmentedGrammar("E")
+	stateTransitions := analyzer.buildParseTable("SE")
+	PrintParseTable(&analyzer.parseTables[0])
 
 	if len(analyzer.Errors) != 0 {
 		println("Expected analyzer.Error length to be 0, got " + strconv.Itoa(len(analyzer.Errors)))
@@ -740,28 +742,46 @@ func TestBuildParseTable2(t *testing.T) {
 
 	if analyzer.parseTables[0].States[5].ActionTable["0"].Action != SHIFT {
 		println("Expected the fifth state row to have the shift on column \"0\"")
+		t.Fail()
 	}
-	if analyzer.parseTables[0].States[5].ActionTable["0"].ShiftState != 3 && analyzer.parseTables[0].States[5].ActionTable["0"].ShiftState != 4 {
+	if analyzer.parseTables[0].States[5].ActionTable["0"].ShiftState != 3 && analyzer.parseTables[0].States[5].ActionTable["0"].ShiftState != 4 && analyzer.parseTables[0].States[5].ActionTable["0"].ShiftState != 2 && analyzer.parseTables[0].States[5].ActionTable["0"].ShiftState != 1 {
 		println("Expected the fifth state row to have the shift 3 or 4 on column \"0\"")
+		t.Fail()
 	}
 	if analyzer.parseTables[0].States[5].ActionTable["1"].Action != SHIFT {
 		println("Expected the fifth state row to have the shift on column \"1\"")
+		t.Fail()
 	}
-	if analyzer.parseTables[0].States[5].ActionTable["1"].ShiftState != 3 && analyzer.parseTables[0].States[5].ActionTable["1"].ShiftState != 4 {
+	if analyzer.parseTables[0].States[5].ActionTable["1"].ShiftState != 3 && analyzer.parseTables[0].States[5].ActionTable["1"].ShiftState != 4 && analyzer.parseTables[0].States[5].ActionTable["1"].ShiftState != 2 && analyzer.parseTables[0].States[5].ActionTable["1"].ShiftState != 1 {
 		println("Expected the fifth state row to have the shift 3 or 4 on column \"1\"")
+		t.Fail()
 	}
 
 	if analyzer.parseTables[0].States[6].ActionTable["0"].Action != SHIFT {
 		println("Expected the sixth state row to have the shift on column \"0\"")
+		t.Fail()
 	}
-	if analyzer.parseTables[0].States[6].ActionTable["0"].ShiftState != 3 && analyzer.parseTables[0].States[5].ActionTable["0"].ShiftState != 4 {
+	if analyzer.parseTables[0].States[6].ActionTable["0"].ShiftState != 3 && analyzer.parseTables[0].States[5].ActionTable["0"].ShiftState != 4 && analyzer.parseTables[0].States[5].ActionTable["0"].ShiftState != 2 && analyzer.parseTables[0].States[5].ActionTable["0"].ShiftState != 1 {
 		println("Expected the sixth state row to have the shift 3 or 4 on column \"0\"")
+		t.Fail()
 	}
 	if analyzer.parseTables[0].States[6].ActionTable["1"].Action != SHIFT {
 		println("Expected the sixth state row to have the shift on column \"1\"")
+		t.Fail()
 	}
-	if analyzer.parseTables[0].States[6].ActionTable["1"].ShiftState != 3 && analyzer.parseTables[0].States[5].ActionTable["1"].ShiftState != 4 {
-		println("Expected the sixth state row to have the shift 3 or 4 on column \"1\"")
+	if analyzer.parseTables[0].States[6].ActionTable["1"].ShiftState != 3 && analyzer.parseTables[0].States[5].ActionTable["1"].ShiftState != 4 && analyzer.parseTables[0].States[5].ActionTable["1"].ShiftState != 1 && analyzer.parseTables[0].States[5].ActionTable["1"].ShiftState != 2 {
+		println("Expected the sixth state row to have the shift 3, 4, 2, 1 on column \"1\"")
+		t.Fail()
+	}
+	for _, state := range analyzer.parseTables[0].States {
+		if state.EndReduceRule != nil && state.EndReduceRule.Action == ACCEPT {
+			if state.ActionTable["+"] != nil {
+				if state.ActionTable["+"].ShiftState != 6 && state.ActionTable["+"].ShiftState != 5 {
+					println("Expected ACCEPT only on a state where there is a 5 or a 6 on its ActionTable[\"+\"]")
+					t.Fail()
+				}
+			}
+		}
 	}
 }
 
