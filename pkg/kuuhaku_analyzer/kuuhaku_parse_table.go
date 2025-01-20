@@ -38,7 +38,6 @@ type SymbolTitle struct {
 type AnalyzerResult struct {
 	ParseTables  []ParseTable
 	IsSearchMode bool
-	GlobalLua 	 *kuuhaku_parser.LuaLiteral
 }
 
 type ParseTable struct {
@@ -48,7 +47,7 @@ type ParseTable struct {
 }
 
 type TerminalList struct {
-	Terminal   string 
+	Terminal   string
 	Precedence int
 	Regexp     *regexp.Regexp
 }
