@@ -18,6 +18,7 @@ const (
 	EXPECTED_MATCH_RULE
 	EXPECTED_RULE
 	MIXED_TYPE_MATCH_RULE
+	MULTIPLE_GLOBAL_LUA
 )
 
 type ParseError struct {
@@ -102,16 +103,25 @@ func ErrExpectedReplaceRule(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError 
 	}
 }
 
-func ErrExpectedRule(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+func ErrExpectedGlobal(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
 	return &ParseError{
-		Message:  "Expected a rule definition",
+		Message:  "Expected a rule definition or a global lua literal",
 		Position: tokenizer.PrevPosition,
 		Type:     EXPECTED_RULE,
 	}
 }
 
+func ErrMultipleGlobalLua(tokenizer *kuuhaku_tokenizer.Tokenizer) *ParseError {
+	return &ParseError{
+		Message:  "Found multiple global lua literal",
+		Position: tokenizer.PrevPosition,
+		Type:     MULTIPLE_GLOBAL_LUA,
+	}
+}
+
 type Parser struct {
 	tokenizer kuuhaku_tokenizer.Tokenizer
+	GlobalLua *LuaLiteral
 	Errors    []error
 }
 
@@ -143,8 +153,14 @@ func (parser *Parser) consumeInput() *Ast {
 		rule.Order = orderCounter
 		output.Rules[rule.Name] = append(output.Rules[rule.Name], rule)
 	} else {
-		parser.Errors = append(parser.Errors, ErrExpectedRule(&parser.tokenizer))
-		parser.tokenizer.Next()
+		globalLua := parser.consumeGlobalLua()
+		if globalLua != nil {
+			orderCounter -= 1
+			output.GlobalLua = globalLua
+		} else {
+			parser.Errors = append(parser.Errors, ErrExpectedGlobal(&parser.tokenizer))
+			parser.tokenizer.Next()
+		}
 	}
 
 	token, err := parser.tokenizer.Peek()
@@ -159,8 +175,14 @@ func (parser *Parser) consumeInput() *Ast {
 			rule.Order = orderCounter
 			output.Rules[rule.Name] = append(output.Rules[rule.Name], rule)
 		} else {
-			parser.Errors = append(parser.Errors, ErrExpectedRule(&parser.tokenizer))
-			parser.tokenizer.Next()
+			globalLua := parser.consumeGlobalLua()
+			if globalLua != nil {
+				orderCounter -= 1
+				output.GlobalLua = globalLua
+			} else {
+				parser.Errors = append(parser.Errors, ErrExpectedGlobal(&parser.tokenizer))
+				parser.tokenizer.Next()
+			}
 		}
 		token, err = parser.tokenizer.Peek()
 		if err != nil {
@@ -171,6 +193,7 @@ func (parser *Parser) consumeInput() *Ast {
 
 	return &output
 }
+
 
 func (parser *Parser) consumeSearchMode() bool {
 	token, err := parser.tokenizer.Peek()
@@ -465,6 +488,18 @@ func (parser *Parser) consumeArgList() *[]LuaLiteral {
 	}
 
 	return &argList
+}
+
+func (parser *Parser) consumeGlobalLua() *LuaLiteral {
+	token := parser.consumeLuaLiteral()	
+	if token == nil {
+		return nil
+	}
+	if parser.GlobalLua != nil {
+		parser.Errors = append(parser.Errors, ErrMultipleGlobalLua(&parser.tokenizer))
+	}
+	parser.GlobalLua = token
+	return token
 }
 
 func (parser *Parser) consumeLuaLiteral() *LuaLiteral {

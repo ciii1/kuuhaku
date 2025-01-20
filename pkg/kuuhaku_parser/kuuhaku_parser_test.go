@@ -437,7 +437,7 @@ func TestErrorPosition(t *testing.T) {
 }
 
 func TestConsumeInput(t *testing.T) {
-	parser := initParser("test{identifier=``hello``}\nidentifier{<[a-zA-Z]>}\nidentifier{<[a-zA-Z][0-9]>}")
+	parser := initParser("``hello=\"test\"``test{identifier=``hello``}\nidentifier{<[a-zA-Z]>}\nidentifier{<[a-zA-Z][0-9]>}")
 	ast := parser.consumeInput()
 	token, _ := parser.tokenizer.Next()
 	if token.Type != kuuhaku_tokenizer.EOF {
@@ -479,7 +479,14 @@ func TestConsumeInput(t *testing.T) {
 	if ast.Rules["test"][0].Order != 0 {
 		got := strconv.Itoa(ast.Rules["test"][0].Order)
 		println("Expected ast.Rules[\"test\"][0].Order to be 0, got " + got)
-		t.Fatal()
+		t.Fail()
+	}
+	if ast.GlobalLua == nil {
+		println("Expected ast.GlobalLua != nil")
+		t.Fail()
+	} else if ast.GlobalLua.LuaString != "hello=\"test\"" {
+		println("Expected ast.GlobalLua == \"hello=\"test\"\", got " + ast.GlobalLua.LuaString)
+		t.Fail()
 	}
 }
 
@@ -558,7 +565,7 @@ func TestConsumeSearchModeError(t *testing.T) {
 }
 
 func TestErrorConsumeInput(t *testing.T) {
-	parser := initParser("test{``est``=``n``}\n``es``test\nidentifier<test>")
+	parser := initParser("test{``est``=``n``}\n<test>test\nidentifier<test>``hello`` ``hello``")
 	parser.consumeInput()
 	token, _ := parser.tokenizer.Next()
 	if token.Type != kuuhaku_tokenizer.EOF {
@@ -615,6 +622,16 @@ func TestErrorConsumeInput(t *testing.T) {
 	if errors.As(parser.Errors[4], &parseError) {
 		if parseError.Type != EXPECTED_RULE {
 			println("Expected ExpectedRuleError error")
+			t.Fail()
+		}
+	} else {
+		println("Expected ParseError")
+		t.Fail()
+	}
+
+	if errors.As(parser.Errors[5], &parseError) {
+		if parseError.Type != MULTIPLE_GLOBAL_LUA {
+			println("Expected MultipleGlobalLua error")
 			t.Fail()
 		}
 	} else {
