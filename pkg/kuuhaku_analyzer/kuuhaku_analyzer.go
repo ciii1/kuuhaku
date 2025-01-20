@@ -532,7 +532,7 @@ func (analyzer *Analyzer) analyzeLuaLiteral(source kuuhaku_parser.LuaLiteral) st
 
 	outStr := ""
 	if source.Type == kuuhaku_parser.LUA_LITERAL_TYPE_RETURN {
-		outStr += "return "	
+		outStr += "ret = "	
 	}
 	outStr += source.LuaString
 
