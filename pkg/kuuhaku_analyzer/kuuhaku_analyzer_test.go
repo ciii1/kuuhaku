@@ -1093,7 +1093,7 @@ func TestAnalyze(t *testing.T) {
 }
 
 func TestAnalyze2(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("SEARCH_MODE E{C} E{B} B{<0>} B{<1>} C{<3>} D{<3> F} F{<1>} G{<2>}")
+	ast, errs := kuuhaku_parser.Parse("SEARCH_MODE ``Hello`` E{C} E{B} B{<0>} B{<1>} C{<3>} D{<3> F} F{<1>} G{<2>}")
 	if len(errs) != 1 {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
@@ -1106,6 +1106,14 @@ func TestAnalyze2(t *testing.T) {
 	}
 	if len(res.ParseTables) != 3 {
 		println("Expected parse tables length to be 3, got " + strconv.Itoa(len(res.ParseTables)))
+		t.Fatal()
+	}
+
+	if res.GlobalLua == nil {
+		println("Expected GlobalLua != nil")
+		t.Fatal()
+	} else if res.GlobalLua.LuaString != "Hello" {
+		println("Expected GlobalLua to contain \"Hello\", got " + res.GlobalLua.LuaString)
 		t.Fatal()
 	}
 }
