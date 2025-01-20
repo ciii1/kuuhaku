@@ -526,7 +526,7 @@ func (analyzer *Analyzer) makeAugmentedGrammar(startSymbol string) *Symbol {
 	}
 }
 
-func (analyzer *Analyzer) analyzeLuaLiteral(source kuuhaku_parser.LuaLiteral) string {
+func (analyzer *Analyzer) analyzeLuaLiteral(source *kuuhaku_parser.LuaLiteral) string {
 	L := lua.NewState()
 	defer L.Close()
 
@@ -535,6 +535,8 @@ func (analyzer *Analyzer) analyzeLuaLiteral(source kuuhaku_parser.LuaLiteral) st
 		outStr += "return "	
 	}
 	outStr += source.LuaString
+	
+	(*source).LuaString = outStr
 
 	_, err := L.LoadString(outStr)
 	if err != nil {
@@ -555,7 +557,9 @@ func (analyzer *Analyzer) analyzeStart() []string {
 
 	for ruleName, ruleArray := range analyzer.input.Rules {
 		for _, rule := range ruleArray {
-			analyzer.analyzeLuaLiteral(rule.ReplaceRule)
+			if rule.ReplaceRule != nil{
+				analyzer.analyzeLuaLiteral(rule.ReplaceRule)
+			}
 			for _, matchRule := range rule.MatchRules {
 				identifier, ok := matchRule.(kuuhaku_parser.Identifier)
 				if !ok {
@@ -569,7 +573,7 @@ func (analyzer *Analyzer) analyzeStart() []string {
 				}
 
 				for _, arg := range identifier.ArgList {
-					analyzer.analyzeLuaLiteral(arg)
+					analyzer.analyzeLuaLiteral(&arg)
 				}
 
 				if identifier.Name != ruleName {

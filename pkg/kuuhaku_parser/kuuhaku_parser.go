@@ -314,7 +314,7 @@ func (parser *Parser) consumeRule() *Rule {
 		return &Rule{
 			Name:        name,
 			MatchRules:  *matchRules,
-			ReplaceRule: *replaceRule,
+			ReplaceRule: replaceRule,
 			Position:    position,
 			ArgList:     paramList,
 		}
@@ -325,7 +325,7 @@ func (parser *Parser) consumeRule() *Rule {
 		return &Rule{
 			Name:        name,
 			MatchRules:  *matchRules,
-			ReplaceRule: *replaceRule,
+			ReplaceRule: replaceRule,
 			Position:    position,
 			ArgList:     paramList,
 		}
@@ -335,7 +335,7 @@ func (parser *Parser) consumeRule() *Rule {
 	return &Rule{
 		Name:        name,
 		MatchRules:  *matchRules,
-		ReplaceRule: *replaceRule,
+		ReplaceRule: replaceRule,
 		Position:    position,
 		ArgList:     paramList,
 	}

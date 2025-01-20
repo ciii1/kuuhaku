@@ -2,10 +2,12 @@ package kuuhaku_runtime
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_analyzer"
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_parser"
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_tokenizer"
+	lua "github.com/yuin/gopher-lua"
 )
 
 type ParseStackElementType int
@@ -69,6 +71,7 @@ type RuntimeErrorType int
 const (
 	PARSE_STACK_IS_NOT_EMPTY RuntimeErrorType = iota
 	REDUCE_RULE_IS_NOT_MATCHING
+	LUA_ERROR
 )
 
 type RuntimeError struct {
@@ -128,6 +131,14 @@ func ErrReduceRuleIsNotMatching(position kuuhaku_tokenizer.Position) *RuntimeErr
 	}
 }
 
+func ErrLua(luaError string) *RuntimeError {
+	return &RuntimeError{
+		Message:  "Encountered an error while executing Lua chunk:\n\t" + luaError,
+		Position: kuuhaku_tokenizer.Position{},
+		Type:     LUA_ERROR,
+	}
+}
+
 func Format(input string, format *kuuhaku_analyzer.AnalyzerResult, isRun bool) (string, error) {
 	var currPos kuuhaku_tokenizer.Position
 	currPos.Line = 1
@@ -138,7 +149,11 @@ func Format(input string, format *kuuhaku_analyzer.AnalyzerResult, isRun bool) (
 		// We cannot have only one parse table for multiple start symbols because that'll 
 		// prevent us from having the backtracking mechanism
 		for _, parseTable := range format.ParseTables {
-			res, resPos, err := runParseTable(input, currPos, &parseTable, isRun)
+			var globalLua kuuhaku_parser.LuaLiteral
+			if format.GlobalLua != nil {
+				globalLua = *format.GlobalLua
+			}
+			res, resPos, err := runParseTable(input, currPos, &parseTable, isRun, globalLua)
 			if err == nil {
 				isThereSuccess = true
 				currPos = resPos
@@ -199,7 +214,7 @@ func addToPositionFromSlicedString(prevPos kuuhaku_tokenizer.Position, sliced st
 	}
 }
 
-func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuuhaku_analyzer.ParseTable, isRun bool) (string, kuuhaku_tokenizer.Position, error) {
+func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuuhaku_analyzer.ParseTable, isRun bool, globalLua kuuhaku_parser.LuaLiteral) (string, kuuhaku_tokenizer.Position, error) {
 	var parseStack []ParseStackElement
 	currState := 0
 	lookahead := ""
@@ -279,7 +294,11 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 	}
 	out := ""
 	if isRun {
-		out = runParseStack(&parseStack)
+		var err error
+		out, err = runParseStack(&parseStack, globalLua)
+		if err != nil {
+			return "", pos, err
+		}
 	} else {
 		out = parseStackToString(&parseStack)
 	}
@@ -308,13 +327,86 @@ func parseStackToString(parseStack *[]ParseStackElement) string {
 	return out
 }
 
-func runParseStack(parseStack *[]ParseStackElement) string {
-	/*if len(rule.ReplaceRules) == 0 {
-		for _, targetElement := range targetStack {
-			reducedString += targetElement.String
+func runParseStack(parseStack *[]ParseStackElement, globalLua kuuhaku_parser.LuaLiteral) (string, error) {
+	compiled := globalLua.LuaString + "\n"
+	compiled = "ret = tostring(" + compileNode(&(*parseStack)[0]) + ")"
+	L := lua.NewState()
+	defer L.Close()
+	err := L.DoString(compiled)
+	if err != nil {
+		fmt.Println("Error executing Lua code:", err)
+		return "", ErrLua(err.Error())
+	}
+	ret := L.GetGlobal("ret").String()
+	return ret, nil
+}
+
+func compileNode(node *ParseStackElement) string {
+	out := ""
+	if (*node).GetType() == PARSE_STACK_ELEMENT_TYPE_TERMINAL {
+		terminal, _ := (*node).(*ParseStackTerminal)
+		out += "\"" + terminal.String + "\""
+	} else if (*node).GetType() == PARSE_STACK_ELEMENT_TYPE_TREE {
+		tree, _ := (*node).(*ParseStackTree)
+
+		out += "(function(\n"
+		for i, params := range tree.Rule.ArgList {
+			if i != 0 {
+				out += ","
+			}	
+			out += params.Name 
 		}
-	}*/
-	return "" //(*parseStack)[0].GetString()
+		out += ")\n"
+		
+		//we put the parameters that will be passed to the match rule functions here
+		for i, child := range *tree.Children {
+			identifier, _ := tree.Rule.MatchRules[i].(kuuhaku_parser.Identifier)
+			childTree, ok := child.(*ParseStackTree)
+			if ok {
+				for j, arg := range identifier.ArgList {
+					out += "P_" + childTree.Rule.ArgList[j].Name + " = (function()\n" + arg.LuaString + "\nend)()"
+				}
+			}
+		}
+
+		identifierCounts := make(map[string]int)
+		var allVar []string
+		for i, child := range *tree.Children {
+			identifier, ok := tree.Rule.MatchRules[i].(kuuhaku_parser.Identifier)
+			if ok {
+				identifierCounts[identifier.Name] += 1
+				varName := identifier.Name + strconv.Itoa(identifierCounts[identifier.Name])
+				allVar = append(allVar, varName)
+				out += varName + " = " + compileNode(&child)
+			} else {
+				varName := "LITERAL" + strconv.Itoa(i+1)
+				allVar = append(allVar, varName)
+				out += varName + " = " + compileNode(&child)
+			}
+		}
+
+		out += "\n"
+		if tree.Rule.ReplaceRule != nil {
+			out += tree.Rule.ReplaceRule.LuaString
+		} else {
+			out += "return "
+			for i, varName := range allVar {
+				if i != 0 {
+					out += ".."	
+				}
+				out += varName
+			}
+		}
+		out += "\nend)(\n"
+		for i, params := range tree.Rule.ArgList {
+			if i != 0 {
+				out += ","
+			}	
+			out += "P_" + params.Name
+		}
+		out += ")"
+	}
+	return out
 }
 
 func copyParseStack(parseStack []ParseStackElement) *[]ParseStackElement {

@@ -119,3 +119,37 @@ func TestRuntime4(t *testing.T) {
 		t.Fatal()
 	}
 }
+
+func TestRun1(t *testing.T) {
+	println("TestRun1:")
+	ast, errs := kuuhaku_parser.Parse(
+		"E{E PLUS B = `E1 + B1`}" +
+		"E{E MUL B = `E1 * B1`}" +
+		"E{B = `B1`}" +
+		"B{<[0-9]+> = `tonumber(LITERAL1)`}" + 
+		"PLUS{<\\+>} MUL{<\\*>}",
+	)
+	if len(errs) != 0 {
+		println("Expected parser errors length to be 0")
+		helper.DisplayAllErrors(errs)
+		t.Fatal()
+	}
+	res, errs := kuuhaku_analyzer.Analyze(&ast)
+	if len(errs) != 0 {
+		println("Expected analyzer errors length to be 0, got " + strconv.Itoa(len(errs)))
+		helper.DisplayAllErrors(errs)
+		t.Fatal()
+	}
+	strRes, err := Format("20+1*1+1", &res, true)
+
+	if err != nil {
+		println("Expected runtime errors length to be 0")
+		println(err.Error())
+		t.Fatal()
+	}
+	
+	if strRes != "22" {
+		println("Expected the result to be 22, got " + strRes)
+		t.Fatal()
+	}
+}

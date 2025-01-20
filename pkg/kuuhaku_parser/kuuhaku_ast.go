@@ -15,7 +15,7 @@ type Rule struct {
 	Name        string
 	Order       int
 	MatchRules  []MatchRule
-	ReplaceRule LuaLiteral
+	ReplaceRule *LuaLiteral
 	Position    kuuhaku_tokenizer.Position
 	ArgList     []Identifier
 }
