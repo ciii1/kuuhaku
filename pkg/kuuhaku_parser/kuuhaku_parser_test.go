@@ -270,7 +270,7 @@ func TestConsumeMatchRulesError2(t *testing.T) {
 }
 
 func TestConsumeRule(t *testing.T) {
-	parser := initParser("test(``hello``, `hi`, ``hey``){\nidentifier\n=\n``test=10; return test``\n} test(``a``){test}")
+	parser := initParser("test(hello, hi, hey){\nidentifier\n=\n``test=10; return test``\n} test(a){test}")
 	rule := parser.consumeRule()
 	rule2 := parser.consumeRule()
 	if len(parser.Errors) != 0 {
@@ -293,14 +293,14 @@ func TestConsumeRule(t *testing.T) {
 		t.Fatal()
 	}
 
-	if rule.ArgList[0].LuaString != "hello" {
-		println("Got argList[0] as " + rule.ArgList[0].LuaString)
+	if rule.ArgList[0].Name != "hello" {
+		println("Got argList[0] as " + rule.ArgList[0].Name)
 	}
-	if rule.ArgList[1].LuaString != "hello" {
-		println("Got argList[1] as " + rule.ArgList[1].LuaString)
+	if rule.ArgList[1].Name != "hello" {
+		println("Got argList[1] as " + rule.ArgList[1].Name)
 	}
-	if rule.ArgList[2].LuaString != "hello" {
-		println("Got argList[2] as " + rule.ArgList[2].LuaString)
+	if rule.ArgList[2].Name != "hello" {
+		println("Got argList[2] as " + rule.ArgList[2].Name)
 	}
 
 	node1, ok := rule.MatchRules[0].(Identifier)

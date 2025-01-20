@@ -17,7 +17,7 @@ type Rule struct {
 	MatchRules  []MatchRule
 	ReplaceRule LuaLiteral
 	Position    kuuhaku_tokenizer.Position
-	ArgList     []LuaLiteral
+	ArgList     []Identifier
 }
 
 type MatchRule interface {

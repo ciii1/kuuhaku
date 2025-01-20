@@ -555,9 +555,6 @@ func (analyzer *Analyzer) analyzeStart() []string {
 
 	for ruleName, ruleArray := range analyzer.input.Rules {
 		for _, rule := range ruleArray {
-			for _, arg := range rule.ArgList {
-				analyzer.analyzeLuaLiteral(arg)
-			}
 			analyzer.analyzeLuaLiteral(rule.ReplaceRule)
 			for _, matchRule := range rule.MatchRules {
 				identifier, ok := matchRule.(kuuhaku_parser.Identifier)

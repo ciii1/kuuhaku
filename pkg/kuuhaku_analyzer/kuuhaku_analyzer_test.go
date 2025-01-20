@@ -14,7 +14,7 @@ import (
 )
 
 func TestErrorInvalidArgumentLength(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("identifier{test2(`'test'`)}\ntest2(`test`){identifier(`'hello'`)}")
+	ast, errs := kuuhaku_parser.Parse("identifier{test2(`'test'`)}\ntest2( test ){identifier(`'hello'`)}")
 	if len(errs) != 0 {
 		println("Expected parser errors length to be 0")
 		t.Fatal()
