@@ -142,7 +142,6 @@ func Analyze(input *kuuhaku_parser.Ast) (AnalyzerResult, []error) {
 	return AnalyzerResult{
 		ParseTables:  analyzer.parseTables,
 		IsSearchMode: input.IsSearchMode,
-		GlobalLua:    input.GlobalLua,
 	}, analyzer.Errors
 }
 
