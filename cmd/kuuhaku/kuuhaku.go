@@ -3,30 +3,36 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/ciii1/kuuhaku/internal/formatter"
 	"os"
+	"time"
+
+	"github.com/ciii1/kuuhaku/internal/formatter"
 )
 
 func main() {
 	flag.Usage = PrintHelp
 	var isRecursive = flag.Bool("recursive", false, "Process files recursively")
-	var tabNum = flag.Int("tab", 0, "Don't format the file but replace indents to tab times the specified integer")
-	var whitespaceNum = flag.Int("whitespace", 0, "Same as -tab but replace with whitespace times the specified integer")
+	var isDebug = flag.Bool("debug", false, "Print debug messages")
 
 	if len(os.Args) > 1 {
+		println("Kuuhaku is still in its experimental state! Make sure to commit your project files using your version control program before running the formatter. The formatter will run in 3 seconds...")
+		time.Sleep(3000000000)
 		flag.Parse()
-		fmt.Println("-recursive=", *isRecursive)
-		fmt.Println("-tab=", *tabNum)
-		fmt.Println("-whitespace=", *whitespaceNum)
-		filename := flag.Arg(0)
-		format := flag.Arg(1)
-		fmt.Println("Filename=", filename)
-		if len(format) == 0 {
-			fmt.Println("no format provided")
-		} else {
-			fmt.Println("Format=", format)
+		if *isDebug {
+			fmt.Println("-recursive=", *isRecursive)
+			fmt.Println("-debug=", *isDebug)
 		}
-		formatter.Format(filename, format, *isRecursive, *tabNum, *whitespaceNum)
+		filename := flag.Arg(0)
+		configName := flag.Arg(1)
+		if *isDebug {
+			fmt.Println("Filename=", filename)
+			if len(configName) == 0 {
+				fmt.Println("no format provided")
+			} else {
+				fmt.Println("Format=", configName)
+			}
+		}
+		formatter.Format(filename, configName, *isRecursive, *isDebug)
 	} else {
 		println("Expected at least 1 argument")
 		PrintHelp()
@@ -38,13 +44,12 @@ func PrintHelp() {
 	println("")
 	println("Usage:")
 	println("kuuhaku <flags> <filename> <config_name>")
-	println("filename is the file to be formatted. If filename is a directory, kuuhaku will process all of the files inside the directory")
-	println("config_name is the name of the format configuration to be used inside the kuuhaku's formats directory, without the .khk extension. If ommitted, the extension of files that are going to be formatted will be used")
+	println("Filename is the file to be formatted. If filename is a directory, kuuhaku will process all of the files inside the directory")
+	println("Config name is the name of the format configuration to be used inside the kuuhaku's config directory ($HOME/.config/kuuhaku), without the .khk extension. If ommitted, the extension of files that are going to be formatted will be used")
 	println("")
 	println("Flags:")
 	println("-recursive\t\tProcess directories recursively")
-	println("-tab=<int>\t\tDon't format the file but replace indents to tab times the specified integer")
-	println("-whitespace=<int>\tSame as -tab but replace with whitespace times the specified integer")
+	println("-debug\t\tPrint debug messages")
 	println("")
 	println("Exiting...")
 }

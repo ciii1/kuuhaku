@@ -71,7 +71,14 @@ type RuntimeErrorType int
 const (
 	PARSE_STACK_IS_NOT_EMPTY RuntimeErrorType = iota
 	REDUCE_RULE_IS_NOT_MATCHING
-	LUA_ERROR
+)
+
+type EvalErrorType int
+
+const (
+	START_SYMBOL_WITH_PARAMS EvalErrorType = iota
+	INVALID_ARG_LENGTH
+	EXEC_ERROR
 )
 
 type RuntimeError struct {
@@ -82,6 +89,15 @@ type RuntimeError struct {
 
 func (e RuntimeError) Error() string {
 	return fmt.Sprintf("Runtime error (%d, %d): %s", e.Position.Line, e.Position.Column, e.Message)
+}
+
+type EvalError struct {
+	Message  string
+	Type     EvalErrorType
+}
+
+func (e EvalError) Error() string {
+	return fmt.Sprintf("Eval error: %s", e.Message)
 }
 
 type RuntimeSyntaxError struct {
@@ -131,15 +147,28 @@ func ErrReduceRuleIsNotMatching(position kuuhaku_tokenizer.Position) *RuntimeErr
 	}
 }
 
-func ErrLua(luaError string) *RuntimeError {
-	return &RuntimeError{
+func ErrLua(luaError string) *EvalError {
+	return &EvalError{
 		Message:  "Encountered an error while executing Lua chunk:\n\t" + luaError,
-		Position: kuuhaku_tokenizer.Position{},
-		Type:     LUA_ERROR,
+		Type:     EXEC_ERROR,
 	}
 }
 
-func Format(input string, format *kuuhaku_analyzer.AnalyzerResult, isRun bool) (string, error) {
+func ErrInvalidArgLength(callee string, caller string) *EvalError {
+	return &EvalError{
+		Message:  "The argument length passed is not matching the parameter's length when calling rule " + callee + " in rule " + caller,
+		Type:     INVALID_ARG_LENGTH,
+	}
+}
+
+func ErrStartSymbolWithParams(startSymbol string) *EvalError {
+	return &EvalError{
+		Message:  "Start symbol " + startSymbol + " cannot have parameters.",
+		Type:     INVALID_ARG_LENGTH,
+	}
+}
+
+func Format(input string, format *kuuhaku_analyzer.AnalyzerResult, isRun bool, printCompiled bool) (string, error) {
 	var currPos kuuhaku_tokenizer.Position
 	currPos.Line = 1
 	currPos.Column = 1
@@ -153,7 +182,7 @@ func Format(input string, format *kuuhaku_analyzer.AnalyzerResult, isRun bool) (
 			if format.GlobalLua != nil {
 				globalLua = *format.GlobalLua
 			}
-			res, resPos, err := runParseTable(input, currPos, &parseTable, isRun, globalLua)
+			res, resPos, err := runParseTable(input, currPos, &parseTable, isRun, globalLua, printCompiled)
 			if err == nil {
 				isThereSuccess = true
 				currPos = resPos
@@ -214,7 +243,7 @@ func addToPositionFromSlicedString(prevPos kuuhaku_tokenizer.Position, sliced st
 	}
 }
 
-func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuuhaku_analyzer.ParseTable, isRun bool, globalLua kuuhaku_parser.LuaLiteral) (string, kuuhaku_tokenizer.Position, error) {
+func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuuhaku_analyzer.ParseTable, isRun bool, globalLua kuuhaku_parser.LuaLiteral, printCompiled bool) (string, kuuhaku_tokenizer.Position, error) {
 	var parseStack []ParseStackElement
 	currState := 0
 	lookahead := ""
@@ -295,7 +324,7 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 	out := ""
 	if isRun {
 		var err error
-		out, err = runParseStack(&parseStack, globalLua)
+		out, err = runParseStack(&parseStack, globalLua, printCompiled)
 		if err != nil {
 			return "", pos, err
 		}
@@ -327,12 +356,20 @@ func parseStackToString(parseStack *[]ParseStackElement) string {
 	return out
 }
 
-func runParseStack(parseStack *[]ParseStackElement, globalLua kuuhaku_parser.LuaLiteral) (string, error) {
-	compiled := globalLua.LuaString + "\n"
-	compiled = "ret = tostring(" + compileNode(&(*parseStack)[0]) + ")"
+func runParseStack(parseStack *[]ParseStackElement, globalLua kuuhaku_parser.LuaLiteral, printCompiled bool) (string, error) {
+	compiled := globalLua.LuaString + "\nret = tostring("
+	compiledNodes, err := compileNode(&(*parseStack)[0], true) 
+	compiled += compiledNodes
+	compiled += ")"
+	if printCompiled {
+		println("Compiled Lua code: " + compiled)
+	}
+	if err != nil {
+		return "", err
+	}
 	L := lua.NewState()
 	defer L.Close()
-	err := L.DoString(compiled)
+	err = L.DoString(compiled)
 	if err != nil {
 		fmt.Println("Error executing Lua code:", err)
 		return "", ErrLua(err.Error())
@@ -341,13 +378,14 @@ func runParseStack(parseStack *[]ParseStackElement, globalLua kuuhaku_parser.Lua
 	return ret, nil
 }
 
-func compileNode(node *ParseStackElement) string {
+func compileNode(node *ParseStackElement, isFirst bool) (string, error) {
 	out := ""
 	if (*node).GetType() == PARSE_STACK_ELEMENT_TYPE_TERMINAL {
 		terminal, _ := (*node).(*ParseStackTerminal)
 		out += "\"" + terminal.String + "\""
 	} else if (*node).GetType() == PARSE_STACK_ELEMENT_TYPE_TREE {
 		tree, _ := (*node).(*ParseStackTree)
+
 
 		out += "(function(\n"
 		for i, params := range tree.Rule.ArgList {
@@ -356,6 +394,7 @@ func compileNode(node *ParseStackElement) string {
 			}	
 			out += params.Name 
 		}
+
 		out += ")\n"
 		
 		//we put the parameters that will be passed to the match rule functions here
@@ -363,8 +402,16 @@ func compileNode(node *ParseStackElement) string {
 			identifier, _ := tree.Rule.MatchRules[i].(kuuhaku_parser.Identifier)
 			childTree, ok := child.(*ParseStackTree)
 			if ok {
+			if len(childTree.Rule.ArgList) != len(identifier.ArgList) {
+				if isFirst {
+					return "", ErrStartSymbolWithParams(childTree.Rule.Name)
+				} else {
+					return "", ErrInvalidArgLength(childTree.Rule.Name, tree.Rule.Name)
+				}
+			}
 				for j, arg := range identifier.ArgList {
-					out += "P_" + childTree.Rule.ArgList[j].Name + " = (function()\n" + arg.LuaString + "\nend)()"
+					println(arg.LuaString)
+					out += "local " + "P_" + childTree.Rule.ArgList[j].Name + " = (function()\n" + arg.LuaString + "\nend)()\n"
 				}
 			}
 		}
@@ -377,11 +424,19 @@ func compileNode(node *ParseStackElement) string {
 				identifierCounts[identifier.Name] += 1
 				varName := identifier.Name + strconv.Itoa(identifierCounts[identifier.Name])
 				allVar = append(allVar, varName)
-				out += varName + " = " + compileNode(&child)
+				compiledNode, err := compileNode(&child, false)
+				if err != nil {
+					return "", err
+				}
+				out += "local " + varName + " = " + compiledNode
 			} else {
 				varName := "LITERAL" + strconv.Itoa(i+1)
 				allVar = append(allVar, varName)
-				out += varName + " = " + compileNode(&child)
+				compiledNode, err := compileNode(&child, false)
+				if err != nil {
+					return "", err
+				}
+				out += "local " + varName + " = " + compiledNode
 			}
 		}
 
@@ -406,7 +461,7 @@ func compileNode(node *ParseStackElement) string {
 		}
 		out += ")"
 	}
-	return out
+	return out, nil
 }
 
 func copyParseStack(parseStack []ParseStackElement) *[]ParseStackElement {

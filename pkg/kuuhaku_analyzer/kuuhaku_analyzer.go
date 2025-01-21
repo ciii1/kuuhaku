@@ -526,24 +526,14 @@ func (analyzer *Analyzer) makeAugmentedGrammar(startSymbol string) *Symbol {
 	}
 }
 
-func (analyzer *Analyzer) analyzeLuaLiteral(source *kuuhaku_parser.LuaLiteral) string {
+func (analyzer *Analyzer) analyzeLuaLiteral(source *kuuhaku_parser.LuaLiteral) {
 	L := lua.NewState()
 	defer L.Close()
 
-	outStr := ""
-	if source.Type == kuuhaku_parser.LUA_LITERAL_TYPE_RETURN {
-		outStr += "return "	
-	}
-	outStr += source.LuaString
-	
-	(*source).LuaString = outStr
-
-	_, err := L.LoadString(outStr)
+	_, err := L.LoadString(source.LuaString)
 	if err != nil {
 		analyzer.Errors = append(analyzer.Errors, ErrInvalidLuaLiteral(source.Position, err.Error()))
 	}
-
-	return outStr
 }
 
 // return start symbols

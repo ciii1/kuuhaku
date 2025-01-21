@@ -582,12 +582,14 @@ func (parser *Parser) consumeLuaLiteral() *LuaLiteral {
 
 	if token.Type == kuuhaku_tokenizer.LUA_LITERAL || token.Type == kuuhaku_tokenizer.LUA_RETURN_LITERAL {
 		parser.tokenizer.Next()
+		content := token.Content
 		var luaLiteralType LuaLiteralType = LUA_LITERAL_TYPE_MULTI_STMT
 		if token.Type == kuuhaku_tokenizer.LUA_RETURN_LITERAL {
 			luaLiteralType = LUA_LITERAL_TYPE_RETURN
+			content = "return " + token.Content
 		}
 		return &LuaLiteral{
-			LuaString: token.Content,
+			LuaString: content,
 			Position:  token.Position,
 			Type: luaLiteralType,
 		}

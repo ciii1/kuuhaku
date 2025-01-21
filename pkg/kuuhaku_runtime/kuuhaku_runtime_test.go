@@ -22,7 +22,7 @@ func TestRuntime1(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	strRes, err := Format("abababaa", &res, false)
+	strRes, err := Format("abababaa", &res, false, false)
 
 	if len(errs) != 0 {
 		println("Expected runtime errors length to be 0, got " + strconv.Itoa(len(errs)))
@@ -50,7 +50,7 @@ func TestRuntime2(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	strRes, err := Format("test.Hello test2.Hello3", &res, false)
+	strRes, err := Format("test.Hello test2.Hello3", &res, false, false)
 
 	if err != nil {
 		println("Expected runtime errors length to be 0, got " + strconv.Itoa(len(errs)))
@@ -78,7 +78,7 @@ func TestRuntime3(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	strRes, err := Format("testhellotesthello", &res, false)
+	strRes, err := Format("testhellotesthello", &res, false, false)
 
 	if err != nil {
 		println("Expected runtime errors length to be 0")
@@ -106,7 +106,7 @@ func TestRuntime4(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	strRes, err := Format("0+1*0+1", &res, false)
+	strRes, err := Format("0+1*0+1", &res, false, false)
 
 	if err != nil {
 		println("Expected runtime errors length to be 0")
@@ -140,7 +140,7 @@ func TestRun1(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	strRes, err := Format("20+1*1+1", &res, true)
+	strRes, err := Format("20+1*1+1", &res, true, false)
 
 	if err != nil {
 		println("Expected runtime errors length to be 0")
@@ -150,6 +150,40 @@ func TestRun1(t *testing.T) {
 	
 	if strRes != "22" {
 		println("Expected the result to be 22, got " + strRes)
+		t.Fatal()
+	}
+}
+
+func TestRun2(t *testing.T) {
+	println("TestRun2:")
+	ast, errs := kuuhaku_parser.Parse(
+		"E{E PLUS B(`3`) = `E1 + B1`}" +
+		"E{E MUL B(`2`) = `E1 * B1`}" +
+		"E{B(`1`) = `B1`}" +
+		"B(offset){<[0-9]+> = `tonumber(LITERAL1) + offset`}" + 
+		"PLUS{<\\+>} MUL{<\\*>}",
+	)
+	if len(errs) != 0 {
+		println("Expected parser errors length to be 0")
+		helper.DisplayAllErrors(errs)
+		t.Fatal()
+	}
+	res, errs := kuuhaku_analyzer.Analyze(&ast)
+	if len(errs) != 0 {
+		println("Expected analyzer errors length to be 0, got " + strconv.Itoa(len(errs)))
+		helper.DisplayAllErrors(errs)
+		t.Fatal()
+	}
+	strRes, err := Format("20+1*1+1", &res, true, true)
+
+	if err != nil {
+		println("Expected runtime errors length to be 0")
+		println(err.Error())
+		t.Fatal()
+	}
+	
+	if strRes != "79" {
+		println("Expected the result to be 79, got " + strRes)
 		t.Fatal()
 	}
 }

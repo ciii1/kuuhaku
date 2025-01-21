@@ -13,8 +13,8 @@ import (
 
 var ErrUnrecognizedExtension = fmt.Errorf("Extension is unrecognized")
 
-func ReadFormat(extension string) (*kuuhaku_analyzer.AnalyzerResult, []error) {
-	entries, err := os.ReadDir(FormatsDir())
+func ReadConfig(extension string) (*kuuhaku_analyzer.AnalyzerResult, []error) {
+	entries, err := os.ReadDir(ConfigDir())
 	helper.Check(err)
 	fmt.Println("ReadFormat(), extension:", extension)
 	fmt.Println("ReadFormat(), configs:")
@@ -26,7 +26,7 @@ func ReadFormat(extension string) (*kuuhaku_analyzer.AnalyzerResult, []error) {
 		fmt.Println(entryName, entryNameBase)
 		if filepath.Base(entryNameBase) == extension[1:] && filepath.Ext(entryName) == ".khk" {
 			fmt.Println(entry.Name())
-			formatFilePath = filepath.Join(FormatsDir(), entry.Name())
+			formatFilePath = filepath.Join(ConfigDir(), entry.Name())
 			break
 		}
 	}
@@ -49,8 +49,8 @@ func ReadFormat(extension string) (*kuuhaku_analyzer.AnalyzerResult, []error) {
 	return &res, []error{}
 }
 
-func FormatsDir() string {
+func ConfigDir() string {
 	homeDir, err := os.UserHomeDir()
 	helper.Check(err)
-	return filepath.Join(homeDir, ".config", "kuuhaku", "formats")
+	return filepath.Join(homeDir, ".config", "kuuhaku")
 }
