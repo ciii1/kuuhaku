@@ -191,7 +191,9 @@ func TestRun2(t *testing.T) {
 func TestRunEscapes(t *testing.T) {
 	println("TestRun3:")
 	ast, errs := kuuhaku_parser.Parse(
-		"nl{<\\n>}",
+		"nl{<\\n>}"+
+		"test{<test>}"+
+		"E{nl}",
 	)
 	if len(errs) != 0 {
 		println("Expected parser errors length to be 0")
@@ -204,7 +206,7 @@ func TestRunEscapes(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	strRes, err := Format("\n", &res, true, false)
+	strRes, err := Format("test\n", &res, true, false)
 
 	if err != nil {
 		println("Expected runtime errors length to be 0")
@@ -212,8 +214,8 @@ func TestRunEscapes(t *testing.T) {
 		t.Fatal()
 	}
 	
-	if strRes != "\n" {
-		println("Expected the result to be 79, got " + strRes)
+	if strRes != "test\n" {
+		println("Expected the result to be test\\n, got " + strRes)
 		t.Fatal()
 	}
 }

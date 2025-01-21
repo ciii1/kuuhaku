@@ -173,7 +173,7 @@ func Format(input string, format *kuuhaku_analyzer.AnalyzerResult, isRun bool, p
 	currPos.Line = 1
 	currPos.Column = 1
 	out := ""
-	for currPos.Raw < len(input) {
+	for currPos.Raw < len(input)-1 {
 		isThereSuccess := false
 		// We cannot have only one parse table for multiple start symbols because that'll 
 		// prevent us from having the backtracking mechanism

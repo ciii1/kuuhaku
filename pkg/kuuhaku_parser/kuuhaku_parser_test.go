@@ -71,8 +71,8 @@ func TestConsumeArgList(t *testing.T) {
 		t.Fatal()
 	}
 
-	if args[0].LuaString != "test" {
-		println("Expected args[0] to contain 'test'")
+	if args[0].LuaString != "return test" {
+		println("Expected args[0] to contain 'test', got " + args[0].LuaString)
 		t.Fail()
 	}
 	if args[0].Type != LUA_LITERAL_TYPE_RETURN {
