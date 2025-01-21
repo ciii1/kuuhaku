@@ -286,8 +286,10 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 		if lookaheadFound {
 			currActionCell := currRow.ActionTable[lookaheadRegex]
 			if currActionCell.Action == kuuhaku_analyzer.SHIFT {
+				content := strconv.Quote(lookahead)
+				content = content[1:len(content)-1]
 				parseStack = append(parseStack, &ParseStackTerminal {
-					String: lookahead,
+					String: content,
 					State:  currState,
 				})
 				currState = currActionCell.ShiftState
@@ -410,7 +412,6 @@ func compileNode(node *ParseStackElement, isFirst bool) (string, error) {
 				}
 			}
 				for j, arg := range identifier.ArgList {
-					println(arg.LuaString)
 					out += "local " + "P_" + childTree.Rule.ArgList[j].Name + " = (function()\n" + arg.LuaString + "\nend)()\n"
 				}
 			}

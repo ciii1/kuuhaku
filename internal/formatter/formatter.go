@@ -36,21 +36,23 @@ func Format(filename string, specFormatConfig string, isRecursive bool, isDebug 
 	for _, formattedFile := range files {
 		if isDebug {
 			fmt.Println("Format(), content:\n", formattedFile.Content)
+			println("Formatting " + formattedFile.Filename + "...")
 		}
-		println("Formatting " + formattedFile.Filename + "...")
 		formatConfig := specFormatConfig
 		if len(formatConfig) == 0 {
 			formatConfig = filepath.Ext(formattedFile.Filename)
 		}
-		res, errs := config_reader.ReadConfig(formatConfig)
+		res, errs := config_reader.ReadConfig(formatConfig, isDebug)
 		if len(errs) != 0 {
 			println("Error while reading configuration, file " + filepath.Ext(formattedFile.Filename) + ":")
 			helper.DisplayAllErrors(errs)
+			continue
 		}
 		strRes, err := kuuhaku_runtime.Format(formattedFile.Content, res, true, isDebug)
 		if err != nil {
 			println("Error while formatting the code, file " + formattedFile.Filename + ":")
 			print(err.Error())
+			continue
 		}
 
 		f, err := os.OpenFile(formattedFile.Filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)

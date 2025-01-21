@@ -174,7 +174,7 @@ func TestRun2(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	strRes, err := Format("20+1*1+1", &res, true, true)
+	strRes, err := Format("20+1*1+1", &res, true, false)
 
 	if err != nil {
 		println("Expected runtime errors length to be 0")
@@ -183,6 +183,36 @@ func TestRun2(t *testing.T) {
 	}
 	
 	if strRes != "79" {
+		println("Expected the result to be 79, got " + strRes)
+		t.Fatal()
+	}
+}
+
+func TestRunEscapes(t *testing.T) {
+	println("TestRun3:")
+	ast, errs := kuuhaku_parser.Parse(
+		"nl{<\\n>}",
+	)
+	if len(errs) != 0 {
+		println("Expected parser errors length to be 0")
+		helper.DisplayAllErrors(errs)
+		t.Fatal()
+	}
+	res, errs := kuuhaku_analyzer.Analyze(&ast)
+	if len(errs) != 0 {
+		println("Expected analyzer errors length to be 0, got " + strconv.Itoa(len(errs)))
+		helper.DisplayAllErrors(errs)
+		t.Fatal()
+	}
+	strRes, err := Format("\n", &res, true, false)
+
+	if err != nil {
+		println("Expected runtime errors length to be 0")
+		println(err.Error())
+		t.Fatal()
+	}
+	
+	if strRes != "\n" {
 		println("Expected the result to be 79, got " + strRes)
 		t.Fatal()
 	}

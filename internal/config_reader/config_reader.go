@@ -13,19 +13,25 @@ import (
 
 var ErrUnrecognizedExtension = fmt.Errorf("Extension is unrecognized")
 
-func ReadConfig(extension string) (*kuuhaku_analyzer.AnalyzerResult, []error) {
+func ReadConfig(extension string, isDebug bool) (*kuuhaku_analyzer.AnalyzerResult, []error) {
 	entries, err := os.ReadDir(ConfigDir())
 	helper.Check(err)
-	fmt.Println("ReadFormat(), extension:", extension)
-	fmt.Println("ReadFormat(), configs:")
+	if isDebug {
+		fmt.Println("ReadConfig(), extension:", extension)
+		fmt.Println("ReadConfig(), configs:")
+	}
 
 	formatFilePath := ""
 	for _, entry := range entries {
 		entryName := entry.Name()
 		entryNameBase := filepath.Base(strings.TrimSuffix(entryName, filepath.Ext(entryName)))
-		fmt.Println(entryName, entryNameBase)
+		if isDebug {
+			fmt.Println(entryName, entryNameBase)
+		}
 		if filepath.Base(entryNameBase) == extension[1:] && filepath.Ext(entryName) == ".khk" {
-			fmt.Println(entry.Name())
+			if isDebug {
+				fmt.Println(entry.Name())
+			}
 			formatFilePath = filepath.Join(ConfigDir(), entry.Name())
 			break
 		}
@@ -37,7 +43,9 @@ func ReadConfig(extension string) (*kuuhaku_analyzer.AnalyzerResult, []error) {
 
 	formatGrammar, err := os.ReadFile(formatFilePath)
 	helper.Check(err)
-	fmt.Println(string(formatGrammar))
+	if isDebug {
+		fmt.Println(string(formatGrammar))
+	}
 	ast, errs := kuuhaku_parser.Parse(string(formatGrammar))
 	if len(errs) != 0 {
 		return nil, errs
