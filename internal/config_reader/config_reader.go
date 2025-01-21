@@ -50,7 +50,7 @@ func ReadConfig(extension string, isDebug bool) (*kuuhaku_analyzer.AnalyzerResul
 	if len(errs) != 0 {
 		return nil, errs
 	}
-	res, errs := kuuhaku_analyzer.Analyze(&ast)
+	res, errs := kuuhaku_analyzer.Analyze(&ast, isDebug)
 	if len(errs) != 0 {
 		return nil, errs
 	}

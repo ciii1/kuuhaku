@@ -44,7 +44,7 @@ func TestRuntime2(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	res, errs := kuuhaku_analyzer.Analyze(&ast)
+	res, errs := kuuhaku_analyzer.Analyze(&ast, false)
 	if len(errs) != 0 {
 		println("Expected analyzer errors length to be 0, got " + strconv.Itoa(len(errs)))
 		helper.DisplayAllErrors(errs)
@@ -72,7 +72,7 @@ func TestRuntime3(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	res, errs := kuuhaku_analyzer.Analyze(&ast)
+	res, errs := kuuhaku_analyzer.Analyze(&ast, false)
 	if len(errs) != 0 {
 		println("Expected analyzer errors length to be 0, got " + strconv.Itoa(len(errs)))
 		helper.DisplayAllErrors(errs)
@@ -100,7 +100,7 @@ func TestRuntime4(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	res, errs := kuuhaku_analyzer.Analyze(&ast)
+	res, errs := kuuhaku_analyzer.Analyze(&ast, false)
 	if len(errs) != 0 {
 		println("Expected analyzer errors length to be 0, got " + strconv.Itoa(len(errs)))
 		helper.DisplayAllErrors(errs)
@@ -134,7 +134,7 @@ func TestRun1(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	res, errs := kuuhaku_analyzer.Analyze(&ast)
+	res, errs := kuuhaku_analyzer.Analyze(&ast, false)
 	if len(errs) != 0 {
 		println("Expected analyzer errors length to be 0, got " + strconv.Itoa(len(errs)))
 		helper.DisplayAllErrors(errs)
@@ -168,7 +168,7 @@ func TestRun2(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	res, errs := kuuhaku_analyzer.Analyze(&ast)
+	res, errs := kuuhaku_analyzer.Analyze(&ast, false)
 	if len(errs) != 0 {
 		println("Expected analyzer errors length to be 0, got " + strconv.Itoa(len(errs)))
 		helper.DisplayAllErrors(errs)

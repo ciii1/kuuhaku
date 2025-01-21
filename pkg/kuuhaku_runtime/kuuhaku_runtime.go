@@ -201,6 +201,8 @@ func Format(input string, format *kuuhaku_analyzer.AnalyzerResult, isRun bool, p
 		if !format.IsSearchMode && currPos.Raw < len(input)-1 {
 			return out, ErrExpectedEOFError(currPos)
 		}
+		println(currPos.Raw)
+		println(len(input))
 	}
 	return out, nil
 }
@@ -296,7 +298,6 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 				lookaheadFound = false
 			} else if currActionCell.Action == kuuhaku_analyzer.REDUCE {
 				var err error
-				//println(lookahead)
 				currState, err = applyRule(parseTable, currActionCell.ReduceRule, &parseStack, pos, false)
 				if err != nil {
 					return "", pos, err
@@ -337,14 +338,14 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 }
 
 func printParseStack(parseStack *[]ParseStackElement) {
-	print("Parse stack: ")
+	fmt.Print("Parse stack: ")
 	for i, parseStackElement := range *parseStack {
 		if i != 0 {
-			print(",")
+			fmt.Print(",")
 		}
-		print(parseStackElement.GetString())
+		fmt.Print(parseStackElement.GetString())
 	}
-	println("")
+	fmt.Println("")
 }
 
 func parseStackToString(parseStack *[]ParseStackElement) string {
@@ -364,7 +365,7 @@ func runParseStack(parseStack *[]ParseStackElement, globalLua kuuhaku_parser.Lua
 	compiled += compiledNodes
 	compiled += ")"
 	if printCompiled {
-		println("Compiled Lua code: " + compiled)
+		fmt.Println("Compiled Lua code: " + compiled)
 	}
 	if err != nil {
 		return "", err
@@ -387,8 +388,6 @@ func compileNode(node *ParseStackElement, isFirst bool) (string, error) {
 		out += "\"" + terminal.String + "\""
 	} else if (*node).GetType() == PARSE_STACK_ELEMENT_TYPE_TREE {
 		tree, _ := (*node).(*ParseStackTree)
-
-
 		out += "(function(\n"
 		for i, params := range tree.Rule.ArgList {
 			if i != 0 {

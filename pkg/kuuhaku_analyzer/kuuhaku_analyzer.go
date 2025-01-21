@@ -126,7 +126,7 @@ type Analyzer struct {
 	stateTransitionMapBool map[Symbol]bool
 }
 
-func Analyze(input *kuuhaku_parser.Ast) (AnalyzerResult, []error) {
+func Analyze(input *kuuhaku_parser.Ast, isDebug bool) (AnalyzerResult, []error) {
 	analyzer := initAnalyzer(input)
 	startSymbols := analyzer.analyzeStart()
 	if len(startSymbols) > 1 && !input.IsSearchMode {
@@ -136,8 +136,12 @@ func Analyze(input *kuuhaku_parser.Ast) (AnalyzerResult, []error) {
 		for _, startSymbol := range startSymbols {
 			analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable(startSymbol))
 			analyzer.buildParseTable(startSymbol)
+			if isDebug {
+				PrintParseTable(&analyzer.parseTables[len(analyzer.parseTables)-1])
+			}
 		}
 	}
+
 
 	return AnalyzerResult{
 		ParseTables:  analyzer.parseTables,
@@ -625,117 +629,117 @@ func PrintParseTable(parseTable *ParseTable) {
 		maxWidthState = len(strconv.Itoa(len(parseTable.States)))
 	}
 
-	print("| States")
+	fmt.Print("| States")
 	i := 0
 	for i < maxWidthState - 6 {
-		print(" ")
+		fmt.Print(" ")
 		i++
 	}
-	print(" || $end ||")
+	fmt.Print(" || $end ||")
 
 	for _, terminal := range parseTable.Terminals {
-		print(" " + terminal.Terminal)
+		fmt.Print(" " + terminal.Terminal)
 		i = 0
 		for i < maxWidthTerminals[terminal.Terminal] - len(terminal.Terminal) {
-			print(" ")
+			fmt.Print(" ")
 			i++
 		}
-		print(" |")
+		fmt.Print(" |")
 	}
-	print("|")
+	fmt.Print("|")
 	for _, lhs := range parseTable.Lhss {
-		print(" " + lhs)
+		fmt.Print(" " + lhs)
 		i = 0
 		for i < maxWidthLhss[lhs] - len(lhs) {
-			print(" ")
+			fmt.Print(" ")
 			i++
 		}
-		print(" |")
+		fmt.Print(" |")
 	}
-	println("")
+	fmt.Println("")
 
-	print("+-------")
+	fmt.Print("+-------")
 	i = 0
 	for i < maxWidthState - 6 {
-		print("-")
+		fmt.Print("-")
 		i++
 	}
-	print("-++------++")
+	fmt.Print("-++------++")
 	for _, terminal := range parseTable.Terminals {
-		print("-")
+		fmt.Print("-")
 		for range terminal.Terminal {
-			print("-")
+			fmt.Print("-")
 		}
 		i = 0
 		for i < maxWidthTerminals[terminal.Terminal] - len(terminal.Terminal) {
-			print("-")
+			fmt.Print("-")
 			i++
 		}
-		print("-+")
+		fmt.Print("-+")
 	}
-	print("+")
+	fmt.Print("+")
 	for _, lhs := range parseTable.Lhss {
-		print("-")
+		fmt.Print("-")
 		for range lhs {
-			print("-")
+			fmt.Print("-")
 		}
 		i = 0
 		for i < maxWidthLhss[lhs] - len(lhs) {
-			print("-")
+			fmt.Print("-")
 			i++
 		}
-		print("-+")
+		fmt.Print("-+")
 	}
 
 	for i, state := range parseTable.States {
-		println("")
-		print("| ")
-		print(strconv.Itoa(i))
+		fmt.Println("")
+		fmt.Print("| ")
+		fmt.Print(strconv.Itoa(i))
 		j := 0
 		for j < maxWidthState - len(strconv.Itoa(i)) {
-			print(" ")
+			fmt.Print(" ")
 			j++
 		}
-		print(" ||")
+		fmt.Print(" ||")
 
 		if state.EndReduceRule != nil && state.EndReduceRule.Action == ACCEPT {
-			print(" acc  ||")
+			fmt.Print(" acc  ||")
 		} else {
-			print("      ||")
+			fmt.Print("      ||")
 		}
 		
 		for _, terminal := range parseTable.Terminals {
-			print(" ")
+			fmt.Print(" ")
 			actionNumberLength := 0
 			if state.ActionTable[terminal.Terminal] != nil{
-				print(state.ActionTable[terminal.Terminal].ShiftState)
+				fmt.Print(state.ActionTable[terminal.Terminal].ShiftState)
 				actionNumberLength = len(strconv.Itoa(state.ActionTable[terminal.Terminal].ShiftState))
 			}
 			j = 0
 			for j < maxWidthTerminals[terminal.Terminal] - actionNumberLength {
-				print(" ")
+				fmt.Print(" ")
 				j++
 			}
-			print(" |")
+			fmt.Print(" |")
 		}
 
-		print("|")
+		fmt.Print("|")
 
 		for _, lhs := range parseTable.Lhss {
-			print(" ")
+			fmt.Print(" ")
 			lhsNumberLength := 0
 			if state.GotoTable[lhs] != nil{
-				print(state.GotoTable[lhs].GotoState)
+				fmt.Print(state.GotoTable[lhs].GotoState)
 				lhsNumberLength = len(strconv.Itoa(state.GotoTable[lhs].GotoState))
 			}
 			j = 0
 			for j < maxWidthLhss[lhs] - lhsNumberLength {
-				print(" ")
+				fmt.Print(" ")
 				j++
 			}
-			print(" |")
+			fmt.Print(" |")
 		}
 	}
 
-	println("")
+	fmt.Println("")
 }
