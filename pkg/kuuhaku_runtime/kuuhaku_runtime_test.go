@@ -189,7 +189,7 @@ func TestRun2(t *testing.T) {
 }
 
 func TestRunEscapes(t *testing.T) {
-	println("TestRun3:")
+	println("TestRunEscapes:")
 	ast, errs := kuuhaku_parser.Parse(
 		"nl{<\\n>}"+
 		"test{<test>}"+
@@ -216,6 +216,37 @@ func TestRunEscapes(t *testing.T) {
 	
 	if strRes != "test\n" {
 		println("Expected the result to be test\\n, got " + strRes)
+		t.Fatal()
+	}
+}
+
+func TestRunWeirdRegex(t *testing.T) {
+	println("TestRunWeirdRegex:")
+	ast, errs := kuuhaku_parser.Parse(
+		"w{<[ \\n\\t\\r]*>}"+
+		"test{<test>}"+
+		"E{w E w test}" +
+		"E{test}",
+	)
+	if len(errs) != 0 {
+		println("Expected parser errors length to be 0")
+		helper.DisplayAllErrors(errs)
+		t.Fatal()
+	}
+	res, errs := kuuhaku_analyzer.Analyze(&ast, false)
+	if len(errs) != 0 {
+		println("Expected analyzer errors length to be 0, got " + strconv.Itoa(len(errs)))
+		helper.DisplayAllErrors(errs)
+		t.Fatal()
+	}
+	strRes, err := Format("test test", &res, true, false)
+
+	if err == nil {
+		println("Expected a runtime error")
+	}
+	
+	if strRes != "test test" {
+		println("Expected the result to be testtest, got " + strRes)
 		t.Fatal()
 	}
 }

@@ -251,9 +251,9 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 	lookaheadRegex := ""
 	lookaheadFound := false
 
+	var expected []string
 	for true {
 		currRow := parseTable.States[currState]
-		var expected []string
 
 		if pos.Raw > len(input) {
 			for _, terminal := range parseTable.Terminals {
@@ -268,6 +268,7 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 		slicedInput := input[pos.Raw:]
 
 		if !lookaheadFound {
+			expected = []string{}
 			for _, terminal := range parseTable.Terminals {
 				if currRow.ActionTable[terminal.Terminal] != nil && terminal.Regexp != nil {
 					expected = append(expected, terminal.Terminal)
@@ -286,21 +287,25 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 		}
 		if lookaheadFound {
 			currActionCell := currRow.ActionTable[lookaheadRegex]
-			if currActionCell.Action == kuuhaku_analyzer.SHIFT {
-				content := strconv.Quote(lookahead)
-				content = content[1:len(content)-1]
-				parseStack = append(parseStack, &ParseStackTerminal {
-					String: content,
-					State:  currState,
-				})
-				currState = currActionCell.ShiftState
-				lookaheadFound = false
-			} else if currActionCell.Action == kuuhaku_analyzer.REDUCE {
-				var err error
-				currState, err = applyRule(parseTable, currActionCell.ReduceRule, &parseStack, pos, false)
-				if err != nil {
-					return "", pos, err
+			if currActionCell != nil {
+				if currActionCell.Action == kuuhaku_analyzer.SHIFT {
+					content := strconv.Quote(lookahead)
+					content = content[1:len(content)-1]
+					parseStack = append(parseStack, &ParseStackTerminal {
+						String: content,
+						State:  currState,
+					})
+					currState = currActionCell.ShiftState
+					lookaheadFound = false
+				} else if currActionCell.Action == kuuhaku_analyzer.REDUCE {
+					var err error
+					currState, err = applyRule(parseTable, currActionCell.ReduceRule, &parseStack, pos, false)
+					if err != nil {
+						return "", pos, err
+					}
 				}
+			} else {
+				return "", pos, ErrSyntaxError(pos, &expected)
 			}
 		} else {
 			if currRow.EndReduceRule != nil {
