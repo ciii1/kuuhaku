@@ -173,10 +173,9 @@ func Format(input string, format *kuuhaku_analyzer.AnalyzerResult, isRun bool, p
 	currPos.Line = 1
 	currPos.Column = 1
 	out := ""
-	for currPos.Raw < len(input)-1 {
+	for currPos.Raw < len(input) {
 		isThereSuccess := false
-		// We cannot have only one parse table for multiple start symbols because that'll 
-		// prevent us from having the backtracking mechanism
+		//TODO: change this to only one parse table
 		for _, parseTable := range format.ParseTables {
 			var globalLua kuuhaku_parser.LuaLiteral
 			if format.GlobalLua != nil {
@@ -198,7 +197,7 @@ func Format(input string, format *kuuhaku_analyzer.AnalyzerResult, isRun bool, p
 			out += string(input[currPos.Raw])
 			currPos.Raw++
 		}
-		if !format.IsSearchMode && currPos.Raw < len(input)-1 {
+		if !format.IsSearchMode && currPos.Raw < len(input) {
 			return out, ErrExpectedEOFError(currPos)
 		}
 		println(currPos.Raw)

@@ -16,7 +16,7 @@ func TestRuntime1(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	res, errs := kuuhaku_analyzer.Analyze(&ast)
+	res, errs := kuuhaku_analyzer.Analyze(&ast, true)
 	if len(errs) != 0 {
 		println("Expected analyzer errors length to be 0, got " + strconv.Itoa(len(errs)))
 		helper.DisplayAllErrors(errs)
@@ -31,7 +31,7 @@ func TestRuntime1(t *testing.T) {
 	}
 
 	if strRes != "[[[a],[b]]][[[a],[b]]][[[a],[b]]]aa" {
-		println("Expected the string to be \"[[[[a],[b]]]][[[[a],[b]]]][[[[a],[b]]]]aa\", got " + strRes)
+		println("Expected the string to be \"[[[a],[b]]][[[a],[b]]][[[a],[b]]]aa\", got " + strRes)
 		t.Fatal()
 	}
 }
@@ -193,14 +193,14 @@ func TestRunEscapes(t *testing.T) {
 	ast, errs := kuuhaku_parser.Parse(
 		"nl{<\\n>}"+
 		"test{<test>}"+
-		"E{nl}",
+		"E{test nl}",
 	)
 	if len(errs) != 0 {
 		println("Expected parser errors length to be 0")
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	res, errs := kuuhaku_analyzer.Analyze(&ast)
+	res, errs := kuuhaku_analyzer.Analyze(&ast, false)
 	if len(errs) != 0 {
 		println("Expected analyzer errors length to be 0, got " + strconv.Itoa(len(errs)))
 		helper.DisplayAllErrors(errs)
