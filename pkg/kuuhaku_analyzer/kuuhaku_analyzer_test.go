@@ -475,7 +475,7 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 	}
 	analyzer := initAnalyzer(&ast)
 	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("identifier"))
-	stateTransitions := analyzer.buildParseTable("identifier")
+	stateTransitions := analyzer.buildParseTable("identifier", false)
 
 	if len(*stateTransitions) != 5 {
 		println("Expected stateTransitions length to be 5, got " + strconv.Itoa(len(*stateTransitions)))
@@ -586,7 +586,7 @@ func TestBuildParseTable(t *testing.T) {
 	}
 	analyzer := initAnalyzer(&ast)
 	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("identifier"))
-	stateTransitions := analyzer.buildParseTable("identifier")
+	stateTransitions := analyzer.buildParseTable("identifier", false)
 
 	if len(*stateTransitions) != 4 {
 		println("Expected stateTransitions length to be 4, got " + strconv.Itoa(len(*stateTransitions)))
@@ -654,7 +654,7 @@ func TestBuildParseTableErrorMultiplePartialReduce(t *testing.T) {
 	}
 	analyzer := initAnalyzer(&ast)
 	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("E"))
-	analyzer.buildParseTable("E")
+	analyzer.buildParseTable("E", false)
 
 	println("TestBuildParseTableErrorMultiplePartialReduce - Errors:")
 	helper.DisplayAllErrors(analyzer.Errors)
@@ -725,7 +725,7 @@ func TestBuildParseTable2(t *testing.T) {
 	analyzer := initAnalyzer(&ast)
 	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("E"))
 	analyzer.makeAugmentedGrammar("E")
-	stateTransitions := analyzer.buildParseTable("SE")
+	stateTransitions := analyzer.buildParseTable("SE", false)
 	PrintParseTable(&analyzer.parseTables[0])
 
 	if len(analyzer.Errors) != 0 {
@@ -793,7 +793,7 @@ func TestBuildParseTableErrorPartialReduceAndShift(t *testing.T) {
 	}
 	analyzer := initAnalyzer(&ast)
 	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("E"))
-	analyzer.buildParseTable("E")
+	analyzer.buildParseTable("E", false)
 
 	println("TestBuildParseTableErrorPartialReduceAndShift - Errors:")
 	helper.DisplayAllErrors(analyzer.Errors)
@@ -845,7 +845,7 @@ func TestBuildParseTableErrorMultipleEndReduce(t *testing.T) {
 	}
 	analyzer := initAnalyzer(&ast)
 	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("E"))
-	analyzer.buildParseTable("E")
+	analyzer.buildParseTable("E", false)
 
 	println("TestBuildParseTableErrorMultipleEndReduce - Errors:")
 	helper.DisplayAllErrors(analyzer.Errors)
@@ -1071,7 +1071,7 @@ func TestAnalyze(t *testing.T) {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
-	_, errs = Analyze(&ast)
+	_, errs = Analyze(&ast, false)
 	if len(errs) != 1 {
 		println("Expected analyzer Errors length to be 1, got " + strconv.Itoa(len(errs)))
 		t.Fatal()
@@ -1098,7 +1098,7 @@ func TestAnalyze2(t *testing.T) {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
-	res, errs := Analyze(&ast)
+	res, errs := Analyze(&ast, false)
 	if len(errs) != 0 {
 		println("Expected analyzer Errors length to be 0, got " + strconv.Itoa(len(errs)))
 		helper.DisplayAllErrors(errs)

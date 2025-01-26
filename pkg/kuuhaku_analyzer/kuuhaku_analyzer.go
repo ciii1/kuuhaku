@@ -135,7 +135,7 @@ func Analyze(input *kuuhaku_parser.Ast, isDebug bool) (AnalyzerResult, []error) 
 	if len(analyzer.Errors) == 0 {
 		for _, startSymbol := range startSymbols {
 			analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable(startSymbol))
-			analyzer.buildParseTable(startSymbol)
+			analyzer.buildParseTable(startSymbol, isDebug)
 			if isDebug {
 				PrintParseTable(&analyzer.parseTables[len(analyzer.parseTables)-1])
 			}
@@ -293,7 +293,7 @@ func (analyzer *Analyzer) expandSymbol(rules *[]*kuuhaku_parser.Rule, position i
 	return output
 }
 
-func (analyzer *Analyzer) buildParseTable(startSymbolString string) *[]*StateTransition {
+func (analyzer *Analyzer) buildParseTable(startSymbolString string, isDebug bool) *[]*StateTransition {
 	if len(analyzer.Errors) != 0 {
 		return nil
 	}
@@ -302,7 +302,7 @@ func (analyzer *Analyzer) buildParseTable(startSymbolString string) *[]*StateTra
 
 	var stateTransitions []*StateTransition
 	grouped := analyzer.groupSymbols(expandedStartSymbols)
-	grouped = analyzer.buildParseTableState(grouped, startSymbolString)
+	grouped = analyzer.buildParseTableState(grouped, startSymbolString, isDebug)
 	stateTransitions = append(stateTransitions, &StateTransition{
 		SymbolGroups: grouped,
 	})
@@ -323,7 +323,7 @@ func (analyzer *Analyzer) buildParseTable(startSymbolString string) *[]*StateTra
 			}
 
 			grouped := analyzer.groupSymbols(&expandedSymbolsAll)
-			grouped = analyzer.buildParseTableState(grouped, startSymbolString)
+			grouped = analyzer.buildParseTableState(grouped, startSymbolString, isDebug)
 			if len(*grouped) != 0 {
 				stateTransitions = append(stateTransitions, &StateTransition{
 					SymbolGroups: grouped,
@@ -359,7 +359,7 @@ func (analyzer *Analyzer) groupSymbols(symbols *[]*Symbol) *[]*SymbolGroup {
 	return &groups
 }
 
-func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, startSymbol string) *[]*SymbolGroup {
+func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, startSymbol string, isDebug bool) *[]*SymbolGroup {
 	if len(*symbolGroups) == 0 {
 		return symbolGroups
 	}
@@ -385,6 +385,8 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 
 	if emptyTitleGroup != nil {
 		//resolve end reduce actions
+		existingLookeaheads := make(map[SymbolTitle]bool)
+		skipLookaheadReduceRule := false
 		outGroup = append(outGroup, emptyTitleGroup)
 		for _, symbol := range *emptyTitleGroup.Symbols {
 			if symbol.Position >= len(symbol.Rule.MatchRules) {
@@ -406,37 +408,68 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 						}
 					}
 				}
+				existingLookeaheads[symbol.Lookeahead] = true
 			}
 		}
-		//resolve reduce actions
-		for _, symbol := range *emptyTitleGroup.Symbols {
-			if symbol.Position >= len(symbol.Rule.MatchRules) {
-				if symbol.Lookeahead.Type == EMPTY_TITLE {
-					continue
-				}
-				var terminals []string
-				if symbol.Lookeahead.Type == IDENTIFIER_TITLE {
-					rule := analyzer.input.Rules[symbol.Lookeahead.String]
-					symbols := analyzer.expandSymbol(&rule, 0, &[]*Symbol{}, SymbolTitle{})
-					for _, symbol := range *symbols {
-						if (*symbol).Title.Type == REGEX_LITERAL_TITLE {
-							terminals = append(terminals, (*symbol).Title.String)
-						}
-					}
-				} else if symbol.Lookeahead.Type == REGEX_LITERAL_TITLE {
-					terminals = append(terminals, symbol.Lookeahead.String)
-				}
-				for _, terminal := range terminals {
-					if usedTerminalsWithSymbol[terminal] == nil {
-						usedTerminalsWithSymbol[terminal] = symbol
-						actionTable[terminal] = &ActionCell{
-							LookaheadTerminal: terminal,
-							Action:            REDUCE,
-							ReduceRule:        symbol.Rule,
-							ShiftState:        0,
-						}
+
+		// we put the reduce action to the EndReduceRule if there's only one type of lookahead
+		if len(existingLookeaheads) == 1 && !isThereEndReduce {
+			var oneLookahead SymbolTitle
+			for lookahead := range existingLookeaheads { 
+				oneLookahead = lookahead
+			}
+			// check all symbols with the same lookahead, if exists, then produce error
+			isFound := false
+			for _, symbol := range *emptyTitleGroup.Symbols {
+				if symbol.Lookeahead == oneLookahead {
+					if isFound {
+						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, (*emptyTitleGroup.Symbols)[0]))
 					} else {
-						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, usedTerminalsWithSymbol[terminal]))
+						isFound = true	
+					}
+				}
+			}
+			usedTerminalsWithSymbol[oneLookahead.String] = (*emptyTitleGroup.Symbols)[0]
+			endReduceRule = &ActionCell{
+				LookaheadTerminal: oneLookahead.String,
+				Action:            REDUCE,
+				ReduceRule:        (*emptyTitleGroup.Symbols)[0].Rule,
+				ShiftState:        0,
+			}
+			skipLookaheadReduceRule = true
+		}
+
+		//resolve reduce actions
+		if !skipLookaheadReduceRule {
+			for _, symbol := range *emptyTitleGroup.Symbols {
+				if symbol.Position >= len(symbol.Rule.MatchRules) {
+					if symbol.Lookeahead.Type == EMPTY_TITLE {
+						continue
+					}
+					var terminals []string
+					if symbol.Lookeahead.Type == IDENTIFIER_TITLE {
+						rule := analyzer.input.Rules[symbol.Lookeahead.String]
+						symbols := analyzer.expandSymbol(&rule, 0, &[]*Symbol{}, SymbolTitle{})
+						for _, symbol := range *symbols {
+							if (*symbol).Title.Type == REGEX_LITERAL_TITLE {
+								terminals = append(terminals, (*symbol).Title.String)
+							}
+						}
+					} else if symbol.Lookeahead.Type == REGEX_LITERAL_TITLE {
+						terminals = append(terminals, symbol.Lookeahead.String)
+					}
+					for _, terminal := range terminals {
+						if usedTerminalsWithSymbol[terminal] == nil {
+							usedTerminalsWithSymbol[terminal] = symbol
+							actionTable[terminal] = &ActionCell{
+								LookaheadTerminal: terminal,
+								Action:            REDUCE,
+								ReduceRule:        symbol.Rule,
+								ShiftState:        0,
+							}
+						} else {
+							analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, usedTerminalsWithSymbol[terminal]))
+						}
 					}
 				}
 			}
@@ -702,8 +735,12 @@ func PrintParseTable(parseTable *ParseTable) {
 		}
 		fmt.Print(" ||")
 
-		if state.EndReduceRule != nil && state.EndReduceRule.Action == ACCEPT {
-			fmt.Print(" acc  ||")
+		if state.EndReduceRule != nil {
+			if state.EndReduceRule.Action == ACCEPT {
+				fmt.Print(" acc  ||")
+			} else if state.EndReduceRule.Action == REDUCE {
+				fmt.Print(" R    ||")
+			}
 		} else {
 			fmt.Print("      ||")
 		}
