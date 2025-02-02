@@ -122,8 +122,8 @@ type Analyzer struct {
 	Errors                 []error
 	stateNumber            int
 	parseTables            []ParseTable
-	stateTransitionMap     map[Symbol]int
-	stateTransitionMapBool map[Symbol]bool
+	stateTransitionMap     map[string]int
+	stateTransitionMapBool map[string]bool
 }
 
 func Analyze(input *kuuhaku_parser.Ast, isDebug bool) (AnalyzerResult, []error) {
@@ -156,8 +156,8 @@ func initAnalyzer(input *kuuhaku_parser.Ast) Analyzer {
 		Errors:                 []error{},
 		stateNumber:            1,
 		parseTables:            []ParseTable{},
-		stateTransitionMap:     make(map[Symbol]int),
-		stateTransitionMapBool: make(map[Symbol]bool),
+		stateTransitionMap:     make(map[string]int),
+		stateTransitionMapBool: make(map[string]bool),
 	}
 }
 
@@ -370,8 +370,8 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 
 	var outGroup []*SymbolGroup
 
-	isThereEndReduce := false
 	var endReducedSymbol *Symbol
+	isThereEndReduce := false	
 
 	usedTerminalsWithSymbol := make(map[string]*Symbol)
 
@@ -394,8 +394,8 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 					if isThereEndReduce {
 						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, endReducedSymbol))
 					} else {
-						isThereEndReduce = true
 						endReducedSymbol = symbol
+						isThereEndReduce = true
 						var action Action = REDUCE
 						if symbol.Rule.Name == startSymbol {
 							action = ACCEPT
@@ -478,56 +478,37 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 
 	for _, group := range *symbolGroups {
 		if group.Title.Type == IDENTIFIER_TITLE {
+			stateNumber := analyzer.stateNumber
+			if !analyzer.stateTransitionMapBool[symbolGroupToString(*group)] {
+				outGroup = append(outGroup, group)
+				analyzer.stateTransitionMap[symbolGroupToString(*group)] = analyzer.stateNumber
+				analyzer.stateTransitionMapBool[symbolGroupToString(*group)] = true
+				analyzer.stateNumber++
+			} else {
+				stateNumber = analyzer.stateTransitionMap[symbolGroupToString(*group)]
+			}
 			gotoTable[group.Title.String] = &GotoCell{
 				Lhs:       group.Title.String,
-				GotoState: analyzer.stateNumber,
+				GotoState: stateNumber,
 			}
-			analyzer.stateNumber++
-			outGroup = append(outGroup, group)
 		} else if group.Title.Type == REGEX_LITERAL_TITLE {
 			if usedTerminalsWithSymbol[group.Title.String] != nil {
 				analyzer.Errors = append(analyzer.Errors, ErrConflict((*group.Symbols)[0], usedTerminalsWithSymbol[group.Title.String]))
 			}
-			isStateExisted := false
-			existedStateNumber := 0
-			for _, symbol := range *group.Symbols {
-				if isStateExisted {
-					if analyzer.stateTransitionMapBool[*symbol] != false {
-						if analyzer.stateTransitionMap[*symbol] != existedStateNumber {
-							isStateExisted = false
-							existedStateNumber = 0
-						}
-					} else {
-						isStateExisted = false
-						existedStateNumber = 0
-					}
-				} else {
-					if analyzer.stateTransitionMapBool[*symbol] != false {
-						isStateExisted = true
-						existedStateNumber = analyzer.stateTransitionMap[*symbol]
-					}
-				}
-			}
-			if !isStateExisted {
-				actionTable[group.Title.String] = &ActionCell{
-					LookaheadTerminal: group.Title.String,
-					Action:            SHIFT,
-					ReduceRule:        nil,
-					ShiftState:        analyzer.stateNumber,
-				}
+			stateNumber := analyzer.stateNumber
+			if !analyzer.stateTransitionMapBool[symbolGroupToString(*group)] {
 				outGroup = append(outGroup, group)
-				for _, symbol := range *group.Symbols {
-					analyzer.stateTransitionMapBool[*symbol] = true
-					analyzer.stateTransitionMap[*symbol] = analyzer.stateNumber
-				}
+				analyzer.stateTransitionMap[symbolGroupToString(*group)] = analyzer.stateNumber
+				analyzer.stateTransitionMapBool[symbolGroupToString(*group)] = true
 				analyzer.stateNumber++
 			} else {
-				actionTable[group.Title.String] = &ActionCell{
-					LookaheadTerminal: group.Title.String,
-					Action:            SHIFT,
-					ReduceRule:        nil,
-					ShiftState:        existedStateNumber,
-				}
+				stateNumber = analyzer.stateTransitionMap[symbolGroupToString(*group)]
+			}
+			actionTable[group.Title.String] = &ActionCell{
+				LookaheadTerminal: group.Title.String,
+				Action:            SHIFT,
+				ReduceRule:        nil,
+				ShiftState:        stateNumber,
 			}
 		}
 	}
@@ -538,6 +519,21 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 		EndReduceRule: endReduceRule,
 	})
 	return &outGroup
+}
+
+func symbolGroupToString(group SymbolGroup) string {
+	out := ""
+	out += group.Title.String + ">"
+	out += strconv.Itoa(int(group.Title.Type)) + ">"
+	for _, symbol := range *group.Symbols {
+		out += symbol.Lookeahead.String + "|"
+		out += strconv.Itoa(int(symbol.Lookeahead.Type)) + "|"
+		out += symbol.Title.String + "|"
+		out += strconv.Itoa(int(symbol.Title.Type)) + "|"
+		out += strconv.Itoa(symbol.Rule.Order) + "|"
+		out += strconv.Itoa(symbol.Position) + ">"
+	}
+	return out
 }
 
 func (analyzer *Analyzer) makeAugmentedGrammar(startSymbol string) *Symbol {

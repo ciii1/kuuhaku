@@ -2,7 +2,6 @@ package kuuhaku_analyzer
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/ciii1/kuuhaku/internal/helper"
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_parser"
-	"github.com/kr/pretty"
 )
 
 func TestErrorInvalidArgumentLength(t *testing.T) {
@@ -155,7 +153,6 @@ func TestExpandSymbol(t *testing.T) {
 
 	if len(*expandedSymbols) != 3 {
 		println("Expected expandedSymbols length to be 3, got " + strconv.Itoa(len(*expandedSymbols)))
-		fmt.Printf("%# v\n", pretty.Formatter(*expandedSymbols))
 		t.Fatal()
 	}
 
@@ -253,7 +250,6 @@ func TestExpandSymbol2(t *testing.T) {
 
 	if len(*expandedSymbols) != 3 {
 		println("Expected expandedSymbols length to be 3, got " + strconv.Itoa(len(*expandedSymbols)))
-		fmt.Printf("%# v\n", pretty.Formatter(*expandedSymbols))
 		t.Fatal()
 	}
 
@@ -340,7 +336,6 @@ func TestExpandSymbol3(t *testing.T) {
 
 	if len(*expandedSymbols) != 1 {
 		println("Expected expandedSymbols length to be 1, got " + strconv.Itoa(len(*expandedSymbols)))
-		fmt.Printf("%# v\n", pretty.Formatter(*expandedSymbols))
 		t.Fatal()
 	}
 
@@ -368,7 +363,6 @@ func TestGroupSymbols(t *testing.T) {
 
 	if len(*expandedSymbols) != 3 {
 		println("Expected expandedSymbols length to be 3, got " + strconv.Itoa(len(*expandedSymbols)))
-		fmt.Printf("%# v\n", pretty.Formatter(*expandedSymbols))
 		t.Fatal()
 	}
 
@@ -376,7 +370,6 @@ func TestGroupSymbols(t *testing.T) {
 
 	if len(*groupedSymbols) != 2 {
 		println("Expected expandedSymbols length to be 2, got " + strconv.Itoa(len(*groupedSymbols)))
-		fmt.Printf("%# v\n", pretty.Formatter(*groupedSymbols))
 		t.Fatal()
 	}
 
@@ -393,7 +386,6 @@ func TestGroupSymbols(t *testing.T) {
 	if (*groupedSymbols)[0].Title == comparedTitle1 {
 		if (*groupedSymbols)[1].Title != comparedTitle2 {
 			println("Expected groupedSymbols[1].Title to be \"test\" with the type identifier")
-			fmt.Printf("%# v\n", pretty.Formatter((*groupedSymbols)[1].Title))
 		}
 		regexLitGroup = (*groupedSymbols)[0]
 		identifierGroup = (*groupedSymbols)[1]
@@ -479,7 +471,6 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 
 	if len(*stateTransitions) != 5 {
 		println("Expected stateTransitions length to be 5, got " + strconv.Itoa(len(*stateTransitions)))
-		fmt.Printf("%# v\n", pretty.Formatter(*stateTransitions))
 		t.Fatal()
 	}
 
@@ -590,7 +581,6 @@ func TestBuildParseTable(t *testing.T) {
 
 	if len(*stateTransitions) != 4 {
 		println("Expected stateTransitions length to be 4, got " + strconv.Itoa(len(*stateTransitions)))
-		fmt.Printf("%# v\n", pretty.Formatter(*stateTransitions))
 		t.Fatal()
 	}
 
@@ -601,7 +591,6 @@ func TestBuildParseTable(t *testing.T) {
 
 	if len(analyzer.parseTables[0].States) != 4 {
 		println("Expected parse table states length to be 4, got " + strconv.Itoa(len(analyzer.parseTables[0].States)))
-		fmt.Printf("%# v\n", pretty.Formatter(analyzer.parseTables[0].States))
 		t.Fatal()
 	}
 
@@ -736,7 +725,6 @@ func TestBuildParseTable2(t *testing.T) {
 
 	if len(analyzer.parseTables[0].States) != 9 {
 		println("Expected stateTransitions length to be 9, got " + strconv.Itoa(len(*stateTransitions)))
-		fmt.Printf("%# v\n", pretty.Formatter(analyzer.parseTables[0].States))
 		t.Fatal()
 	}
 
@@ -950,10 +938,6 @@ func TestGetAllTerminalsAndLhs(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(lhsMapCorrect, *lhsMap) {
-		println("lhsMap != lhsMapCorrect\nlhsMap:")
-		fmt.Printf("%# v\n", pretty.Formatter(*lhsMap))
-		println("lhsMapCorrect:")
-		fmt.Printf("%# v\n", pretty.Formatter(lhsMapCorrect))
 		t.Fail()
 	}
 
