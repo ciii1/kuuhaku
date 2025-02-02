@@ -385,6 +385,7 @@ func TestErrorPosition(t *testing.T) {
 		}
 		if parseError.Position.Column != 1 || parseError.Position.Line != 2 {
 			println("Expected ExpectedOpeningCurlyBracketError error with column 1 and line 2")
+			println("== Got: (" + strconv.Itoa(parseError.Position.Line) + ", " + strconv.Itoa(parseError.Position.Column)+ ")")
 			t.Fail()
 		}
 	} else {

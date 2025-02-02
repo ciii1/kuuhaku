@@ -225,12 +225,16 @@ func (tokenizer *Tokenizer) consumeNewline() bool {
 	currChar := tokenizer.peekChar()
 	if currChar == '\n' {
 		tokenizer.nextChar()
-		tokenizer.Position.Column = 1
-		tokenizer.Position.Line += 1
+		tokenizer.adjustNewline()
 		return true
 	} else {
 		return false
 	}
+}
+
+func (tokenizer *Tokenizer) adjustNewline() {
+	tokenizer.Position.Column = 1
+	tokenizer.Position.Line += 1
 }
 
 func (tokenizer *Tokenizer) consumeWhitespace() bool {
@@ -412,12 +416,21 @@ func (tokenizer *Tokenizer) consumeLuaLiteral() (*Token, error) {
 	prevPrevPrevChar := byte(0)
 	prevPrevChar := tokenizer.peekChar()
 	prevChar := tokenizer.nextChar()
+	if prevChar == '\n' {
+		tokenizer.adjustNewline()
+	}
 	currChar = tokenizer.nextChar()
+	if currChar == '\n' {
+		tokenizer.adjustNewline()
+	}
 	for currChar != '`' || prevChar != '`' || (prevPrevChar == '\\' && prevPrevPrevChar != '\\') {
 		prevPrevPrevChar = prevPrevChar
 		prevPrevChar = prevChar
 		prevChar = tokenizer.peekChar()
 		currChar = tokenizer.nextChar()
+		if currChar == '\n' {
+			tokenizer.adjustNewline()
+		}
 		if currChar == '`' && prevChar == '`' && prevPrevChar == '\\' && prevPrevPrevChar != '\\' {
 
 		} else {
