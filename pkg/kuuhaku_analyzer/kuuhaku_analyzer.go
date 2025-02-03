@@ -284,12 +284,6 @@ func (analyzer *Analyzer) expandSymbol(rules *[]*kuuhaku_parser.Rule, position i
 					break
 				}
 			}
-			/*if currIdentifier.Name == "IDENTIFIER" && nextLookahead.String == "<end>"{
-				println("========")
-				println(currRule.Name)
-				println(analyzer.stateNumber)
-				println(position)
-			}*/
 			if !is_included {
 				rules := analyzer.input.Rules[currIdentifier.Name]
 				output = analyzer.expandSymbol(&rules, 0, output, nextLookahead)
@@ -485,9 +479,6 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 	}
 
 	for _, group := range *symbolGroups {
-		/*if analyzer.stateNumber == 63 {
-			println(symbolGroupToString(*group))
-		}*/
 		if group.Title.Type == IDENTIFIER_TITLE {
 			stateNumber := analyzer.stateNumber
 			if !analyzer.stateTransitionMapBool[symbolGroupToString(*group)] {
