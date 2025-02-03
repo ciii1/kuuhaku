@@ -3,7 +3,7 @@ package kuuhaku_analyzer
 import (
 	"errors"
 	"reflect"
-	"regexp"
+	"github.com/h2so5/goback/regexp"
 	"strconv"
 	"testing"
 

@@ -1,4 +1,6 @@
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
+github.com/h2so5/goback v0.0.0-20150302055225-6e210305bfc9 h1:HpHh/z38D53+rJJnOZhVGcaPImRngX18xKVma4VHBEs=
+github.com/h2so5/goback v0.0.0-20150302055225-6e210305bfc9/go.mod h1:YaAwP3MyryOTskva8K5dvyse+hrwc/OwgP4rHXcGS98=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=

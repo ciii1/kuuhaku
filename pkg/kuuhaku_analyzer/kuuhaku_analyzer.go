@@ -2,7 +2,7 @@ package kuuhaku_analyzer
 
 import (
 	"fmt"
-	"regexp"
+	"github.com/h2so5/goback/regexp"
 	"sort"
 	"strconv"
 
