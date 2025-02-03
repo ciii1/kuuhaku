@@ -22,6 +22,7 @@ type Rule struct {
 
 type MatchRule interface {
 	matchRule()
+	GetString() string
 	GetPosition() kuuhaku_tokenizer.Position
 }
 
@@ -32,6 +33,9 @@ type Identifier struct {
 }
 
 func (i Identifier) matchRule() {}
+func (i Identifier) GetString() string {
+	return i.Name
+}
 func (i Identifier) GetPosition() kuuhaku_tokenizer.Position {
 	return i.Position
 }
@@ -42,6 +46,9 @@ type RegexLiteral struct {
 }
 
 func (r RegexLiteral) matchRule() {}
+func (r RegexLiteral) GetString() string {
+	return r.RegexString
+}
 func (r RegexLiteral) GetPosition() kuuhaku_tokenizer.Position {
 	return r.Position
 }

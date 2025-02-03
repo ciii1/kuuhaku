@@ -262,7 +262,7 @@ func (analyzer *Analyzer) expandSymbol(rules *[]*kuuhaku_parser.Rule, position i
 		}
 
 		currMatchRule := currRule.MatchRules[position]
-		nextLookahead := makeEndSymbolTitle()
+		nextLookahead := lookahead
 		if position+1 < len(currRule.MatchRules) {
 			nextMatchRule := currRule.MatchRules[position+1]
 			nextLookahead = getSymbolTitleFromMatchRule(nextMatchRule)
@@ -284,6 +284,12 @@ func (analyzer *Analyzer) expandSymbol(rules *[]*kuuhaku_parser.Rule, position i
 					break
 				}
 			}
+			/*if currIdentifier.Name == "IDENTIFIER" && nextLookahead.String == "<end>"{
+				println("========")
+				println(currRule.Name)
+				println(analyzer.stateNumber)
+				println(position)
+			}*/
 			if !is_included {
 				rules := analyzer.input.Rules[currIdentifier.Name]
 				output = analyzer.expandSymbol(&rules, 0, output, nextLookahead)
@@ -337,11 +343,13 @@ func (analyzer *Analyzer) buildParseTable(startSymbolString string, isDebug bool
 
 func (analyzer *Analyzer) groupSymbols(symbols *[]*Symbol) *[]*SymbolGroup {
 	groupsMap := make(map[SymbolTitle]SymbolGroup)
+	var groupsOrder []SymbolTitle
 
 	for _, symbol := range *symbols {
 		if symbol.Position <= len(symbol.Rule.MatchRules) {
 			symbolTitle := (*symbol).Title
 			if groupsMap[symbolTitle].Symbols == nil {
+				groupsOrder = append(groupsOrder, symbol.Title)
 				groupsMap[symbol.Title] = SymbolGroup{
 					Title:   symbolTitle,
 					Symbols: &[]*Symbol{},
@@ -352,8 +360,8 @@ func (analyzer *Analyzer) groupSymbols(symbols *[]*Symbol) *[]*SymbolGroup {
 	}
 
 	var groups []*SymbolGroup
-	for _, group := range groupsMap {
-		groupVar := group
+	for _, title := range groupsOrder {
+		groupVar := groupsMap[title]
 		groups = append(groups, &groupVar)
 	}
 	return &groups
@@ -477,6 +485,9 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 	}
 
 	for _, group := range *symbolGroups {
+		/*if analyzer.stateNumber == 63 {
+			println(symbolGroupToString(*group))
+		}*/
 		if group.Title.Type == IDENTIFIER_TITLE {
 			stateNumber := analyzer.stateNumber
 			if !analyzer.stateTransitionMapBool[symbolGroupToString(*group)] {

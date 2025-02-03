@@ -138,7 +138,7 @@ func TestStartSymbols(t *testing.T) {
 }
 
 func TestExpandSymbol(t *testing.T) {
-	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{<\\.>}\nidentifier{<\\.>}\ntest3{<\\.>}")
+	ast, errs := kuuhaku_parser.Parse("identifier{test<\\.>}\ntest{test3}\nidentifier{<\\.>}\ntest3{<\\.>}")
 	if len(errs) != 1 {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
@@ -151,8 +151,8 @@ func TestExpandSymbol(t *testing.T) {
 		t.Fatal()
 	}
 
-	if len(*expandedSymbols) != 3 {
-		println("Expected expandedSymbols length to be 3, got " + strconv.Itoa(len(*expandedSymbols)))
+	if len(*expandedSymbols) != 4 {
+		println("Expected expandedSymbols length to be 4, got " + strconv.Itoa(len(*expandedSymbols)))
 		t.Fatal()
 	}
 
@@ -181,21 +181,23 @@ func TestExpandSymbol(t *testing.T) {
 
 	secondSymbol := (*(*expandedSymbols)[1])
 	title2 := secondSymbol.Title
-	if title2.Type != REGEX_LITERAL_TITLE {
+	if title2.Type != IDENTIFIER_TITLE {
 		println("Expected expandedSymbols[1].Title to be a regex literal")
 		t.Fail()
 	}
-	if title2.String != "\\." {
-		println("Expected expandedSymbols[1].Title.String to be \"\\.\"")
+	if title2.String != "test3" {
+		println("Expected expandedSymbols[1].Title.String to be \"test3\"")
 		t.Fail()
 	}
 
 	if !reflect.DeepEqual(*secondSymbol.Rule, *ast.Rules["test"][0]) {
 		println("The second symbol's rule is not matching")
+		t.Fail()
 	}
 
 	if secondSymbol.Position != 0 {
 		println("Expected expandedSymbols[1].Position to be 0")
+		t.Fail()
 	}
 
 	if secondSymbol.Lookeahead.Type != REGEX_LITERAL_TITLE {
@@ -208,15 +210,15 @@ func TestExpandSymbol(t *testing.T) {
 		t.Fail()
 	}
 
-	thirdSymbol := (*(*expandedSymbols)[2])
+	thirdSymbol := (*(*expandedSymbols)[3])
 	title3 := thirdSymbol.Title
 	if title3.Type != REGEX_LITERAL_TITLE {
-		println("Expected expandedSymbols[2].Title to be a regex literal")
+		println("Expected expandedSymbols[3].Title to be a regex literal")
 		t.Fail()
 	}
 
 	if title3.String != "\\." {
-		println("Expected expandedSymbols[2].Title.String to be \"\\.\"")
+		println("Expected expandedSymbols[3].Title.String to be \"\\.\"")
 		t.Fail()
 	}
 
@@ -225,12 +227,34 @@ func TestExpandSymbol(t *testing.T) {
 	}
 
 	if thirdSymbol.Lookeahead.Type != EMPTY_TITLE {
-		println("Expected expandedSymbols[2].Lookahead.Type to be EMPTY_TITLE")
+		println("Expected expandedSymbols[3].Lookahead.Type to be EMPTY_TITLE")
 		t.Fail()
 	}
 
 	if thirdSymbol.Position != 0 {
 		println("Expected expandedSymbols[2].Position to be 0")
+	}
+
+	fourthSymbol := (*(*expandedSymbols)[2])
+	title4 := thirdSymbol.Title
+	if title4.Type != REGEX_LITERAL_TITLE {
+		println("Expected expandedSymbols[2].Title to be a regex literal")
+		t.Fail()
+	}
+
+	if title4.String != "\\." {
+		println("Expected expandedSymbols[2].Title.String to be \"\\.\"")
+		t.Fail()
+	}
+
+	if !reflect.DeepEqual(*fourthSymbol.Rule, *ast.Rules["test3"][0]) {
+		println("The fourth symbol's rule is not matching")
+		t.Fail()
+	}
+
+	if fourthSymbol.Lookeahead.String != "\\." {
+		println("Expected expandedSymbols[2].Lookahead.String to be \"\\.\"")
+		t.Fail()
 	}
 }
 
