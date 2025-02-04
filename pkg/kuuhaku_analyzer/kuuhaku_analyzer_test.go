@@ -166,7 +166,7 @@ func TestExpandSymbol(t *testing.T) {
 		println("Expected expandedSymbols[0].Title.String to be \"test\"")
 		t.Fail()
 	}
-	if firstSymbol.Lookeahead.Type != EMPTY_TITLE {
+	if firstSymbol.Lookahead.Type != EMPTY_TITLE {
 		println("Expected expandedSymbols[0].Lookahead.Type to be EMPTY_TITLE")
 		t.Fail()
 	}
@@ -200,12 +200,12 @@ func TestExpandSymbol(t *testing.T) {
 		t.Fail()
 	}
 
-	if secondSymbol.Lookeahead.Type != REGEX_LITERAL_TITLE {
+	if secondSymbol.Lookahead.Type != REGEX_LITERAL_TITLE {
 		println("Expected expandedSymbols[1].Lookahead.Type to be REGEX_LITERAL_TITLE")
 		t.Fail()
 	}
 
-	if secondSymbol.Lookeahead.String != "\\." {
+	if secondSymbol.Lookahead.String != "\\." {
 		println("Expected expandedSymbols[1].Lookahead.String to be \"\\.\"")
 		t.Fail()
 	}
@@ -226,7 +226,7 @@ func TestExpandSymbol(t *testing.T) {
 		println("The third symbol's rule is not matching")
 	}
 
-	if thirdSymbol.Lookeahead.Type != EMPTY_TITLE {
+	if thirdSymbol.Lookahead.Type != EMPTY_TITLE {
 		println("Expected expandedSymbols[3].Lookahead.Type to be EMPTY_TITLE")
 		t.Fail()
 	}
@@ -252,7 +252,7 @@ func TestExpandSymbol(t *testing.T) {
 		t.Fail()
 	}
 
-	if fourthSymbol.Lookeahead.String != "\\." {
+	if fourthSymbol.Lookahead.String != "\\." {
 		println("Expected expandedSymbols[2].Lookahead.String to be \"\\.\"")
 		t.Fail()
 	}
@@ -318,7 +318,7 @@ func TestExpandSymbol2(t *testing.T) {
 		t.Fail()
 	}
 
-	if secondSymbol.Lookeahead.Type != EMPTY_TITLE {
+	if secondSymbol.Lookahead.Type != EMPTY_TITLE {
 		println("Expected expandedSymbols[1].Lookahead.Type to be EMPTY TITLE")
 		t.Fail()
 	}
@@ -334,7 +334,7 @@ func TestExpandSymbol2(t *testing.T) {
 		println("The third symbol's rule is not matching")
 	}
 
-	if thirdSymbol.Lookeahead.Type != EMPTY_TITLE {
+	if thirdSymbol.Lookahead.Type != EMPTY_TITLE {
 		println("Expected expandedSymbols[2].Lookahead.Type to be EMPTY_TITLE")
 		t.Fail()
 	}
@@ -709,13 +709,13 @@ func TestBuildParseTableErrorMultiplePartialReduce(t *testing.T) {
 			t.Fail()
 		}
 
-		if conflictError.Symbol1.Lookeahead.String == "C" {
-			if conflictError.Symbol2.Lookeahead.String != "1" {
+		if conflictError.Symbol1.Lookahead.String == "C" {
+			if conflictError.Symbol2.Lookahead.String != "1" {
 				println("Expected the lookaheads to be (1, C) or reversed")
 				t.Fail()
 			}
-		} else if conflictError.Symbol1.Lookeahead.String == "1" {
-			if conflictError.Symbol2.Lookeahead.String != "C" {
+		} else if conflictError.Symbol1.Lookahead.String == "1" {
+			if conflictError.Symbol2.Lookahead.String != "C" {
 				println("Expected the lookaheads to be (C, 1) or reversed")
 				t.Fail()
 			}
@@ -829,13 +829,13 @@ func TestBuildParseTableErrorPartialReduceAndShift(t *testing.T) {
 			t.Fail()
 		}
 
-		if conflictError.Symbol1.Lookeahead.String == "C" {
-			if conflictError.Symbol2.Lookeahead.String != "1" {
+		if conflictError.Symbol1.Lookahead.String == "C" {
+			if conflictError.Symbol2.Lookahead.String != "1" {
 				println("Expected the lookaheads to be (1, C) or reversed")
 				t.Fail()
 			}
-		} else if conflictError.Symbol1.Lookeahead.String == "1" {
-			if conflictError.Symbol2.Lookeahead.String != "C" {
+		} else if conflictError.Symbol1.Lookahead.String == "1" {
+			if conflictError.Symbol2.Lookahead.String != "C" {
 				println("Expected the lookaheads to be (C, 1) or reversed")
 				t.Fail()
 			}
@@ -899,7 +899,7 @@ func TestBuildParseTableErrorMultipleEndReduce(t *testing.T) {
 			t.Fail()
 		}
 
-		if conflictError.Symbol1.Lookeahead.Type != EMPTY_TITLE || conflictError.Symbol2.Lookeahead.Type != EMPTY_TITLE {
+		if conflictError.Symbol1.Lookahead.Type != EMPTY_TITLE || conflictError.Symbol2.Lookahead.Type != EMPTY_TITLE {
 			println("Expected the lookaheads to be (<end>, <end>)")
 			t.Fail()
 		}

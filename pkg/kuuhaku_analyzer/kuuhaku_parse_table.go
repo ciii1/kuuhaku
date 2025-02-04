@@ -18,7 +18,7 @@ type Symbol struct {
 	Position   int
 	Title      SymbolTitle
 	Rule       *kuuhaku_parser.Rule
-	Lookeahead SymbolTitle
+	Lookahead  SymbolTitle
 }
 
 type SymbolTitleType int

@@ -93,7 +93,7 @@ func ErrInvalidLuaLiteral(position kuuhaku_tokenizer.Position, luaError string) 
 	}
 }
 
-func ErrConflict(symbol1 *Symbol, symbol2 *Symbol) *ConflictError {
+func ErrConflict(symbol1 *Symbol, symbol2 *Symbol, stateNumber int, isDebug bool) *ConflictError {
 	var position1 kuuhaku_tokenizer.Position
 	if symbol1.Position < len(symbol1.Rule.MatchRules) {
 		position1 = symbol1.Rule.MatchRules[symbol1.Position].GetPosition()
@@ -107,9 +107,13 @@ func ErrConflict(symbol1 *Symbol, symbol2 *Symbol) *ConflictError {
 	} else {
 		position2 = symbol2.Rule.MatchRules[len(symbol2.Rule.MatchRules)-1].GetPosition()
 	}
-
+	message := ""
+	if isDebug {
+		message = "(State " + strconv.Itoa(stateNumber) + ") "
+	}
+	message += "Detected conflict at rule " + strconv.Itoa(symbol1.Rule.Order+1) + " and rule " + strconv.Itoa(symbol2.Rule.Order+1) + " with position (" + strconv.Itoa(position2.Line) + ", " + strconv.Itoa(position2.Column) + ")\n--- Lookaheads are: " + symbol1.Lookahead.String + " and " + symbol2.Lookahead.String
 	return &ConflictError{
-		Message:   "Detected conflict at rule " + strconv.Itoa(symbol1.Rule.Order+1) + " and rule " + strconv.Itoa(symbol2.Rule.Order+1) + " with position (" + strconv.Itoa(position2.Line) + ", " + strconv.Itoa(position2.Column) + ")\n--- Lookaheads are: " + symbol1.Lookeahead.String + " and " + symbol2.Lookeahead.String,
+		Message:   message,
 		Position1: position1,
 		Position2: position2,
 		Symbol1:   symbol1,
@@ -248,7 +252,7 @@ func getSymbolTitleFromMatchRule(matchRule kuuhaku_parser.MatchRule) SymbolTitle
 	return SymbolTitle{Type: EMPTY_TITLE}
 }
 
-func (analyzer *Analyzer) expandSymbol(rules *[]*kuuhaku_parser.Rule, position int, previousSymbols *[]*Symbol, lookahead SymbolTitle) *[]*Symbol {
+func (analyzer *Analyzer) expandSymbol(rules *[]*kuuhaku_parser.Rule, position int, previousSymbols *[]*Symbol, lookahead SymbolTitle, withLookaheadNPos bool) *[]*Symbol {
 	output := previousSymbols
 	for _, currRule := range *rules {
 		if position >= len(currRule.MatchRules) {
@@ -256,7 +260,7 @@ func (analyzer *Analyzer) expandSymbol(rules *[]*kuuhaku_parser.Rule, position i
 				Rule:       currRule,
 				Position:   position,
 				Title:      makeEndSymbolTitle(),
-				Lookeahead: lookahead,
+				Lookahead: lookahead,
 			})
 			continue
 		}
@@ -272,24 +276,30 @@ func (analyzer *Analyzer) expandSymbol(rules *[]*kuuhaku_parser.Rule, position i
 			Rule:       currRule,
 			Position:   position,
 			Title:      getSymbolTitleFromMatchRule(currMatchRule),
-			Lookeahead: lookahead,
+			Lookahead:  lookahead,
 		})
 
 		currIdentifier, ok := currMatchRule.(kuuhaku_parser.Identifier)
+
 		if ok {
 			is_included := false
 			for _, e := range *output {
-				if e.Rule.Name == currIdentifier.Name {
+				booleanExpr := e.Rule.Name == currIdentifier.Name
+				if withLookaheadNPos {
+					booleanExpr = booleanExpr && e.Lookahead == nextLookahead && e.Position == 0
+				}
+				if booleanExpr {
 					is_included = true
 					break
 				}
 			}
 			if !is_included {
 				rules := analyzer.input.Rules[currIdentifier.Name]
-				output = analyzer.expandSymbol(&rules, 0, output, nextLookahead)
+				output = analyzer.expandSymbol(&rules, 0, output, nextLookahead, true)
 			}
 		}
 	}
+	//remove duplicates
 	return output
 }
 
@@ -298,7 +308,7 @@ func (analyzer *Analyzer) buildParseTable(startSymbolString string, isDebug bool
 		return nil
 	}
 	startRules := analyzer.input.Rules[startSymbolString]
-	expandedStartSymbols := analyzer.expandSymbol(&startRules, 0, &[]*Symbol{}, makeEndSymbolTitle())
+	expandedStartSymbols := analyzer.expandSymbol(&startRules, 0, &[]*Symbol{}, makeEndSymbolTitle(), true)
 
 	var stateTransitions []*StateTransition
 	grouped := analyzer.groupSymbols(expandedStartSymbols)
@@ -316,13 +326,21 @@ func (analyzer *Analyzer) buildParseTable(startSymbolString string, isDebug bool
 		for _, group := range *state.SymbolGroups {
 			var expandedSymbolsAll []*Symbol
 			for _, symbol := range *group.Symbols {
-				expandedSymbols := analyzer.expandSymbol(&[]*kuuhaku_parser.Rule{symbol.Rule}, symbol.Position+1, &[]*Symbol{}, symbol.Lookeahead)
-				for _, expandedSymbol := range *expandedSymbols {
-					expandedSymbolsAll = append(expandedSymbolsAll, expandedSymbol)
-				}
+				expandedSymbolsAll = *analyzer.expandSymbol(&[]*kuuhaku_parser.Rule{symbol.Rule}, symbol.Position+1, &expandedSymbolsAll, symbol.Lookahead, true)
 			}
 
+			/*currParseTable := &analyzer.parseTables[len(analyzer.parseTables)-1]
+			for _, symbol := range expandedSymbolsAll {
+				fmt.Println(symbol.Title.String + ">" + symbol.Lookahead.String)
+			}*/
+
 			grouped := analyzer.groupSymbols(&expandedSymbolsAll)
+
+			/*fmt.Println("")
+			for _, group := range *grouped {
+				fmt.Println(symbolGroupToString(*group))
+			}*/
+
 			grouped = analyzer.buildParseTableState(grouped, startSymbolString, isDebug)
 			if len(*grouped) != 0 {
 				stateTransitions = append(stateTransitions, &StateTransition{
@@ -338,9 +356,11 @@ func (analyzer *Analyzer) buildParseTable(startSymbolString string, isDebug bool
 func (analyzer *Analyzer) groupSymbols(symbols *[]*Symbol) *[]*SymbolGroup {
 	groupsMap := make(map[SymbolTitle]SymbolGroup)
 	var groupsOrder []SymbolTitle
+	symbolMap := make(map[Symbol]bool) //for removing duplications
 
 	for _, symbol := range *symbols {
-		if symbol.Position <= len(symbol.Rule.MatchRules) {
+		if symbol.Position <= len(symbol.Rule.MatchRules) && !symbolMap[*symbol] {
+			symbolMap[*symbol] = true
 			symbolTitle := (*symbol).Title
 			if groupsMap[symbolTitle].Symbols == nil {
 				groupsOrder = append(groupsOrder, symbol.Title)
@@ -369,6 +389,7 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 	gotoTable := make(map[string]*GotoCell)
 	var endReduceRule *ActionCell
 	endReduceRule = nil
+	currParseTable := &analyzer.parseTables[len(analyzer.parseTables)-1]
 
 	var outGroup []*SymbolGroup
 
@@ -392,9 +413,9 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 		outGroup = append(outGroup, emptyTitleGroup)
 		for _, symbol := range *emptyTitleGroup.Symbols {
 			if symbol.Position >= len(symbol.Rule.MatchRules) {
-				if symbol.Lookeahead.Type == EMPTY_TITLE {
+				if symbol.Lookahead.Type == EMPTY_TITLE {
 					if isThereEndReduce {
-						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, endReducedSymbol))
+						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, endReducedSymbol, len(currParseTable.States) - 1, isDebug))
 					} else {
 						endReducedSymbol = symbol
 						isThereEndReduce = true
@@ -410,7 +431,7 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 						}
 					}
 				}
-				existingLookeaheads[symbol.Lookeahead] = true
+				existingLookeaheads[symbol.Lookahead] = true
 			}
 		}
 
@@ -423,9 +444,9 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 			// check all symbols with the same lookahead, if exists, then produce error
 			isFound := false
 			for _, symbol := range *emptyTitleGroup.Symbols {
-				if symbol.Lookeahead == oneLookahead {
+				if symbol.Lookahead == oneLookahead {
 					if isFound {
-						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, (*emptyTitleGroup.Symbols)[0]))
+						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, (*emptyTitleGroup.Symbols)[0], len(currParseTable.States) - 1, isDebug))
 					} else {
 						isFound = true	
 					}
@@ -445,20 +466,20 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 		if !skipLookaheadReduceRule {
 			for _, symbol := range *emptyTitleGroup.Symbols {
 				if symbol.Position >= len(symbol.Rule.MatchRules) {
-					if symbol.Lookeahead.Type == EMPTY_TITLE {
+					if symbol.Lookahead.Type == EMPTY_TITLE {
 						continue
 					}
 					var terminals []string
-					if symbol.Lookeahead.Type == IDENTIFIER_TITLE {
-						rule := analyzer.input.Rules[symbol.Lookeahead.String]
-						symbols := analyzer.expandSymbol(&rule, 0, &[]*Symbol{}, SymbolTitle{})
+					if symbol.Lookahead.Type == IDENTIFIER_TITLE {
+						rule := analyzer.input.Rules[symbol.Lookahead.String]
+						symbols := analyzer.expandSymbol(&rule, 0, &[]*Symbol{}, SymbolTitle{}, false)
 						for _, symbol := range *symbols {
 							if (*symbol).Title.Type == REGEX_LITERAL_TITLE {
 								terminals = append(terminals, (*symbol).Title.String)
 							}
 						}
-					} else if symbol.Lookeahead.Type == REGEX_LITERAL_TITLE {
-						terminals = append(terminals, symbol.Lookeahead.String)
+					} else if symbol.Lookahead.Type == REGEX_LITERAL_TITLE {
+						terminals = append(terminals, symbol.Lookahead.String)
 					}
 					for _, terminal := range terminals {
 						if usedTerminalsWithSymbol[terminal] == nil {
@@ -470,7 +491,7 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 								ShiftState:        0,
 							}
 						} else {
-							analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, usedTerminalsWithSymbol[terminal]))
+							analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, usedTerminalsWithSymbol[terminal], len(currParseTable.States) - 1, isDebug))
 						}
 					}
 				}
@@ -495,7 +516,7 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 			}
 		} else if group.Title.Type == REGEX_LITERAL_TITLE {
 			if usedTerminalsWithSymbol[group.Title.String] != nil {
-				analyzer.Errors = append(analyzer.Errors, ErrConflict((*group.Symbols)[0], usedTerminalsWithSymbol[group.Title.String]))
+				analyzer.Errors = append(analyzer.Errors, ErrConflict((*group.Symbols)[0], usedTerminalsWithSymbol[group.Title.String], len(currParseTable.States) - 1, isDebug))
 			}
 			stateNumber := analyzer.stateNumber
 			if !analyzer.stateTransitionMapBool[symbolGroupToString(*group)] {
@@ -514,7 +535,6 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 			}
 		}
 	}
-	currParseTable := &analyzer.parseTables[len(analyzer.parseTables)-1]
 	currParseTable.States = append(currParseTable.States, ParseTableState{
 		ActionTable:   actionTable,
 		GotoTable:     gotoTable,
@@ -523,13 +543,37 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 	return &outGroup
 }
 
+type ByTitleAndLookahead []*Symbol
+func (s ByTitleAndLookahead) Len() int      { return len(s) }
+func (s ByTitleAndLookahead) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s ByTitleAndLookahead) Less(i, j int) bool {
+    // First compare Title strings
+    titleI := s[i].Title.String
+    titleJ := s[j].Title.String
+    
+    if titleI != titleJ {
+        return titleI < titleJ
+    }
+    
+    // If titles are equal, compare Lookahead strings
+    lookaheadI := s[i].Lookahead.String
+    lookaheadJ := s[j].Lookahead.String
+	
+	if lookaheadI != lookaheadJ {
+	    return lookaheadI < lookaheadJ
+	}
+
+	return s[i].Position < s[j].Position
+}
+
 func symbolGroupToString(group SymbolGroup) string {
 	out := ""
 	out += group.Title.String + ">"
 	out += strconv.Itoa(int(group.Title.Type)) + ">"
+	sort.Sort(ByTitleAndLookahead(*group.Symbols))
 	for _, symbol := range *group.Symbols {
-		out += symbol.Lookeahead.String + "|"
-		out += strconv.Itoa(int(symbol.Lookeahead.Type)) + "|"
+		out += symbol.Lookahead.String + "|"
+		out += strconv.Itoa(int(symbol.Lookahead.Type)) + "|"
 		out += symbol.Title.String + "|"
 		out += strconv.Itoa(int(symbol.Title.Type)) + "|"
 		out += strconv.Itoa(symbol.Rule.Order) + "|"
