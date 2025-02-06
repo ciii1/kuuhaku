@@ -399,7 +399,7 @@ func parseStackToString(parseStack *[]ParseStackElement) string {
 
 func runParseStack(parseStack *[]ParseStackElement, globalLua kuuhaku_parser.LuaLiteral, printCompiled bool) (string, error) {
 	compiled := globalLua.LuaString + "\nret = tostring("
-	compiledNodes, err := compileNode(&(*parseStack)[0], true) 
+	compiledNodes, err := compileNode(&(*parseStack)[0], true, "") 
 	compiled += compiledNodes
 	compiled += ")"
 	if printCompiled {
@@ -419,7 +419,7 @@ func runParseStack(parseStack *[]ParseStackElement, globalLua kuuhaku_parser.Lua
 	return ret, nil
 }
 
-func compileNode(node *ParseStackElement, isFirst bool) (string, error) {
+func compileNode(node *ParseStackElement, isFirst bool, passedArgs string) (string, error) {
 	out := ""
 	if (*node).GetType() == PARSE_STACK_ELEMENT_TYPE_TERMINAL {
 		terminal, _ := (*node).(*ParseStackTerminal)
@@ -437,22 +437,6 @@ func compileNode(node *ParseStackElement, isFirst bool) (string, error) {
 		out += ")\n"
 		
 		//we put the parameters that will be passed to the match rule functions here
-		for i, child := range *tree.Children {
-			identifier, _ := tree.Rule.MatchRules[i].(kuuhaku_parser.Identifier)
-			childTree, ok := child.(*ParseStackTree)
-			if ok {
-			if len(childTree.Rule.ArgList) != len(identifier.ArgList) {
-				if isFirst {
-					return "", ErrStartSymbolWithParams(childTree.Rule.Name)
-				} else {
-					return "", ErrInvalidArgLength(childTree.Rule.Name, tree.Rule.Name)
-				}
-			}
-				for j, arg := range identifier.ArgList {
-					out += "local " + "P_" + childTree.Rule.ArgList[j].Name + " = (function()\n" + arg.LuaString + "\nend)()\n"
-				}
-			}
-		}
 
 		identifierCounts := make(map[string]int)
 		var allVar []string
@@ -462,7 +446,24 @@ func compileNode(node *ParseStackElement, isFirst bool) (string, error) {
 				identifierCounts[identifier.Name] += 1
 				varName := identifier.Name + strconv.Itoa(identifierCounts[identifier.Name])
 				allVar = append(allVar, varName)
-				compiledNode, err := compileNode(&child, false)
+				var passingArgs string
+				childTree, ok2 := child.(*ParseStackTree)
+				if ok2 {
+					if len(childTree.Rule.ArgList) != len(identifier.ArgList) {
+						if isFirst {
+							return "", ErrStartSymbolWithParams(childTree.Rule.Name)
+						} else {
+							return "", ErrInvalidArgLength(childTree.Rule.Name, tree.Rule.Name)
+						}
+					}
+					for j, arg := range identifier.ArgList {
+						if j > 0 {
+							passingArgs += ",\n"
+						}
+						passingArgs += "(function()\n" + arg.LuaString + "\nend)()"
+					}
+				}
+				compiledNode, err := compileNode(&child, false, passingArgs)
 				if err != nil {
 					return "", err
 				}
@@ -470,7 +471,7 @@ func compileNode(node *ParseStackElement, isFirst bool) (string, error) {
 			} else {
 				varName := "LITERAL" + strconv.Itoa(i+1)
 				allVar = append(allVar, varName)
-				compiledNode, err := compileNode(&child, false)
+				compiledNode, err := compileNode(&child, false, "")
 				if err != nil {
 					return "", err
 				}
@@ -491,12 +492,7 @@ func compileNode(node *ParseStackElement, isFirst bool) (string, error) {
 			}
 		}
 		out += "\nend)(\n"
-		for i, params := range tree.Rule.ArgList {
-			if i != 0 {
-				out += ","
-			}	
-			out += "P_" + params.Name
-		}
+		out += passedArgs
 		out += ")"
 	}
 	return out, nil
