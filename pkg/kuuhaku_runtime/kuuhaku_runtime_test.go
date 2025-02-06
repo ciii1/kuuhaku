@@ -1,12 +1,16 @@
 package kuuhaku_runtime
 
 import (
+	"fmt"
 	"strconv"
 	"testing"
 
 	"github.com/ciii1/kuuhaku/internal/helper"
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_analyzer"
 	"github.com/ciii1/kuuhaku/pkg/kuuhaku_parser"
+	"github.com/ciii1/kuuhaku/pkg/kuuhaku_runtime/test_format/khk"
+	"github.com/ciii1/kuuhaku/pkg/kuuhaku_runtime/test_format/khk_array"
+	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 func TestRuntime1(t *testing.T) {
@@ -265,7 +269,7 @@ func TestRunDoubleRecursive(t *testing.T) {
 		helper.DisplayAllErrors(errs)
 		t.Fatal()
 	}
-	res, errs := kuuhaku_analyzer.Analyze(&ast, true)
+	res, errs := kuuhaku_analyzer.Analyze(&ast, false)
 	if len(errs) != 0 {
 		println("Expected analyzer errors length to be 0, got " + strconv.Itoa(len(errs)))
 		helper.DisplayAllErrors(errs)
@@ -281,6 +285,69 @@ func TestRunDoubleRecursive(t *testing.T) {
 	
 	if strRes != "{eee}{eee}{eeeeee}" {
 		println("Expected the result to be {eee}{eee}{eeeeee}, got " + strRes)
+		t.Fatal()
+	}
+}
+
+
+func TestRunKhk(t *testing.T) {
+	println("TestRunKhk:")
+	ast, errs := kuuhaku_parser.Parse(khk.KHK)
+	if len(errs) != 0 {
+		println("Expected parser errors length to be 0")
+		helper.DisplayAllErrors(errs)
+		t.Fatal()
+	}
+	res, errs := kuuhaku_analyzer.Analyze(&ast, false)
+	if len(errs) != 0 {
+		println("Expected analyzer errors length to be 0, got " + strconv.Itoa(len(errs)))
+		helper.DisplayAllErrors(errs)
+		t.Fatal()
+	}
+	strRes, err := Format(khk.TEST, &res, true, false)
+
+	if err != nil {
+		println("Unexpected runtime error:")
+		println(err.Error())
+		t.Fatal()
+	}
+	
+	if strRes != khk.CORRECT {
+		dmp := diffmatchpatch.New()
+		fmt.Println("The resulting string is not as expected:")
+		diffs := dmp.DiffMain(strRes, khk.CORRECT, false)
+		fmt.Println(dmp.DiffPrettyText(diffs))
+		t.Fatal()
+	}
+}
+
+func TestRunArray(t *testing.T) {
+	println("TestRunArray:")
+	ast, errs := kuuhaku_parser.Parse(khk_array.ARRAY)
+	if len(errs) != 0 {
+		println("Expected parser errors length to be 0")
+		helper.DisplayAllErrors(errs)
+		t.Fatal()
+	}
+	res, errs := kuuhaku_analyzer.Analyze(&ast, false)
+	if len(errs) != 0 {
+		println("Expected analyzer errors length to be 0, got " + strconv.Itoa(len(errs)))
+		helper.DisplayAllErrors(errs)
+		t.Fatal()
+	}
+	strRes, err := Format(khk_array.TEST, &res, true, false)
+
+	if err != nil {
+		println("Unexpected runtime error:")
+		println(err.Error())
+		t.Fatal()
+	}
+	
+	if strRes != khk_array.CORRECT {
+		dmp := diffmatchpatch.New()
+		fmt.Println("The resulting string is not as expected:")
+		diffs := dmp.DiffMain(strRes, khk_array.CORRECT, false)
+		fmt.Println(dmp.DiffPrettyText(diffs))
 		t.Fatal()
 	}
 }
