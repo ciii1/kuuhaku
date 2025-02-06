@@ -419,7 +419,7 @@ func TestSigns(t *testing.T) {
 }
 
 func TestPosition(t *testing.T) {
-	tokenizer := Init("test #test\n#test again\ntest third")
+	tokenizer := Init("test #test\n#test again\ntest third``\ntest\ntest\ntest\n``hello")
 	token, err := tokenizer.Peek()
 	helper.Check(err)
 	if token.Position.Raw != 0 || token.Position.Column != 1 || token.Position.Line != 1 {
@@ -445,6 +445,16 @@ func TestPosition(t *testing.T) {
 		println("Raw: " + strconv.Itoa(token.Position.Raw) + ", expected: 28")
 		println("Column: " + strconv.Itoa(token.Position.Column) + ", expected: 6")
 		println("Line: " + strconv.Itoa(token.Position.Line) + ", expected: 3")
+		t.Fail()
+	}
+	token, err = tokenizer.Next()
+	token, err = tokenizer.Next()
+	helper.Check(err)
+	if token.Position.Raw != 53 || token.Position.Column != 3 || token.Position.Line != 7 {
+		println("\n" + token.Content)
+		println("Raw: " + strconv.Itoa(token.Position.Raw) + ", expected: 53")
+		println("Column: " + strconv.Itoa(token.Position.Column) + ", expected: 3")
+		println("Line: " + strconv.Itoa(token.Position.Line) + ", expected: 7")
 		t.Fail()
 	}
 }

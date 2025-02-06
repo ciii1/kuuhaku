@@ -237,6 +237,11 @@ func (tokenizer *Tokenizer) adjustNewline() {
 	tokenizer.Position.Line += 1
 }
 
+func (tokenizer *Tokenizer) adjustNewlineZero() {
+	tokenizer.Position.Column = 0
+	tokenizer.Position.Line += 1
+}
+
 func (tokenizer *Tokenizer) consumeWhitespace() bool {
 	currChar := tokenizer.peekChar()
 	if currChar == ' ' || currChar == '\t' {
@@ -429,7 +434,7 @@ func (tokenizer *Tokenizer) consumeLuaLiteral() (*Token, error) {
 		prevChar = tokenizer.peekChar()
 		currChar = tokenizer.nextChar()
 		if currChar == '\n' {
-			tokenizer.adjustNewline()
+			tokenizer.adjustNewlineZero()
 		}
 		if currChar == '`' && prevChar == '`' && prevPrevChar == '\\' && prevPrevPrevChar != '\\' {
 
