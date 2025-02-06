@@ -17,7 +17,7 @@ type FormattedFile struct {
 	Filename string
 }
 
-func Format(filename string, specFormatConfig string, isRecursive bool, isDebug bool) error {
+func Format(filename string, specFormatConfig string, isRecursive bool, isDebugRuntime bool, isDebugAnalyzer bool, isDebugParser bool, isDebugReader bool, isStatic bool) error {
 	file, err := os.Stat(filename)
 	helper.Check(err)
 	var files []FormattedFile
@@ -34,7 +34,7 @@ func Format(filename string, specFormatConfig string, isRecursive bool, isDebug 
 	}
 
 	for _, formattedFile := range files {
-		if isDebug {
+		if isDebugReader {
 			fmt.Println("Format(), content:\n", formattedFile.Content)
 			fmt.Println("Formatting " + formattedFile.Filename + "...")
 		}
@@ -42,25 +42,27 @@ func Format(filename string, specFormatConfig string, isRecursive bool, isDebug 
 		if len(formatConfig) == 0 {
 			formatConfig = filepath.Ext(formattedFile.Filename)
 		}
-		res, errs := config_reader.ReadConfig(formatConfig, isDebug)
+		res, errs := config_reader.ReadConfig(formatConfig, isDebugAnalyzer, isDebugParser, isDebugReader)
 		if len(errs) != 0 {
 			fmt.Println("Error while reading configuration, file " + filepath.Ext(formattedFile.Filename) + ":")
 			helper.DisplayAllErrors(errs)
 			continue
 		}
-		strRes, err := kuuhaku_runtime.Format(formattedFile.Content, res, true, isDebug)
-		if err != nil {
-			fmt.Println("Error while formatting the code, file " + formattedFile.Filename + ":")
-			fmt.Println(err.Error())
-			continue
+		if !isStatic {
+			strRes, err := kuuhaku_runtime.Format(formattedFile.Content, res, true, isDebugRuntime)
+			if err != nil {
+				fmt.Println("Error while formatting the code, file " + formattedFile.Filename + ":")
+				fmt.Println(err.Error())
+				continue
+			}
+
+			f, err := os.OpenFile(formattedFile.Filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+			defer f.Close()
+			helper.Check(err)
+
+			_, err = f.WriteString(strRes)
+			helper.Check(err)
 		}
-
-		f, err := os.OpenFile(formattedFile.Filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
-		defer f.Close()
-		helper.Check(err)
-
-		_, err = f.WriteString(strRes)
-		helper.Check(err)
 	}
 	return nil
 }

@@ -168,7 +168,7 @@ func ErrStartSymbolWithParams(startSymbol string) *EvalError {
 	}
 }
 
-func Format(input string, format *kuuhaku_analyzer.AnalyzerResult, isRun bool, printCompiled bool) (string, error) {
+func Format(input string, format *kuuhaku_analyzer.AnalyzerResult, isRun bool, isDebug bool) (string, error) {
 	var currPos kuuhaku_tokenizer.Position
 	currPos.Line = 1
 	currPos.Column = 1
@@ -181,7 +181,7 @@ func Format(input string, format *kuuhaku_analyzer.AnalyzerResult, isRun bool, p
 			if format.GlobalLua != nil {
 				globalLua = *format.GlobalLua
 			}
-			res, resPos, err := runParseTable(input, currPos, &parseTable, isRun, globalLua, printCompiled)
+			res, resPos, err := runParseTable(input, currPos, &parseTable, isRun, globalLua, isDebug)
 			if err == nil {
 				isThereSuccess = true
 				currPos = resPos
@@ -250,10 +250,10 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 	currState := 0
 	lookahead := ""
 	lookaheadRegex := ""
-	lookaheadFound := false
 
 	var expected []string
 	for true {
+		lookaheadFound := false
 		currRow := parseTable.States[currState]
 
 		if pos.Raw > len(input) {
@@ -268,25 +268,32 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 
 
 		slicedInput := input[pos.Raw:]
+		tmpPos := pos
 
-		if !lookaheadFound {
-			expected = []string{}
+		expected = []string{}
+		if printCompiled {
+			fmt.Println("[")
 			for _, terminal := range parseTable.Terminals {
-				if currRow.ActionTable[terminal.Terminal] != nil && terminal.Regexp != nil {
-					expected = append(expected, terminal.Terminal)
-					loc := terminal.Regexp.FindStringIndex(slicedInput)
-					if loc == nil {
-						continue
-					} else {
-						lookahead = slicedInput[0:loc[1]]
-						lookaheadRegex = terminal.Terminal
-						pos = addToPositionFromSlicedString(pos, lookahead)
-						lookaheadFound = true
-						break
-					}
+				fmt.Println("\t" + terminal.Terminal + " === " + strconv.Itoa(terminal.Precedence))
+			}
+			fmt.Println("]")
+		}
+		for _, terminal := range parseTable.Terminals {
+			if currRow.ActionTable[terminal.Terminal] != nil && terminal.Regexp != nil {
+				expected = append(expected, terminal.Terminal)
+				loc := terminal.Regexp.FindStringIndex(slicedInput)
+				if loc == nil {
+					continue
+				} else {
+					lookahead = slicedInput[0:loc[1]]
+					lookaheadRegex = terminal.Terminal
+					tmpPos = addToPositionFromSlicedString(pos, lookahead)
+					lookaheadFound = true
+					break
 				}
 			}
 		}
+		slicedInput = input[pos.Raw:]
 		if printCompiled {
 			fmt.Println("Position: " + strconv.Itoa(pos.Raw))
 			slicedInputTo3 := ""
@@ -298,6 +305,7 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 			fmt.Println("Character[Position:Position+3]: "  + string(slicedInputTo3))
 			fmt.Println("Lookahead found: " + strconv.FormatBool(lookaheadFound))
 			fmt.Println("Lookahead: " + lookahead)
+			fmt.Println("LookaheadRegex: " + lookaheadRegex)
 		}
 		if (lookaheadFound && pos.Raw < len(input)) || (lookaheadFound && pos.Raw >= len(input) && currRow.EndReduceRule == nil) {
 			currActionCell := currRow.ActionTable[lookaheadRegex]
@@ -314,13 +322,14 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 						State:  currState,
 					})
 					currState = currActionCell.ShiftState
-					lookaheadFound = false
+					pos = tmpPos
 				} else if currActionCell.Action == kuuhaku_analyzer.REDUCE {
 					var err error
+					currState, err = applyRule(parseTable, currActionCell.ReduceRule, &parseStack, pos, false)
 					if printCompiled {
 						fmt.Println("Reducing rule " + strconv.Itoa(currActionCell.ReduceRule.Order) + " with lhs: " + currActionCell.ReduceRule.Name)
+						fmt.Println("New state: " + strconv.Itoa(currState))
 					}
-					currState, err = applyRule(parseTable, currActionCell.ReduceRule, &parseStack, pos, false)
 					if err != nil {
 						return "", pos, err
 					}
@@ -335,10 +344,11 @@ func runParseTable(input string, pos kuuhaku_tokenizer.Position, parseTable *kuu
 					currState, err = applyRule(parseTable, currRow.EndReduceRule.ReduceRule, &parseStack, pos, true)
 					break
 				} else if currRow.EndReduceRule.Action == kuuhaku_analyzer.REDUCE {
-					if printCompiled {
-						fmt.Println("Reducing rule " + strconv.Itoa(currRow.EndReduceRule.ReduceRule.Order) + " with lhs: " + currRow.EndReduceRule.ReduceRule.Name)
-					}
 					currState, err = applyRule(parseTable, currRow.EndReduceRule.ReduceRule, &parseStack, pos, false)
+					if printCompiled {
+						fmt.Println("End reducing rule " + strconv.Itoa(currRow.EndReduceRule.ReduceRule.Order) + " with lhs: " + currRow.EndReduceRule.ReduceRule.Name)
+						fmt.Println("New state: " + strconv.Itoa(currState))
+					}
 				}
 				if err != nil {
 					return "", pos, err

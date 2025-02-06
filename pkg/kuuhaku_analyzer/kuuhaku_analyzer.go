@@ -124,6 +124,7 @@ func ErrConflict(symbol1 *Symbol, symbol2 *Symbol, stateNumber int, isDebug bool
 type Analyzer struct {
 	input                  *kuuhaku_parser.Ast
 	Errors                 []error
+	isDebug				   bool
 	stateNumber            int
 	parseTables            []ParseTable
 	stateTransitionMap     map[string]int
@@ -131,7 +132,7 @@ type Analyzer struct {
 }
 
 func Analyze(input *kuuhaku_parser.Ast, isDebug bool) (AnalyzerResult, []error) {
-	analyzer := initAnalyzer(input)
+	analyzer := initAnalyzer(input, isDebug)
 	startSymbols := analyzer.analyzeStart()
 	if len(startSymbols) > 1 && !input.IsSearchMode {
 		analyzer.Errors = append(analyzer.Errors, ErrMultipleStartSymbols(input.Rules[startSymbols[1]][0].Position, startSymbols[0], startSymbols[1]))
@@ -139,7 +140,7 @@ func Analyze(input *kuuhaku_parser.Ast, isDebug bool) (AnalyzerResult, []error) 
 	if len(analyzer.Errors) == 0 {
 		for _, startSymbol := range startSymbols {
 			analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable(startSymbol))
-			analyzer.buildParseTable(startSymbol, isDebug)
+			analyzer.buildParseTable(startSymbol)
 			if isDebug {
 				PrintParseTable(&analyzer.parseTables[len(analyzer.parseTables)-1])
 			}
@@ -154,9 +155,10 @@ func Analyze(input *kuuhaku_parser.Ast, isDebug bool) (AnalyzerResult, []error) 
 	}, analyzer.Errors
 }
 
-func initAnalyzer(input *kuuhaku_parser.Ast) Analyzer {
+func initAnalyzer(input *kuuhaku_parser.Ast, isDebug bool) Analyzer {
 	return Analyzer{
 		input:                  input,
+		isDebug:				isDebug,
 		Errors:                 []error{},
 		stateNumber:            1,
 		parseTables:            []ParseTable{},
@@ -177,6 +179,14 @@ func (analyzer *Analyzer) makeEmptyParseTable(startSymbol string) ParseTable {
 	var lhsArray []string
 	for lhs := range *lhsMap {
 		lhsArray = append(lhsArray, lhs)
+	}
+
+	if analyzer.isDebug {
+		fmt.Println("Terminals: [")
+		for _, terminal := range *terminals {
+			fmt.Println("\t" + terminal.Terminal + " === " + strconv.Itoa(terminal.Precedence))
+		}
+		fmt.Println("]")
 	}
 
 	return ParseTable{
@@ -299,11 +309,10 @@ func (analyzer *Analyzer) expandSymbol(rules *[]*kuuhaku_parser.Rule, position i
 			}
 		}
 	}
-	//remove duplicates
 	return output
 }
 
-func (analyzer *Analyzer) buildParseTable(startSymbolString string, isDebug bool) *[]*StateTransition {
+func (analyzer *Analyzer) buildParseTable(startSymbolString string) *[]*StateTransition {
 	if len(analyzer.Errors) != 0 {
 		return nil
 	}
@@ -312,7 +321,7 @@ func (analyzer *Analyzer) buildParseTable(startSymbolString string, isDebug bool
 
 	var stateTransitions []*StateTransition
 	grouped := analyzer.groupSymbols(expandedStartSymbols)
-	grouped = analyzer.buildParseTableState(grouped, startSymbolString, isDebug)
+	grouped = analyzer.buildParseTableState(grouped, startSymbolString)
 	stateTransitions = append(stateTransitions, &StateTransition{
 		SymbolGroups: grouped,
 	})
@@ -341,7 +350,7 @@ func (analyzer *Analyzer) buildParseTable(startSymbolString string, isDebug bool
 				fmt.Println(symbolGroupToString(*group))
 			}*/
 
-			grouped = analyzer.buildParseTableState(grouped, startSymbolString, isDebug)
+			grouped = analyzer.buildParseTableState(grouped, startSymbolString)
 			if len(*grouped) != 0 {
 				stateTransitions = append(stateTransitions, &StateTransition{
 					SymbolGroups: grouped,
@@ -381,7 +390,7 @@ func (analyzer *Analyzer) groupSymbols(symbols *[]*Symbol) *[]*SymbolGroup {
 	return &groups
 }
 
-func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, startSymbol string, isDebug bool) *[]*SymbolGroup {
+func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, startSymbol string) *[]*SymbolGroup {
 	if len(*symbolGroups) == 0 {
 		return symbolGroups
 	}
@@ -415,7 +424,7 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 			if symbol.Position >= len(symbol.Rule.MatchRules) {
 				if symbol.Lookahead.Type == EMPTY_TITLE {
 					if isThereEndReduce {
-						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, endReducedSymbol, len(currParseTable.States) - 1, isDebug))
+						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, endReducedSymbol, len(currParseTable.States) - 1, analyzer.isDebug))
 					} else {
 						endReducedSymbol = symbol
 						isThereEndReduce = true
@@ -435,8 +444,9 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 			}
 		}
 
-		// we put the reduce action to the EndReduceRule if there's only one type of lookahead
-		if len(existingLookeaheads) == 1 && !isThereEndReduce {
+		// we put the reduce action to the EndReduceRule if there's only one type of lookahead and 
+		// there's no shift actions
+		if len(existingLookeaheads) == 1 && len(*symbolGroups) == 1 && !isThereEndReduce {
 			var oneLookahead SymbolTitle
 			for lookahead := range existingLookeaheads { 
 				oneLookahead = lookahead
@@ -446,7 +456,7 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 			for _, symbol := range *emptyTitleGroup.Symbols {
 				if symbol.Lookahead == oneLookahead {
 					if isFound {
-						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, (*emptyTitleGroup.Symbols)[0], len(currParseTable.States) - 1, isDebug))
+						analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, (*emptyTitleGroup.Symbols)[0], len(currParseTable.States) - 1, analyzer.isDebug))
 					} else {
 						isFound = true	
 					}
@@ -491,7 +501,7 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 								ShiftState:        0,
 							}
 						} else {
-							analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, usedTerminalsWithSymbol[terminal], len(currParseTable.States) - 1, isDebug))
+							analyzer.Errors = append(analyzer.Errors, ErrConflict(symbol, usedTerminalsWithSymbol[terminal], len(currParseTable.States) - 1, analyzer.isDebug))
 						}
 					}
 				}
@@ -516,7 +526,7 @@ func (analyzer *Analyzer) buildParseTableState(symbolGroups *[]*SymbolGroup, sta
 			}
 		} else if group.Title.Type == REGEX_LITERAL_TITLE {
 			if usedTerminalsWithSymbol[group.Title.String] != nil {
-				analyzer.Errors = append(analyzer.Errors, ErrConflict((*group.Symbols)[0], usedTerminalsWithSymbol[group.Title.String], len(currParseTable.States) - 1, isDebug))
+				analyzer.Errors = append(analyzer.Errors, ErrConflict((*group.Symbols)[0], usedTerminalsWithSymbol[group.Title.String], len(currParseTable.States) - 1, analyzer.isDebug))
 			}
 			stateNumber := analyzer.stateNumber
 			if !analyzer.stateTransitionMapBool[symbolGroupToString(*group)] {
@@ -674,7 +684,6 @@ func (analyzer *Analyzer) doesMatchingArgumentNumberRuleExist(ruleName kuuhaku_p
 }
 
 func PrintParseTable(parseTable *ParseTable) {
-
 	maxWidthTerminals := make(map[string]int)
 	maxWidthLhss := make(map[string]int)
 	for _, terminal := range parseTable.Terminals {
@@ -686,8 +695,13 @@ func PrintParseTable(parseTable *ParseTable) {
 	for _, state := range parseTable.States {
 		for _, terminal := range parseTable.Terminals {
 			if state.ActionTable[terminal.Terminal] != nil {
-				if len(strconv.Itoa(state.ActionTable[terminal.Terminal].ShiftState)) > maxWidthTerminals[terminal.Terminal] {
-					maxWidthTerminals[terminal.Terminal] = len(strconv.Itoa(state.ActionTable[terminal.Terminal].ShiftState))
+				column := state.ActionTable[terminal.Terminal]
+				columnLen := len(strconv.Itoa(column.ShiftState))
+				if state.ActionTable[terminal.Terminal].Action == REDUCE {
+					columnLen = len(strconv.Itoa(column.ReduceRule.Order)) + len(column.ReduceRule.Name) + 3
+				}
+				if columnLen > maxWidthTerminals[terminal.Terminal] {
+					maxWidthTerminals[terminal.Terminal] = columnLen 
 				}
 			}
 		}
@@ -790,9 +804,15 @@ func PrintParseTable(parseTable *ParseTable) {
 		for _, terminal := range parseTable.Terminals {
 			fmt.Print(" ")
 			actionNumberLength := 0
-			if state.ActionTable[terminal.Terminal] != nil{
-				fmt.Print(state.ActionTable[terminal.Terminal].ShiftState)
-				actionNumberLength = len(strconv.Itoa(state.ActionTable[terminal.Terminal].ShiftState))
+			column := state.ActionTable[terminal.Terminal]
+			if column != nil{
+				if column.Action == REDUCE {
+					fmt.Print("R" + strconv.Itoa(column.ReduceRule.Order) + "(" + column.ReduceRule.Name + ")")
+					actionNumberLength = len(strconv.Itoa(column.ReduceRule.Order)) + len(column.ReduceRule.Name) +  3
+				} else {
+					fmt.Print(state.ActionTable[terminal.Terminal].ShiftState)
+					actionNumberLength = len(strconv.Itoa(state.ActionTable[terminal.Terminal].ShiftState))
+				}
 			}
 			j = 0
 			for j < maxWidthTerminals[terminal.Terminal] - actionNumberLength {

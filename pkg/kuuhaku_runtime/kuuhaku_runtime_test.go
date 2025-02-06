@@ -223,8 +223,8 @@ func TestRunEscapes(t *testing.T) {
 func TestRunWeirdRegex(t *testing.T) {
 	println("TestRunWeirdRegex:")
 	ast, errs := kuuhaku_parser.Parse(
-		"w{<[ \\n\\t\\r]*>}"+
 		"test{<test>}"+
+		"w{<[ \\n\\t\\r]*>}"+
 		"E{w E w test}" +
 		"E{test}",
 	)

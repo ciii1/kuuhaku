@@ -145,7 +145,7 @@ func TestExpandSymbol(t *testing.T) {
 	}
 	analyzer := initAnalyzer(&ast)
 	rules := ast.Rules["identifier"]
-	expandedSymbols := analyzer.expandSymbol(&rules, 0, &[]*Symbol{}, SymbolTitle{Type: EMPTY_TITLE})
+	expandedSymbols := analyzer.expandSymbol(&rules, 0, &[]*Symbol{}, SymbolTitle{Type: EMPTY_TITLE}, true)
 	if len(analyzer.Errors) != 0 {
 		println("Expected analyzer Errors length to be 0")
 		t.Fatal()
@@ -266,7 +266,7 @@ func TestExpandSymbol2(t *testing.T) {
 	}
 	analyzer := initAnalyzer(&ast)
 	rules := ast.Rules["identifier"]
-	expandedSymbols := analyzer.expandSymbol(&rules, 1, &[]*Symbol{}, SymbolTitle{Type: EMPTY_TITLE})
+	expandedSymbols := analyzer.expandSymbol(&rules, 1, &[]*Symbol{}, SymbolTitle{Type: EMPTY_TITLE}, true)
 	if len(analyzer.Errors) != 0 {
 		println("Expected analyzer Errors length to be 0")
 		t.Fatal()
@@ -352,7 +352,7 @@ func TestExpandSymbol3(t *testing.T) {
 	}
 	analyzer := initAnalyzer(&ast)
 	rules := ast.Rules["test"]
-	expandedSymbols := analyzer.expandSymbol(&rules, 2, &[]*Symbol{}, SymbolTitle{Type: EMPTY_TITLE})
+	expandedSymbols := analyzer.expandSymbol(&rules, 2, &[]*Symbol{}, SymbolTitle{Type: EMPTY_TITLE}, true)
 	if len(analyzer.Errors) != 0 {
 		println("Expected analyzer Errors length to be 0")
 		t.Fatal()
@@ -379,7 +379,7 @@ func TestGroupSymbols(t *testing.T) {
 	}
 	analyzer := initAnalyzer(&ast)
 	rules := ast.Rules["identifier"]
-	expandedSymbols := analyzer.expandSymbol(&rules, 0, &[]*Symbol{}, SymbolTitle{Type: EMPTY_TITLE})
+	expandedSymbols := analyzer.expandSymbol(&rules, 0, &[]*Symbol{}, SymbolTitle{Type: EMPTY_TITLE}, true)
 	if len(analyzer.Errors) != 0 {
 		println("Expected analyzer Errors length to be 0")
 		t.Fatal()
