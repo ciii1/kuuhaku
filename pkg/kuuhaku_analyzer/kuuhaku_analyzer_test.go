@@ -18,7 +18,7 @@ func TestErrorInvalidArgumentLength(t *testing.T) {
 		t.Fatal()
 	}
 
-	analyzer := initAnalyzer(&ast)
+	analyzer := initAnalyzer(&ast, false)
 	_ = analyzer.analyzeStart()
 
 	println("TestErrorInvalidArgumentLength - Errors:")
@@ -57,7 +57,7 @@ func TestErrorUndefinedVariable(t *testing.T) {
 		t.Fatal()
 	}
 
-	analyzer := initAnalyzer(&ast)
+	analyzer := initAnalyzer(&ast, false)
 	_ = analyzer.analyzeStart()
 
 	println("TestErrorUndefinedVariable - Errors:")
@@ -109,7 +109,7 @@ func TestStartSymbols(t *testing.T) {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
-	analyzer := initAnalyzer(&ast)
+	analyzer := initAnalyzer(&ast, false)
 	startSymbols := analyzer.analyzeStart()
 	if len(analyzer.Errors) != 0 {
 		println("Expected analyzer Errors length to be 0")
@@ -143,7 +143,7 @@ func TestExpandSymbol(t *testing.T) {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
-	analyzer := initAnalyzer(&ast)
+	analyzer := initAnalyzer(&ast, false)
 	rules := ast.Rules["identifier"]
 	expandedSymbols := analyzer.expandSymbol(&rules, 0, &[]*Symbol{}, SymbolTitle{Type: EMPTY_TITLE}, true)
 	if len(analyzer.Errors) != 0 {
@@ -264,7 +264,7 @@ func TestExpandSymbol2(t *testing.T) {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
-	analyzer := initAnalyzer(&ast)
+	analyzer := initAnalyzer(&ast, false)
 	rules := ast.Rules["identifier"]
 	expandedSymbols := analyzer.expandSymbol(&rules, 1, &[]*Symbol{}, SymbolTitle{Type: EMPTY_TITLE}, true)
 	if len(analyzer.Errors) != 0 {
@@ -350,7 +350,7 @@ func TestExpandSymbol3(t *testing.T) {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
-	analyzer := initAnalyzer(&ast)
+	analyzer := initAnalyzer(&ast, false)
 	rules := ast.Rules["test"]
 	expandedSymbols := analyzer.expandSymbol(&rules, 2, &[]*Symbol{}, SymbolTitle{Type: EMPTY_TITLE}, true)
 	if len(analyzer.Errors) != 0 {
@@ -377,7 +377,7 @@ func TestGroupSymbols(t *testing.T) {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
-	analyzer := initAnalyzer(&ast)
+	analyzer := initAnalyzer(&ast, false)
 	rules := ast.Rules["identifier"]
 	expandedSymbols := analyzer.expandSymbol(&rules, 0, &[]*Symbol{}, SymbolTitle{Type: EMPTY_TITLE}, true)
 	if len(analyzer.Errors) != 0 {
@@ -489,9 +489,9 @@ func TestBuildParseTableStateTransition(t *testing.T) {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
-	analyzer := initAnalyzer(&ast)
+	analyzer := initAnalyzer(&ast, false)
 	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("identifier"))
-	stateTransitions := analyzer.buildParseTable("identifier", false)
+	stateTransitions := analyzer.buildParseTable("identifier")
 
 	if len(*stateTransitions) != 5 {
 		println("Expected stateTransitions length to be 5, got " + strconv.Itoa(len(*stateTransitions)))
@@ -599,9 +599,9 @@ func TestBuildParseTable(t *testing.T) {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
-	analyzer := initAnalyzer(&ast)
+	analyzer := initAnalyzer(&ast, false)
 	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("identifier"))
-	stateTransitions := analyzer.buildParseTable("identifier", false)
+	stateTransitions := analyzer.buildParseTable("identifier")
 
 	if len(*stateTransitions) != 4 {
 		println("Expected stateTransitions length to be 4, got " + strconv.Itoa(len(*stateTransitions)))
@@ -665,9 +665,9 @@ func TestBuildParseTableErrorMultiplePartialReduce(t *testing.T) {
 		println("Expected parser errors length to be 3")
 		t.Fatal()
 	}
-	analyzer := initAnalyzer(&ast)
+	analyzer := initAnalyzer(&ast, false)
 	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("E"))
-	analyzer.buildParseTable("E", false)
+	analyzer.buildParseTable("E")
 
 	println("TestBuildParseTableErrorMultiplePartialReduce - Errors:")
 	helper.DisplayAllErrors(analyzer.Errors)
@@ -735,10 +735,10 @@ func TestBuildParseTable2(t *testing.T) {
 		println("Expected parser errors length to be 2")
 		t.Fatal()
 	}
-	analyzer := initAnalyzer(&ast)
+	analyzer := initAnalyzer(&ast, false)
 	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("E"))
 	analyzer.makeAugmentedGrammar("E")
-	stateTransitions := analyzer.buildParseTable("SE", false)
+	stateTransitions := analyzer.buildParseTable("SE")
 	PrintParseTable(&analyzer.parseTables[0])
 
 	if len(analyzer.Errors) != 0 {
@@ -803,9 +803,9 @@ func TestBuildParseTableErrorPartialReduceAndShift(t *testing.T) {
 		println("Expected parser errors length to be 3")
 		t.Fatal()
 	}
-	analyzer := initAnalyzer(&ast)
+	analyzer := initAnalyzer(&ast, false)
 	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("E"))
-	analyzer.buildParseTable("E", false)
+	analyzer.buildParseTable("E")
 
 	println("TestBuildParseTableErrorPartialReduceAndShift - Errors:")
 	helper.DisplayAllErrors(analyzer.Errors)
@@ -855,9 +855,9 @@ func TestBuildParseTableErrorMultipleEndReduce(t *testing.T) {
 		println("Expected parser errors length to be 0")
 		t.Fatal()
 	}
-	analyzer := initAnalyzer(&ast)
+	analyzer := initAnalyzer(&ast, false)
 	analyzer.parseTables = append(analyzer.parseTables, analyzer.makeEmptyParseTable("E"))
-	analyzer.buildParseTable("E", false)
+	analyzer.buildParseTable("E")
 
 	println("TestBuildParseTableErrorMultipleEndReduce - Errors:")
 	helper.DisplayAllErrors(analyzer.Errors)
@@ -915,7 +915,7 @@ func TestGetAllTerminalsAndLhs(t *testing.T) {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
-	analyzer := initAnalyzer(&ast)
+	analyzer := initAnalyzer(&ast, false)
 	terminalsMapInput := make(map[string]*TerminalList)
 	var terminalsMap *map[string]*TerminalList
 	lhsMapInput := make(map[string]bool)
@@ -1041,7 +1041,7 @@ func TestGetAllTerminalsAndLhsRegexError(t *testing.T) {
 		println("Expected parser errors length to be 1")
 		t.Fatal()
 	}
-	analyzer := initAnalyzer(&ast)
+	analyzer := initAnalyzer(&ast, false)
 	terminalsMapInput := make(map[string]*TerminalList)
 	lhsMapInput := make(map[string]bool)
 	_, _ = analyzer.getAllTerminalsAndLhs("E", &terminalsMapInput, &lhsMapInput)
